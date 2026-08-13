@@ -42,3 +42,8 @@ main = "test_aarch64_fixture.f90"
 name = "test_targetir_sx"
 source-dir = "test"
 main = "test_targetir_sx.f90"
+
+[[test]]
+name = "test_elf64"
+source-dir = "test"
+main = "test_elf64.f90"
