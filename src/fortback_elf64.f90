@@ -11,6 +11,7 @@ module fortback_elf64
     integer(int32), parameter, public :: elf64_capacity = 4_int32
     integer(int32), parameter, public :: elf64_io_error = 5_int32
     integer(int16), parameter, public :: elf64_machine_riscv = 243_int16
+    integer(int16), parameter, public :: elf64_machine_aarch64 = 183_int16
 
     type, public :: elf64_target_t
         type(target_ir_t) :: target
@@ -79,10 +80,16 @@ contains
         integer(int64), intent(in) :: word
 
         validate_input = elf64_invalid_target
-        if (trim(metadata%target%architecture) /= 'riscv64') return
         if (metadata%target%word_bits /= 64_int32) return
         if (.not. metadata%target%little_endian) return
-        if (metadata%machine /= elf64_machine_riscv) return
+        select case (trim(metadata%target%architecture))
+        case ('riscv64')
+            if (metadata%machine /= elf64_machine_riscv) return
+        case ('aarch64')
+            if (metadata%machine /= elf64_machine_aarch64) return
+        case default
+            return
+        end select
         if (.not. source_ref_valid(source)) then
             validate_input = elf64_invalid_source
             return

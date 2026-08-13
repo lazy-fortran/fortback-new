@@ -57,3 +57,8 @@ main = "test_elf64_unit.f90"
 name = "test_riscv_elf64"
 source-dir = "test"
 main = "test_riscv_elf64.f90"
+
+[[test]]
+name = "test_aarch64_elf64"
+source-dir = "test"
+main = "test_aarch64_elf64.f90"
