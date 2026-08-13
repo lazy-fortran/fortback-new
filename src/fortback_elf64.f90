@@ -9,6 +9,7 @@ module fortback_elf64
     integer(int32), parameter, public :: elf64_invalid_source = 2_int32
     integer(int32), parameter, public :: elf64_empty_word = 3_int32
     integer(int32), parameter, public :: elf64_capacity = 4_int32
+    integer(int32), parameter, public :: elf64_io_error = 5_int32
     integer(int16), parameter, public :: elf64_machine_riscv = 243_int16
 
     type, public :: elf64_target_t
@@ -19,6 +20,7 @@ module fortback_elf64
     end type elf64_target_t
 
     public :: write_elf64_object
+    public :: write_elf64_object_to_unit
 
 contains
 
@@ -54,6 +56,22 @@ contains
             116_int8, 97_int8, 98_int8]
         call emit_section_headers(bytes)
     end subroutine write_elf64_object
+
+    subroutine write_elf64_object_to_unit(metadata, source, word, unit, status)
+        type(elf64_target_t), intent(in) :: metadata
+        type(source_ref_t), intent(in) :: source
+        integer(int64), intent(in) :: word
+        integer, intent(in) :: unit
+        integer(int32), intent(out) :: status
+        integer(int8), allocatable :: bytes(:)
+        integer :: io_status
+
+        call write_elf64_object(metadata, source, word, bytes, status)
+        if (status /= elf64_ok) return
+
+        write (unit, iostat=io_status) bytes
+        if (io_status /= 0) status = elf64_io_error
+    end subroutine write_elf64_object_to_unit
 
     integer(int32) function validate_input(metadata, source, word)
         type(elf64_target_t), intent(in) :: metadata
