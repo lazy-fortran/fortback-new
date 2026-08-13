@@ -15,6 +15,7 @@ module fortback_target_ir
         character(len=64) :: artifact = ''
         character(len=64) :: object = ''
         character(len=64) :: source_hash = ''
+        character(len=16) :: origin = ''
     end type source_ref_t
 
     type :: target_ir_t
@@ -26,13 +27,15 @@ module fortback_target_ir
 
 contains
 
-    pure function make_source_ref(artifact, object, source_hash) result(source)
+    pure function make_source_ref(artifact, object, source_hash, origin) result(source)
         character(len=*), intent(in) :: artifact, object, source_hash
+        character(len=*), intent(in), optional :: origin
         type(source_ref_t) :: source
 
         source%artifact = artifact
         source%object = object
         source%source_hash = source_hash
+        if (present(origin)) source%origin = origin
     end function make_source_ref
 
     pure function make_target_ir(architecture, word_bits, little_endian, source) &
@@ -55,6 +58,7 @@ contains
         source_ref_valid = len_trim(source%artifact) > 0
         if (len_trim(source%object) == 0) source_ref_valid = .false.
         if (len_trim(source%source_hash) == 0) source_ref_valid = .false.
+        if (len_trim(source%origin) == 0) source_ref_valid = .false.
     end function source_ref_valid
 
     pure logical function target_ir_valid(target)

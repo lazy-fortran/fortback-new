@@ -7,7 +7,7 @@ program test_target_ir
     type(target_ir_t) :: target
 
     target = make_target_ir('riscv64', 64_int32, .true., &
-        make_source_ref('riscv-opcodes', 'add', 'fixture-sha256'))
+        make_source_ref('riscv-opcodes', 'add', 'fixture-sha256', 'HUMAN'))
     call assert_true(target_ir_valid(target), 'valid target rejected')
     call assert_equal(trim(target%architecture), 'riscv64', &
         'architecture was not retained')
@@ -16,7 +16,7 @@ program test_target_ir
     call assert_true(target%little_endian, 'endianness was not retained')
 
     target = make_target_ir('incomplete', 0_int32, .false., &
-        make_source_ref('fixture', 'target', 'fixture-sha256'))
+        make_source_ref('fixture', 'target', 'fixture-sha256', 'HUMAN'))
     call assert_true(.not. target_ir_valid(target), &
         'zero-width target was accepted')
     call assert_equal_integer(target_ir_word_bytes(target), 0_int32, &

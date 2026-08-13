@@ -1,5 +1,6 @@
 module fortback_riscv_fixture
     use iso_fortran_env, only: int32, int64
+    use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: target_ir_t
     implicit none
     private
@@ -27,12 +28,14 @@ module fortback_riscv_fixture
 
 contains
 
-    subroutine riscv_encode_integer(target, instruction, word, status)
+    subroutine riscv_encode_integer(target, instruction, word, status, records)
         type(target_ir_t), intent(in) :: target
         type(riscv_instruction_t), intent(in) :: instruction
         integer(int64), intent(out) :: word
         integer(int32), intent(out) :: status
-        integer(int64) :: funct7
+        type(riscv_opcode_record_t), intent(in), optional :: records(:)
+        integer :: index
+        integer(int64) :: operands
 
         word = 0_int64
         status = validate_target(target)
@@ -40,40 +43,39 @@ contains
         status = validate_registers(instruction)
         if (status /= riscv_ok) return
 
-        select case (instruction%kind)
-        case (riscv_add)
-            funct7 = 0_int64
-        case (riscv_sub)
-            funct7 = 32_int64
-        case default
-            if (instruction%kind == riscv_addi) then
-                if (instruction%immediate < -2048_int32 .or. &
-                    instruction%immediate > 2047_int32) then
-                    status = riscv_invalid_operand
-                    return
-                end if
-                word = ior(ishft(iand(int(instruction%immediate, int64), &
-                    4095_int64), 20), ishft(int(instruction%rs1, int64), 15))
-                word = ior(word, ishft(int(instruction%rd, int64), 7))
-                word = ior(word, 19_int64)
-                return
-            end if
+        if (.not. present(records)) then
             status = riscv_unsupported
             return
-        end select
-
-        word = ior(ishft(funct7, 25), ishft(int(instruction%rs2, int64), 20))
-        word = ior(word, ishft(int(instruction%rs1, int64), 15))
-        word = ior(word, ishft(int(instruction%rd, int64), 7))
-        word = ior(word, 51_int64)
+        end if
+        index = find_record(instruction%kind, records)
+        if (index == 0) then
+            status = riscv_unsupported
+            return
+        end if
+        if (instruction%kind == riscv_addi .and. (instruction%immediate < -2048_int32 .or. &
+            instruction%immediate > 2047_int32)) then
+            status = riscv_invalid_operand
+            return
+        end if
+        operands = ishft(int(instruction%rd, int64), 7)
+        operands = ior(operands, ishft(int(instruction%rs1, int64), 15))
+        if (instruction%kind == riscv_addi) then
+            operands = ior(operands, ishft(iand(int(instruction%immediate, int64), &
+                4095_int64), 20))
+        else
+            operands = ior(operands, ishft(int(instruction%rs2, int64), 20))
+        end if
+        word = ior(records(index)%match, operands)
     end subroutine riscv_encode_integer
 
-    subroutine riscv_decode_integer(target, word, instruction, status)
+    subroutine riscv_decode_integer(target, word, instruction, status, records)
         type(target_ir_t), intent(in) :: target
         integer(int64), intent(in) :: word
         type(riscv_instruction_t), intent(out) :: instruction
         integer(int32), intent(out) :: status
-        integer(int64) :: opcode, funct3, funct7, immediate
+        type(riscv_opcode_record_t), intent(in), optional :: records(:)
+        integer(int64) :: immediate
+        integer :: index
 
         instruction = riscv_instruction_t()
         status = validate_target(target)
@@ -82,32 +84,59 @@ contains
             status = riscv_malformed
             return
         end if
+        if (.not. present(records)) then
+            status = riscv_unsupported
+            return
+        end if
 
-        opcode = iand(word, 127_int64)
-        funct3 = iand(ishft(word, -12), 7_int64)
         instruction%rd = int(iand(ishft(word, -7), 31_int64), int32)
         instruction%rs1 = int(iand(ishft(word, -15), 31_int64), int32)
-        if (opcode == 51_int64 .and. funct3 == 0_int64) then
-            funct7 = iand(ishft(word, -25), 127_int64)
-            if (funct7 == 0_int64) then
-                instruction%kind = riscv_add
-            else if (funct7 == 32_int64) then
-                instruction%kind = riscv_sub
-            else
-                status = riscv_unsupported
-                return
-            end if
+        index = find_word(word, records)
+        if (index == 0) then
+            status = riscv_unsupported
+            return
+        end if
+        if (records(index)%format == 'R') then
+            if (trim(records(index)%mnemonic) == 'add') instruction%kind = riscv_add
+            if (trim(records(index)%mnemonic) == 'sub') instruction%kind = riscv_sub
             instruction%rs2 = int(iand(ishft(word, -20), 31_int64), int32)
-        else if (opcode == 19_int64 .and. funct3 == 0_int64) then
+        else
             instruction%kind = riscv_addi
             immediate = iand(ishft(word, -20), 4095_int64)
             if (immediate >= 2048_int64) immediate = immediate - 4096_int64
             instruction%immediate = int(immediate, int32)
-        else
-            status = riscv_unsupported
-            return
         end if
     end subroutine riscv_decode_integer
+
+    pure integer function find_record(kind, records)
+        integer(int32), intent(in) :: kind
+        type(riscv_opcode_record_t), intent(in) :: records(:)
+        integer :: i
+
+        find_record = 0
+        do i = 1, size(records)
+            if ((kind == riscv_add .and. trim(records(i)%mnemonic) == 'add') .or. &
+                (kind == riscv_sub .and. trim(records(i)%mnemonic) == 'sub') .or. &
+                (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi')) then
+                find_record = i
+                return
+            end if
+        end do
+    end function find_record
+
+    pure integer function find_word(word, records)
+        integer(int64), intent(in) :: word
+        type(riscv_opcode_record_t), intent(in) :: records(:)
+        integer :: i
+
+        find_word = 0
+        do i = 1, size(records)
+            if (iand(word, records(i)%mask) == records(i)%match) then
+                find_word = i
+                return
+            end if
+        end do
+    end function find_word
 
     pure integer(int32) function validate_target(target)
         type(target_ir_t), intent(in) :: target
