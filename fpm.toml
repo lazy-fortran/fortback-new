@@ -17,3 +17,8 @@ source-dir = "src"
 name = "test_target_ir"
 source-dir = "test"
 main = "test_target_ir.f90"
+
+[[test]]
+name = "test_riscv_fixture"
+source-dir = "test"
+main = "test_riscv_fixture.f90"
