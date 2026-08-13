@@ -177,7 +177,8 @@ contains
         end if
         start = start + len(key)
         finish = start
-        do while (finish <= len(text) .and. text(finish:finish) >= '0' .and. text(finish:finish) <= '9')
+        do while (finish <= len(text))
+            if (text(finish:finish) < '0' .or. text(finish:finish) > '9') exit
             finish = finish + 1
         end do
         if (finish == start) then
