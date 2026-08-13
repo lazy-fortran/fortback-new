@@ -36,7 +36,7 @@ contains
         text = ''
         status = targetir_sx_invalid
         if (.not. valid_target(target)) return
-        if (count < 0 .or. count > size(instructions)) return
+        if (count <= 0 .or. count > size(instructions)) return
         do i = 1, count
             if (.not. valid_instruction(instructions(i))) return
         end do

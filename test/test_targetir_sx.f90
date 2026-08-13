@@ -1,7 +1,7 @@
 program test_targetir_sx
     use fortback_target_ir, only: make_source_ref
-    use fortback_targetir_sx, only: targetir_sx_instruction_t, targetir_sx_ok, &
-        targetir_sx_target_t, validate_targetir_v0, write_targetir_v0
+    use fortback_targetir_sx, only: targetir_sx_instruction_t, targetir_sx_invalid, &
+        targetir_sx_ok, targetir_sx_target_t, validate_targetir_v0, write_targetir_v0
     implicit none
 
     character(len=2048) :: text
@@ -25,6 +25,10 @@ program test_targetir_sx
     call assert_true(validate_targetir_v0(trim(text)), 'canonical witness was rejected')
     call assert_contains(trim(text), '(instruction (name add)', 'add was not emitted')
     call assert_contains(trim(text), '(source-hash fixture)', 'source hash was not emitted')
+
+    call write_targetir_v0(target, instructions, 0, text, status)
+    call assert_equal(status, targetir_sx_invalid, 'empty handoff was accepted')
+    call assert_true(len_trim(text) == 0, 'empty handoff emitted self-invalid SX')
 
     call assert_true(.not. validate_targetir_v0( &
         replace(trim(text), 'authoritative-machine-readable', 'IMPORTED')), &
