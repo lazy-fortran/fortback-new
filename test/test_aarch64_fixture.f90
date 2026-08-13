@@ -13,6 +13,8 @@ program test_aarch64_fixture
     type(aarch64_encoding_record_t) :: records(2)
     integer(int32) :: count, status
     integer(int64) :: word
+    integer(int64), parameter :: add_word = int(z'9100416A', int64)
+    integer(int64), parameter :: sub_word = int(z'D1048C62', int64)
     character(len=*), parameter :: add = &
         '{"_type":"Instruction.Instruction","name":"ADD_64_addsub_imm",' // &
         '"operation_id":"ADD_addsub_imm","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
@@ -48,25 +50,37 @@ program test_aarch64_fixture
     instruction = aarch64_instruction_t(aarch64_add, 10_int32, 11_int32, 16_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_ok, 'ADD was rejected')
-    call assert64(word, int(z'9100416A', int64), 'ADD fixed encoding changed')
-    call check_decode(word, instruction, 'ADD decode')
+    call assert64(word, add_word, 'ADD fixed encoding changed')
+    call check_decode(add_word, instruction, 'ADD fixed word decode')
+    call check_decode(word, instruction, 'ADD encode/decode round trip')
 
     instruction = aarch64_instruction_t(aarch64_sub, 2_int32, 3_int32, int(z'123', int32))
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_ok, 'SUB was rejected')
-    call assert64(word, int(z'D1048C62', int64), 'SUB fixed encoding changed')
-    call check_decode(word, instruction, 'SUB decode')
+    call assert64(word, sub_word, 'SUB fixed encoding changed')
+    call check_decode(sub_word, instruction, 'SUB fixed word decode')
+    call check_decode(word, instruction, 'SUB encode/decode round trip')
 
     instruction%rd = 32_int32
     call aarch64_encode_fixed(target, instruction, word, status, records)
-    call assert_int(status, aarch64_invalid_operand, 'invalid register accepted')
+    call assert_int(status, aarch64_invalid_operand, 'invalid destination register accepted')
+    instruction%rd = 2_int32
+    instruction%rn = 32_int32
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_operand, 'invalid source register accepted')
+    instruction%rn = 3_int32
     instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 4096_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_invalid_operand, 'wide immediate accepted')
+    instruction = aarch64_instruction_t(99_int32, 1_int32, 2_int32, 0_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_unsupported, 'wrong opcode accepted')
     call aarch64_decode_fixed(target, int(z'100000000', int64), decoded, status, records)
     call assert_int(status, aarch64_malformed, 'wide word accepted')
     call aarch64_decode_fixed(target, int(z'14000000', int64), decoded, status, records)
     call assert_int(status, aarch64_unsupported, 'unsupported word accepted')
+    call aarch64_decode_fixed(target, int(z'9140416A', int64), decoded, status, records)
+    call assert_int(status, aarch64_unsupported, 'shifted word accepted')
     instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 0_int32)
     call aarch64_encode_fixed(target, instruction, word, status)
     call assert_int(status, aarch64_unsupported, 'missing records accepted')

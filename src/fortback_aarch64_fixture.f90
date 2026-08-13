@@ -13,6 +13,7 @@ module fortback_aarch64_fixture
     integer(int32), parameter, public :: aarch64_invalid_operand = 2_int32
     integer(int32), parameter, public :: aarch64_unsupported = 3_int32
     integer(int32), parameter, public :: aarch64_malformed = 4_int32
+    integer(int64), parameter :: aarch64_addsub_shift_bit = int(z'00400000', int64)
 
     type, public :: aarch64_instruction_t
         integer(int32) :: kind = 0_int32
@@ -77,6 +78,10 @@ contains
         end if
         index = find_word(word, records)
         if (index == 0) then
+            status = aarch64_unsupported
+            return
+        end if
+        if (iand(word, aarch64_addsub_shift_bit) /= 0_int64) then
             status = aarch64_unsupported
             return
         end if
