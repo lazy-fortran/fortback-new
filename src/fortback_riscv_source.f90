@@ -165,23 +165,27 @@ contains
         integer :: i, digit
 
         digits = adjustl(token)
-        if (len_trim(digits) > 2 .and. digits(1:2) == '0x') then
-            value = 0_int64
-            status = riscv_source_ok
-            do i = 3, len_trim(digits)
-                select case (digits(i:i))
-                case ('0':'9')
-                    digit = iachar(digits(i:i)) - iachar('0')
-                case ('a':'f')
-                    digit = iachar(digits(i:i)) - iachar('a') + 10
-                case ('A':'F')
-                    digit = iachar(digits(i:i)) - iachar('A') + 10
-                case default
-                    status = riscv_source_malformed
-                    return
-                end select
-                value = 16_int64 * value + int(digit, int64)
-            end do
+        if (len_trim(digits) > 2) then
+            if (digits(1:2) == '0x') then
+                value = 0_int64
+                status = riscv_source_ok
+                do i = 3, len_trim(digits)
+                    select case (digits(i:i))
+                    case ('0':'9')
+                        digit = iachar(digits(i:i)) - iachar('0')
+                    case ('a':'f')
+                        digit = iachar(digits(i:i)) - iachar('a') + 10
+                    case ('A':'F')
+                        digit = iachar(digits(i:i)) - iachar('A') + 10
+                    case default
+                        status = riscv_source_malformed
+                        return
+                    end select
+                    value = 16_int64 * value + int(digit, int64)
+                end do
+            else
+                read(digits, *, iostat=status) value
+            end if
         else
             read(digits, *, iostat=status) value
         end if
