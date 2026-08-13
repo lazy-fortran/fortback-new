@@ -104,7 +104,7 @@ contains
         call put_u64(bytes, 177, 64_int64)
         call put_u64(bytes, 185, 4_int64)
         call put_u64(bytes, 201, 4_int64)
-        call put_u32(bytes, 217, 11_int32)
+        call put_u32(bytes, 217, 7_int32)
         call put_u32(bytes, 221, 3_int32)
         call put_u64(bytes, 241, 68_int64)
         call put_u64(bytes, 249, 16_int64)

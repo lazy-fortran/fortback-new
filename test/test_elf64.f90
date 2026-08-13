@@ -66,7 +66,7 @@ contains
         call assert_byte(bytes, 177, 64, 'text section offset')
         call assert_byte(bytes, 185, 4, 'text section size')
         call assert_byte(bytes, 201, 4, 'text section alignment')
-        call assert_byte(bytes, 217, 11, 'string section name')
+        call assert_byte(bytes, 217, 7, 'string section name')
         call assert_byte(bytes, 221, 3, 'string section type')
         call assert_byte(bytes, 241, 68, 'string section offset')
         call assert_byte(bytes, 249, 16, 'string section size')
