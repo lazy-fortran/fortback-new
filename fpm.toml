@@ -1,0 +1,19 @@
+name = "fortback-new"
+version = "0.1.0"
+license = "MIT"
+author = "Lazy Fortran contributors"
+maintainer = "albert@tugraz.at"
+copyright = "Copyright 2026, Lazy Fortran contributors"
+
+[build]
+auto-executables = false
+auto-tests = false
+auto-examples = false
+
+[library]
+source-dir = "src"
+
+[[test]]
+name = "test_target_ir"
+source-dir = "test"
+main = "test_target_ir.f90"
