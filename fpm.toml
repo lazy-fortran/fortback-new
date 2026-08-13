@@ -34,6 +34,11 @@ source-dir = "test"
 main = "test_aarch64_source.f90"
 
 [[test]]
+name = "test_aarch64_fixture"
+source-dir = "test"
+main = "test_aarch64_fixture.f90"
+
+[[test]]
 name = "test_targetir_sx"
 source-dir = "test"
 main = "test_targetir_sx.f90"
