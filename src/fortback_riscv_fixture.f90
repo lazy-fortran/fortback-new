@@ -8,6 +8,7 @@ module fortback_riscv_fixture
     integer(int32), parameter, public :: riscv_add = 1_int32
     integer(int32), parameter, public :: riscv_sub = 2_int32
     integer(int32), parameter, public :: riscv_addi = 3_int32
+    integer(int32), parameter, public :: riscv_and = 4_int32
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -99,6 +100,7 @@ contains
         if (records(index)%format == 'R') then
             if (trim(records(index)%mnemonic) == 'add') instruction%kind = riscv_add
             if (trim(records(index)%mnemonic) == 'sub') instruction%kind = riscv_sub
+            if (trim(records(index)%mnemonic) == 'and') instruction%kind = riscv_and
             instruction%rs2 = int(iand(ishft(word, -20), 31_int64), int32)
         else
             instruction%kind = riscv_addi
@@ -117,6 +119,7 @@ contains
         do i = 1, size(records)
             if ((kind == riscv_add .and. trim(records(i)%mnemonic) == 'add') .or. &
                 (kind == riscv_sub .and. trim(records(i)%mnemonic) == 'sub') .or. &
+                (kind == riscv_and .and. trim(records(i)%mnemonic) == 'and') .or. &
                 (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi')) then
                 find_record = i
                 return
@@ -154,7 +157,8 @@ contains
         validate_registers = riscv_invalid_operand
         if (instruction%rd < 0_int32 .or. instruction%rd > 31_int32) return
         if (instruction%rs1 < 0_int32 .or. instruction%rs1 > 31_int32) return
-        if (instruction%kind == riscv_add .or. instruction%kind == riscv_sub) then
+        if (instruction%kind == riscv_add .or. instruction%kind == riscv_sub .or. &
+            instruction%kind == riscv_and) then
             if (instruction%rs2 < 0_int32 .or. instruction%rs2 > 31_int32) return
         end if
         validate_registers = riscv_ok
