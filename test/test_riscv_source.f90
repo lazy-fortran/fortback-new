@@ -14,11 +14,12 @@ program test_riscv_source
         'sra rd rs1 rs2 31..25=0x20 14..12=5 6..2=0x0C 1..0=3' // new_line('a') // &
         'slli rd rs1 shamt 31..26=0 14..12=1 6..2=0x04 1..0=3' // new_line('a') // &
         'srli rd rs1 shamt 31..26=0 14..12=5 6..2=0x04 1..0=3' // new_line('a') // &
+        'srai rd rs1 shamt 31..26=0x10 14..12=5 6..2=0x04 1..0=3' // new_line('a') // &
         'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3' // new_line('a') // &
         'ori rd rs1 imm12 14..12=6 6..2=0x04 1..0=3' // new_line('a') // &
         'andi rd rs1 imm12 14..12=7 6..2=0x04 1..0=3'
     type(source_ref_t) :: source
-    type(riscv_opcode_record_t) :: records(11)
+    type(riscv_opcode_record_t) :: records(12)
     integer(int32) :: count, status
 
     source = make_source_ref('riscv-opcodes', 'rv_i', &
@@ -26,7 +27,7 @@ program test_riscv_source
         'IMPORTED')
     call import_riscv_opcodes(source_text, source, records, count, status)
     call assert_equal_int(status, riscv_source_ok, 'canonical witness rejected')
-    call assert_equal_int(count, 11_int32, 'bounded importer changed record count')
+    call assert_equal_int(count, 12_int32, 'bounded importer changed record count')
     call assert_equal(trim(records(1)%mnemonic), 'add', 'add was not normalized')
     call assert_equal(trim(records(2)%mnemonic), 'sub', 'sub was not normalized')
     call assert_equal(trim(records(3)%mnemonic), 'or', 'or was not normalized')
@@ -35,9 +36,10 @@ program test_riscv_source
     call assert_equal(trim(records(6)%mnemonic), 'sra', 'sra was not normalized')
     call assert_equal(trim(records(7)%mnemonic), 'slli', 'slli was not normalized')
     call assert_equal(trim(records(8)%mnemonic), 'srli', 'srli was not normalized')
-    call assert_equal(trim(records(9)%mnemonic), 'addi', 'addi was not normalized')
-    call assert_equal(trim(records(10)%mnemonic), 'ori', 'ori was not normalized')
-    call assert_equal(trim(records(11)%mnemonic), 'andi', 'andi was not normalized')
+    call assert_equal(trim(records(9)%mnemonic), 'srai', 'srai was not normalized')
+    call assert_equal(trim(records(10)%mnemonic), 'addi', 'addi was not normalized')
+    call assert_equal(trim(records(11)%mnemonic), 'ori', 'ori was not normalized')
+    call assert_equal(trim(records(12)%mnemonic), 'andi', 'andi was not normalized')
     call assert_equal64(records(1)%match, int(z'00000033', int64), 'add match changed')
     call assert_equal64(records(2)%match, int(z'40000033', int64), 'sub match changed')
     call assert_equal64(records(3)%match, int(z'00006033', int64), 'or match changed')
@@ -46,9 +48,10 @@ program test_riscv_source
     call assert_equal64(records(6)%match, int(z'40005033', int64), 'sra match changed')
     call assert_equal64(records(7)%match, int(z'00001013', int64), 'slli match changed')
     call assert_equal64(records(8)%match, int(z'00005013', int64), 'srli match changed')
-    call assert_equal64(records(9)%match, int(z'00000013', int64), 'addi match changed')
-    call assert_equal64(records(10)%match, int(z'00006013', int64), 'ori match changed')
-    call assert_equal64(records(11)%match, int(z'00007013', int64), 'andi match changed')
+    call assert_equal64(records(9)%match, int(z'40005013', int64), 'srai match changed')
+    call assert_equal64(records(10)%match, int(z'00000013', int64), 'addi match changed')
+    call assert_equal64(records(11)%match, int(z'00006013', int64), 'ori match changed')
+    call assert_equal64(records(12)%match, int(z'00007013', int64), 'andi match changed')
     call assert_equal64(records(1)%mask, int(z'FE00707F', int64), 'add mask changed')
     call assert_equal64(records(3)%mask, int(z'FE00707F', int64), 'or mask changed')
     call assert_equal64(records(4)%mask, int(z'FE00707F', int64), 'xor mask changed')
@@ -56,9 +59,10 @@ program test_riscv_source
     call assert_equal64(records(6)%mask, int(z'FE00707F', int64), 'sra mask changed')
     call assert_equal64(records(7)%mask, int(z'FC00707F', int64), 'slli mask changed')
     call assert_equal64(records(8)%mask, int(z'FC00707F', int64), 'srli mask changed')
-    call assert_equal64(records(9)%mask, int(z'0000707F', int64), 'addi mask changed')
-    call assert_equal64(records(10)%mask, int(z'0000707F', int64), 'ori mask changed')
-    call assert_equal64(records(11)%mask, int(z'0000707F', int64), 'andi mask changed')
+    call assert_equal64(records(9)%mask, int(z'FC00707F', int64), 'srai mask changed')
+    call assert_equal64(records(10)%mask, int(z'0000707F', int64), 'addi mask changed')
+    call assert_equal64(records(11)%mask, int(z'0000707F', int64), 'ori mask changed')
+    call assert_equal64(records(12)%mask, int(z'0000707F', int64), 'andi mask changed')
     call assert_equal(trim(records(1)%source%artifact), 'riscv-opcodes', &
         'artifact provenance was lost')
     call assert_equal(trim(records(1)%source%object), 'rv_i', 'object provenance was lost')
@@ -101,28 +105,44 @@ program test_riscv_source
     call assert_equal(trim(records(8)%source%origin), trim(source%origin), &
         'srli source origin provenance was lost')
     call assert_equal(trim(records(9)%source%artifact), trim(source%artifact), &
-        'ori source artifact provenance was lost')
+        'srai source artifact provenance was lost')
     call assert_equal(trim(records(9)%source%object), trim(source%object), &
-        'ori source object provenance was lost')
+        'srai source object provenance was lost')
     call assert_equal(trim(records(9)%source%source_hash), trim(source%source_hash), &
-        'ori source hash provenance was lost')
+        'srai source hash provenance was lost')
     call assert_equal(trim(records(9)%source%origin), trim(source%origin), &
-        'ori source origin provenance was lost')
+        'srai source origin provenance was lost')
+    call assert_equal(trim(records(10)%source%artifact), trim(source%artifact), &
+        'addi source artifact provenance was lost')
+    call assert_equal(trim(records(10)%source%object), trim(source%object), &
+        'addi source object provenance was lost')
+    call assert_equal(trim(records(10)%source%source_hash), trim(source%source_hash), &
+        'addi source hash provenance was lost')
+    call assert_equal(trim(records(10)%source%origin), trim(source%origin), &
+        'addi source origin provenance was lost')
     call assert_equal(trim(records(11)%source%artifact), trim(source%artifact), &
-        'andi source artifact provenance was lost')
+        'ori source artifact provenance was lost')
     call assert_equal(trim(records(11)%source%object), trim(source%object), &
-        'andi source object provenance was lost')
+        'ori source object provenance was lost')
     call assert_equal(trim(records(11)%source%source_hash), trim(source%source_hash), &
-        'andi source hash provenance was lost')
+        'ori source hash provenance was lost')
     call assert_equal(trim(records(11)%source%origin), trim(source%origin), &
+        'ori source origin provenance was lost')
+    call assert_equal(trim(records(12)%source%artifact), trim(source%artifact), &
+        'andi source artifact provenance was lost')
+    call assert_equal(trim(records(12)%source%object), trim(source%object), &
+        'andi source object provenance was lost')
+    call assert_equal(trim(records(12)%source%source_hash), trim(source%source_hash), &
+        'andi source hash provenance was lost')
+    call assert_equal(trim(records(12)%source%origin), trim(source%origin), &
         'andi source origin provenance was lost')
     call assert_equal(trim(records(1)%source%origin), 'IMPORTED', 'origin was lost')
-    call import_riscv_opcodes('srli rd rs1 shamt 25..31=0 14..12=5 6..2=0x04 1..0=3', &
+    call import_riscv_opcodes('srai rd rs1 shamt 25..31=0 14..12=5 6..2=0x04 1..0=3', &
         source, records, count, status)
-    call assert_equal_int(status, riscv_source_malformed, 'malformed SRLI accepted')
-    call import_riscv_opcodes('srai rd rs1 shamt 31..26=0 14..12=5 6..2=0x04 1..0=3', &
+    call assert_equal_int(status, riscv_source_malformed, 'malformed SRAI accepted')
+    call import_riscv_opcodes('custom rd rs1 shamt 31..26=0x10 14..12=5 6..2=0x04 1..0=3', &
         source, records, count, status)
-    call assert_equal_int(status, riscv_source_unsupported, 'unsupported SRLI record accepted')
+    call assert_equal_int(status, riscv_source_unsupported, 'unsupported record accepted')
     write (*, '(a)') 'RISC-V source importer checks: ok'
 
 contains

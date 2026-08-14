@@ -17,6 +17,7 @@ module fortback_riscv_fixture
     integer(int32), parameter, public :: riscv_sra = 10_int32
     integer(int32), parameter, public :: riscv_slli = 11_int32
     integer(int32), parameter, public :: riscv_srli = 12_int32
+    integer(int32), parameter, public :: riscv_srai = 13_int32
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -61,7 +62,8 @@ contains
             status = riscv_unsupported
             return
         end if
-        if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli) then
+        if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli .or. &
+            instruction%kind == riscv_srai) then
             if (instruction%immediate < 0_int32 .or. &
                 instruction%immediate > 63_int32) then
                 status = riscv_invalid_operand
@@ -80,8 +82,9 @@ contains
         operands = ior(operands, ishft(int(instruction%rs1, int64), 15))
         if (instruction%kind == riscv_addi .or. instruction%kind == riscv_ori .or. &
             instruction%kind == riscv_andi .or. instruction%kind == riscv_slli .or. &
-            instruction%kind == riscv_srli) then
-            if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli) then
+            instruction%kind == riscv_srli .or. instruction%kind == riscv_srai) then
+            if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli .or. &
+                instruction%kind == riscv_srai) then
                 operands = ior(operands, ishft(iand(int(instruction%immediate, int64), &
                     63_int64), 20))
             else
@@ -141,6 +144,9 @@ contains
             else if (trim(records(index)%mnemonic) == 'srli') then
                 instruction%kind = riscv_srli
                 immediate = iand(ishft(word, -20), 63_int64)
+            else if (trim(records(index)%mnemonic) == 'srai') then
+                instruction%kind = riscv_srai
+                immediate = iand(ishft(word, -20), 63_int64)
             else
                 immediate = iand(ishft(word, -20), 4095_int64)
                 if (immediate >= 2048_int64) immediate = immediate - 4096_int64
@@ -165,6 +171,7 @@ contains
                 (kind == riscv_sra .and. trim(records(i)%mnemonic) == 'sra') .or. &
                 (kind == riscv_slli .and. trim(records(i)%mnemonic) == 'slli') .or. &
                 (kind == riscv_srli .and. trim(records(i)%mnemonic) == 'srli') .or. &
+                (kind == riscv_srai .and. trim(records(i)%mnemonic) == 'srai') .or. &
                 (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi') .or. &
                 (kind == riscv_ori .and. trim(records(i)%mnemonic) == 'ori') .or. &
                 (kind == riscv_andi .and. trim(records(i)%mnemonic) == 'andi')) then
