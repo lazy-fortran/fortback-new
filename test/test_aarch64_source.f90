@@ -17,7 +17,10 @@ program test_aarch64_source
         '"value":"0"}},{"_type":"Instruction.Encodeset.Bits","range":{"_type":"Range",' // &
         '"start":26,"width":3},"value":{"_type":"Values.Value","value":"100"}},{"_type":' // &
         '"Instruction.Encodeset.Bits","range":{"_type":"Range","start":23,"width":3},' // &
-        '"value":{"_type":"Values.Value","value":"010"}}]}}'
+        '"value":{"_type":"Values.Value","value":"010"}},' // &
+        '{"_type":"Instruction.Encodeset.Bits","range":{"_type":"Range",' // &
+        '"start":0,"width":23},"value":{"_type":"Values.Value",' // &
+        '"value":"xxxxxxxxxxxxxxxxxxxxxxx"}}]}}'
     character(len=*), parameter :: sub = &
         '{"_type":"Instruction.Instruction","name":"SUB_64_addsub_imm",' // &
         '"operation_id":"SUB_addsub_imm","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
@@ -29,7 +32,10 @@ program test_aarch64_source
         '"value":"0"}},{"_type":"Instruction.Encodeset.Bits","range":{"_type":"Range",' // &
         '"start":26,"width":3},"value":{"_type":"Values.Value","value":"100"}},{"_type":' // &
         '"Instruction.Encodeset.Bits","range":{"_type":"Range","start":23,"width":3},' // &
-        '"value":{"_type":"Values.Value","value":"010"}}]}}'
+        '"value":{"_type":"Values.Value","value":"010"}},' // &
+        '{"_type":"Instruction.Encodeset.Bits","range":{"_type":"Range",' // &
+        '"start":0,"width":23},"value":{"_type":"Values.Value",' // &
+        '"value":"xxxxxxxxxxxxxxxxxxxxxxx"}}]}}'
     character(len=*), parameter :: nop = &
         '{"_type":"Instruction.Instruction","name":"NOP_HI_hints",' // &
         '"operation_id":"NOP_hints","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
@@ -73,9 +79,16 @@ program test_aarch64_source
     call assert_int(records(1)%width, 32_int32, 'encoding width was not retained')
     call assert64(records(1)%match, int(z'91000000', int64), 'ADD match changed')
     call assert64(records(1)%mask, int(z'FF800000', int64), 'ADD mask changed')
+    call assert_int(records(1)%variable_range_count, 1_int32, 'ADD variable range lost')
+    call assert_int(records(1)%variable_ranges(1)%start, 0_int32, 'ADD variable range start changed')
+    call assert_int(records(1)%variable_ranges(1)%width, 23_int32, 'ADD variable range width changed')
     call assert64(records(2)%match, int(z'D1000000', int64), 'SUB match changed')
+    call assert_int(records(2)%variable_range_count, 1_int32, 'SUB variable range lost')
+    call assert_int(records(2)%variable_ranges(1)%start, 0_int32, 'SUB variable range start changed')
+    call assert_int(records(2)%variable_ranges(1)%width, 23_int32, 'SUB variable range width changed')
     call assert64(records(3)%match, int(z'D503201F', int64), 'NOP match changed')
     call assert64(records(3)%mask, int(z'FFFFFFFF', int64), 'NOP mask changed')
+    call assert_int(records(3)%variable_range_count, 0_int32, 'NOP acquired variable ranges')
     call assert_equal(trim(records(4)%name), 'ADR_only_pcreladdr', 'ADR was not normalized')
     call assert64(records(4)%match, int(z'10000000', int64), 'ADR match changed')
     call assert64(records(4)%mask, int(z'9F000000', int64), 'ADR mask changed')
@@ -126,6 +139,13 @@ program test_aarch64_source
     call import_aarch64_instructions(substitute(nop, '11010101000000110010000000011111', &
         '1101010100000011001000000001111'), source, records, count, status)
     call assert_int(status, aarch64_source_malformed, 'partial NOP encoding accepted')
+    call import_aarch64_instructions(substitute(add, '"start":31', '"start":30'), &
+        source, records, count, status)
+    call assert_int(status, aarch64_source_malformed, 'overlapping fields accepted')
+    call import_aarch64_instructions(substitute(nop, '"start":0,"width":32', &
+        '"start":1,"width":32'), &
+        source, records, count, status)
+    call assert_int(status, aarch64_source_malformed, 'out-of-range field accepted')
     write (*, '(a)') 'AArch64 source importer checks: ok'
 
 contains

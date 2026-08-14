@@ -8,6 +8,12 @@ module fortback_aarch64_source
     integer(int32), parameter, public :: aarch64_source_malformed = 1_int32
     integer(int32), parameter, public :: aarch64_source_unsupported = 2_int32
     integer(int32), parameter, public :: aarch64_source_capacity = 3_int32
+    integer(int32), parameter, public :: aarch64_variable_range_capacity = 32_int32
+
+    type, public :: aarch64_variable_range_t
+        integer(int32) :: start = 0_int32
+        integer(int32) :: width = 0_int32
+    end type aarch64_variable_range_t
 
     type, public :: aarch64_encoding_record_t
         character(len=32) :: name = ''
@@ -15,6 +21,8 @@ module fortback_aarch64_source
         integer(int32) :: width = 0_int32
         integer(int64) :: match = 0_int64
         integer(int64) :: mask = 0_int64
+        integer(int32) :: variable_range_count = 0_int32
+        type(aarch64_variable_range_t) :: variable_ranges(aarch64_variable_range_capacity)
         type(target_ir_t) :: target
         type(source_ref_t) :: source
     end type aarch64_encoding_record_t
@@ -73,6 +81,7 @@ contains
         integer(int32), intent(out) :: status
         integer :: cursor, start_bit, width, next, end_quote
         character(len=64) :: value
+        integer(int64) :: occupied
         logical :: found
 
         record = aarch64_encoding_record_t()
@@ -94,6 +103,7 @@ contains
         if (cursor == 0) return
         cursor = cursor + len('"values":[')
         found = .false.
+        occupied = 0_int64
         do
             next = index(line(cursor:), '"range":{"_type":"Range","start":')
             if (next == 0) exit
@@ -109,7 +119,7 @@ contains
             value(1:end_quote - 1) = line(cursor:cursor + end_quote - 2)
             if (len_trim(value) /= width .or. start_bit < 0 .or. width <= 0 .or. &
                 start_bit + width > 32) return
-            call add_bits(value(1:len_trim(value)), start_bit, record, found, status)
+            call add_bits(value(1:len_trim(value)), start_bit, record, occupied, found, status)
             if (status /= aarch64_source_ok) return
             cursor = cursor + end_quote
         end do
@@ -119,20 +129,36 @@ contains
         status = aarch64_source_ok
     end subroutine parse_record
 
-    subroutine add_bits(value, start_bit, record, found, status)
+    subroutine add_bits(value, start_bit, record, occupied, found, status)
         character(len=*), intent(in) :: value
         integer, intent(in) :: start_bit
         type(aarch64_encoding_record_t), intent(inout) :: record
+        integer(int64), intent(inout) :: occupied
         logical, intent(inout) :: found
         integer(int32), intent(out) :: status
         integer :: i, bit
         integer(int64) :: bit_mask
+        logical :: has_fixed, has_variable
 
         status = aarch64_source_malformed
+        has_fixed = .false.
+        has_variable = .false.
+        do i = 1, len(value)
+            select case (value(i:i))
+            case ('0', '1')
+                has_fixed = .true.
+            case ('x')
+                has_variable = .true.
+            case default
+                return
+            end select
+        end do
+        if (has_fixed .and. has_variable) return
         do i = 1, len(value)
             bit = start_bit + len(value) - i
             bit_mask = ishft(1_int64, bit)
-            if (iand(record%mask, bit_mask) /= 0_int64) return
+            if (iand(occupied, bit_mask) /= 0_int64) return
+            occupied = ior(occupied, bit_mask)
             select case (value(i:i))
             case ('0')
                 record%mask = ior(record%mask, bit_mask)
@@ -141,10 +167,17 @@ contains
                 record%match = ior(record%match, bit_mask)
             case ('x')
                 continue
-            case default
-                return
             end select
         end do
+        if (has_variable) then
+            if (record%variable_range_count >= aarch64_variable_range_capacity) then
+                status = aarch64_source_capacity
+                return
+            end if
+            record%variable_range_count = record%variable_range_count + 1_int32
+            record%variable_ranges(record%variable_range_count)%start = start_bit
+            record%variable_ranges(record%variable_range_count)%width = len(value)
+        end if
         found = .true.
         status = aarch64_source_ok
     end subroutine add_bits
