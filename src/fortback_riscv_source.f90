@@ -117,7 +117,8 @@ contains
             trim(tokens(1)) /= 'or' .and. &
             trim(tokens(1)) /= 'xor' .and. &
             trim(tokens(1)) /= 'sll' .and. &
-            trim(tokens(1)) /= 'addi') then
+            trim(tokens(1)) /= 'addi' .and. &
+            trim(tokens(1)) /= 'ori') then
             status = riscv_source_unsupported
             return
         end if
@@ -127,7 +128,7 @@ contains
             status = riscv_source_malformed
             return
         end if
-        if (trim(tokens(1)) == 'addi') then
+        if (trim(tokens(1)) == 'addi' .or. trim(tokens(1)) == 'ori') then
             record%format = 'I'
         else
             record%format = 'R'

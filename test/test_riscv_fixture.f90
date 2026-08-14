@@ -7,14 +7,14 @@ program test_riscv_fixture
         riscv_decode_integer, &
         riscv_encode_integer, riscv_instruction_t, riscv_invalid_operand, &
         riscv_invalid_target, riscv_malformed, riscv_ok, riscv_or, riscv_sub, &
-        riscv_sll, riscv_unsupported, riscv_xor
+        riscv_ori, riscv_sll, riscv_unsupported, riscv_xor
     implicit none
 
     type(target_ir_t) :: target, bad_target
     type(riscv_instruction_t) :: instruction, decoded
     integer(int64) :: word
     integer(int32) :: count, status
-    type(riscv_opcode_record_t) :: records(7)
+    type(riscv_opcode_record_t) :: records(8)
     ! Fixed witness for the pinned rv_i object; no upstream payload is vendored.
     character(len=*), parameter :: source_text = &
         'add rd rs1 rs2 31..25=0 14..12=0 6..2=0x0C 1..0=3' // new_line('a') // &
@@ -23,7 +23,8 @@ program test_riscv_fixture
         'or rd rs1 rs2 31..25=0 14..12=6 6..2=0x0C 1..0=3' // new_line('a') // &
         'xor rd rs1 rs2 31..25=0 14..12=4 6..2=0x0C 1..0=3' // new_line('a') // &
         'sll rd rs1 rs2 31..25=0 14..12=1 6..2=0x0C 1..0=3' // new_line('a') // &
-        'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3' // new_line('a')
+        'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3' // new_line('a') // &
+        'ori rd rs1 imm12 14..12=6 6..2=0x04 1..0=3'
 
     target = make_target_ir('riscv64', 64_int32, .true., &
         make_source_ref('riscv-opcodes', 'rv_i', &
@@ -32,7 +33,7 @@ program test_riscv_fixture
 
     call import_riscv_opcodes(source_text, target%source, records, count, status)
     call assert_equal_integer(status, riscv_source_ok, 'source records were rejected')
-    call assert_equal_integer(count, 7_int32, 'source record count changed')
+    call assert_equal_integer(count, 8_int32, 'source record count changed')
 
     instruction = riscv_instruction_t(riscv_add, 10_int32, 10_int32, 11_int32, 0_int32)
     call riscv_encode_integer(target, instruction, word, status, records)
@@ -74,6 +75,12 @@ program test_riscv_fixture
     call assert_equal_integer64(word, int(z'FFF50513', int64), 'addi encoding changed')
     call check_decode(target, word, instruction, 'addi decode')
 
+    instruction = riscv_instruction_t(riscv_ori, 10_int32, 10_int32, 0_int32, -1_int32)
+    call riscv_encode_integer(target, instruction, word, status, records)
+    call assert_equal_integer(status, riscv_ok, 'ori was rejected')
+    call assert_equal_integer64(word, int(z'FFF56513', int64), 'ori encoding changed')
+    call check_decode(target, word, instruction, 'ori decode')
+
     instruction%rd = 32_int32
     call riscv_encode_integer(target, instruction, word, status, records)
     call assert_equal_integer(status, riscv_invalid_operand, 'invalid register accepted')
@@ -92,6 +99,9 @@ program test_riscv_fixture
     instruction = riscv_instruction_t(riscv_addi, 1_int32, 1_int32, 0_int32, 2048_int32)
     call riscv_encode_integer(target, instruction, word, status, records)
     call assert_equal_integer(status, riscv_invalid_operand, 'wide immediate accepted')
+    instruction = riscv_instruction_t(riscv_ori, 1_int32, 1_int32, 0_int32, -2049_int32)
+    call riscv_encode_integer(target, instruction, word, status, records)
+    call assert_equal_integer(status, riscv_invalid_operand, 'wide ori immediate accepted')
 
     call riscv_decode_integer(target, int(z'00001013', int64), decoded, status, records)
     call assert_equal_integer(status, riscv_unsupported, 'unsupported instruction accepted')
