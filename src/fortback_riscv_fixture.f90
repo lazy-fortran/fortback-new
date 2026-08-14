@@ -19,6 +19,7 @@ module fortback_riscv_fixture
     integer(int32), parameter, public :: riscv_srli = 12_int32
     integer(int32), parameter, public :: riscv_srai = 13_int32
     integer(int32), parameter, public :: riscv_slti = 14_int32
+    integer(int32), parameter, public :: riscv_sltiu = 15_int32
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -73,7 +74,8 @@ contains
         else if (instruction%kind == riscv_addi .or. &
                 instruction%kind == riscv_ori .or. &
                 instruction%kind == riscv_andi .or. &
-                instruction%kind == riscv_slti) then
+                instruction%kind == riscv_slti .or. &
+                instruction%kind == riscv_sltiu) then
             if (instruction%immediate < -2048_int32 .or. &
                 instruction%immediate > 2047_int32) then
                 status = riscv_invalid_operand
@@ -84,6 +86,7 @@ contains
         operands = ior(operands, ishft(int(instruction%rs1, int64), 15))
         if (instruction%kind == riscv_addi .or. instruction%kind == riscv_ori .or. &
             instruction%kind == riscv_andi .or. instruction%kind == riscv_slti .or. &
+            instruction%kind == riscv_sltiu .or. &
             instruction%kind == riscv_slli .or. &
             instruction%kind == riscv_srli .or. instruction%kind == riscv_srai) then
             if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli .or. &
@@ -142,6 +145,7 @@ contains
             if (trim(records(index)%mnemonic) == 'ori') instruction%kind = riscv_ori
             if (trim(records(index)%mnemonic) == 'andi') instruction%kind = riscv_andi
             if (trim(records(index)%mnemonic) == 'slti') instruction%kind = riscv_slti
+            if (trim(records(index)%mnemonic) == 'sltiu') instruction%kind = riscv_sltiu
             if (trim(records(index)%mnemonic) == 'slli') then
                 instruction%kind = riscv_slli
                 immediate = iand(ishft(word, -20), 63_int64)
@@ -179,7 +183,8 @@ contains
                 (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi') .or. &
                 (kind == riscv_ori .and. trim(records(i)%mnemonic) == 'ori') .or. &
                 (kind == riscv_andi .and. trim(records(i)%mnemonic) == 'andi') .or. &
-                (kind == riscv_slti .and. trim(records(i)%mnemonic) == 'slti')) then
+                (kind == riscv_slti .and. trim(records(i)%mnemonic) == 'slti') .or. &
+                (kind == riscv_sltiu .and. trim(records(i)%mnemonic) == 'sltiu')) then
                 find_record = i
                 return
             end if

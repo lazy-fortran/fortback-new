@@ -8,7 +8,7 @@ program test_riscv_fixture
         riscv_encode_integer, riscv_instruction_t, riscv_invalid_operand, &
         riscv_invalid_target, riscv_malformed, riscv_ok, riscv_or, riscv_sub, &
         riscv_andi, riscv_ori, riscv_sll, riscv_slli, riscv_srli, riscv_srai, riscv_sra, &
-        riscv_slti, riscv_unsupported, &
+        riscv_slti, riscv_sltiu, riscv_unsupported, &
         riscv_xor
     implicit none
 
@@ -16,7 +16,7 @@ program test_riscv_fixture
     type(riscv_instruction_t) :: instruction, decoded
     integer(int64) :: word
     integer(int32) :: count, status
-    type(riscv_opcode_record_t) :: records(14)
+    type(riscv_opcode_record_t) :: records(15)
     ! Fixed witness for the pinned rv_i object; no upstream payload is vendored.
     character(len=*), parameter :: source_text = &
         'add rd rs1 rs2 31..25=0 14..12=0 6..2=0x0C 1..0=3' // new_line('a') // &
@@ -32,7 +32,8 @@ program test_riscv_fixture
         'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3' // new_line('a') // &
         'ori rd rs1 imm12 14..12=6 6..2=0x04 1..0=3' // new_line('a') // &
         'andi rd rs1 imm12 14..12=7 6..2=0x04 1..0=3' // new_line('a') // &
-        'slti rd rs1 imm12 14..12=2 6..2=0x04 1..0=3'
+        'slti rd rs1 imm12 14..12=2 6..2=0x04 1..0=3' // new_line('a') // &
+        'sltiu rd rs1 imm12 14..12=3 6..2=0x04 1..0=3'
 
     target = make_target_ir('riscv64', 64_int32, .true., &
         make_source_ref('riscv-opcodes', 'rv_i', &
@@ -41,7 +42,15 @@ program test_riscv_fixture
 
     call import_riscv_opcodes(source_text, target%source, records, count, status)
     call assert_equal_integer(status, riscv_source_ok, 'source records were rejected')
-    call assert_equal_integer(count, 14_int32, 'source record count changed')
+    call assert_equal_integer(count, 15_int32, 'source record count changed')
+    call assert_equal(trim(records(15)%source%artifact), trim(target%source%artifact), &
+        'sltiu source artifact provenance was lost')
+    call assert_equal(trim(records(15)%source%object), trim(target%source%object), &
+        'sltiu source object provenance was lost')
+    call assert_equal(trim(records(15)%source%source_hash), trim(target%source%source_hash), &
+        'sltiu source hash provenance was lost')
+    call assert_equal(trim(records(15)%source%origin), trim(target%source%origin), &
+        'sltiu source origin provenance was lost')
 
     instruction = riscv_instruction_t(riscv_add, 10_int32, 10_int32, 11_int32, 0_int32)
     call riscv_encode_integer(target, instruction, word, status, records)
@@ -130,6 +139,12 @@ program test_riscv_fixture
     call assert_equal_integer64(word, int(z'7FF52513', int64), 'slti upper encoding changed')
     call check_decode(target, word, instruction, 'slti upper boundary decode')
 
+    instruction = riscv_instruction_t(riscv_sltiu, 10_int32, 10_int32, 0_int32, -1_int32)
+    call riscv_encode_integer(target, instruction, word, status, records)
+    call assert_equal_integer(status, riscv_ok, 'sltiu was rejected')
+    call assert_equal_integer64(word, int(z'FFF53513', int64), 'sltiu encoding changed')
+    call check_decode(target, word, instruction, 'sltiu decode')
+
     instruction%rd = 32_int32
     call riscv_encode_integer(target, instruction, word, status, records)
     call assert_equal_integer(status, riscv_invalid_operand, 'invalid register accepted')
@@ -197,8 +212,8 @@ program test_riscv_fixture
     call assert_equal_integer(status, riscv_unsupported, 'invalid srli shift accepted')
     call riscv_decode_integer(target, int(z'43F51513', int64), decoded, status, records)
     call assert_equal_integer(status, riscv_unsupported, 'unsupported SRAI funct3 accepted')
-    call riscv_decode_integer(target, int(z'FFF53513', int64), decoded, status, records)
-    call assert_equal_integer(status, riscv_unsupported, 'unsupported SLTIU encoding accepted')
+    call riscv_decode_integer(target, int(z'FFF54513', int64), decoded, status, records)
+    call assert_equal_integer(status, riscv_unsupported, 'unsupported XORI encoding accepted')
     call riscv_decode_integer(target, int(z'100000000', int64), decoded, status, records)
     call assert_equal_integer(status, riscv_malformed, 'wide word accepted')
 
@@ -239,10 +254,21 @@ program test_riscv_fixture
     call assert_equal_integer(status, riscv_invalid_target, 'wrong target accepted SLTI')
     call riscv_decode_integer(bad_target, int(z'7FF12113', int64), decoded, status, records)
     call assert_equal_integer(status, riscv_invalid_target, 'wrong target decoded SLTI')
+    call riscv_encode_integer(bad_target, riscv_instruction_t(riscv_sltiu, 1_int32, 2_int32, &
+        0_int32, 2047_int32), word, status, records)
+    call assert_equal_integer(status, riscv_invalid_target, 'wrong target accepted SLTIU')
+    call riscv_decode_integer(bad_target, int(z'7FF13093', int64), decoded, status, records)
+    call assert_equal_integer(status, riscv_invalid_target, 'wrong target decoded SLTIU')
 
     write (*, '(a)') 'RISC-V fixture behavioral checks: ok'
 
 contains
+
+    subroutine assert_equal(actual, expected, message)
+        character(len=*), intent(in) :: actual, expected, message
+
+        if (actual /= expected) error stop message
+    end subroutine assert_equal
 
     subroutine check_decode(target, word, expected, message)
         type(target_ir_t), intent(in) :: target
