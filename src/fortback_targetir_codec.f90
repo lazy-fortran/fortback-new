@@ -94,7 +94,6 @@ contains
         match_count = 0_int32
         status = targetir_encoding_invalid_target
         if (.not. target_ir_valid(target)) return
-        if (target%word_bits /= 32_int32) return
         if (word < 0_int64 .or. word > instruction_word_max) then
             status = targetir_lookup_unsupported_word
             return

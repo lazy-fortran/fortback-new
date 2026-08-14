@@ -79,6 +79,11 @@ source-dir = "test"
 main = "test_targetir_codec.f90"
 
 [[test]]
+name = "test_targetir_table"
+source-dir = "test"
+main = "test_targetir_table.f90"
+
+[[test]]
 name = "test_targetir_encoding_sx"
 source-dir = "test"
 main = "test_targetir_encoding_sx.f90"

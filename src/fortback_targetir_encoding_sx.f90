@@ -103,7 +103,8 @@ contains
         if (.not. ok) return
         call read_atom(text, position, atom, ok)
         if (.not. ok) return
-        record%target%architecture = atom
+        if (len_trim(atom) > len(record%target%architecture)) return
+        record%target%architecture = atom(1:len(record%target%architecture))
         call expect(text, position, ') (word-bits ', ok)
         if (.not. ok) return
         call read_integer(text, position, integer_value, ok)
@@ -249,7 +250,8 @@ contains
         if (.not. ok) return
         call read_atom(text, position, atom, ok)
         if (.not. ok) return
-        source%origin = atom
+        if (len_trim(atom) > len(source%origin)) return
+        source%origin = atom(1:len(source%origin))
         call expect(text, position, '))', ok)
     end subroutine read_source
 

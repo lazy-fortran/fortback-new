@@ -141,7 +141,8 @@ program test_targetir_codec
     record%source = source
     normalized = record
     record%operation_id = 'second'
-    record_table = [normalized, record]
+    record_table(1) = normalized
+    record_table(2) = record
     call targetir_lookup_candidates(target, record_table, int(z'12345678', int64), &
         indices, match_count, status)
     call assert_status(status, targetir_lookup_ambiguous, 'ambiguous lookup not reported')
