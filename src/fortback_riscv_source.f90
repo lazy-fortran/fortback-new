@@ -117,6 +117,7 @@ contains
             trim(tokens(1)) /= 'or' .and. &
             trim(tokens(1)) /= 'xor' .and. &
             trim(tokens(1)) /= 'sll' .and. &
+            trim(tokens(1)) /= 'sra' .and. &
             trim(tokens(1)) /= 'addi' .and. &
             trim(tokens(1)) /= 'ori' .and. &
             trim(tokens(1)) /= 'andi') then

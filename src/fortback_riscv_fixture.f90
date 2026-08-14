@@ -14,6 +14,7 @@ module fortback_riscv_fixture
     integer(int32), parameter, public :: riscv_sll = 7_int32
     integer(int32), parameter, public :: riscv_ori = 8_int32
     integer(int32), parameter, public :: riscv_andi = 9_int32
+    integer(int32), parameter, public :: riscv_sra = 10_int32
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -112,6 +113,7 @@ contains
             if (trim(records(index)%mnemonic) == 'or') instruction%kind = riscv_or
             if (trim(records(index)%mnemonic) == 'xor') instruction%kind = riscv_xor
             if (trim(records(index)%mnemonic) == 'sll') instruction%kind = riscv_sll
+            if (trim(records(index)%mnemonic) == 'sra') instruction%kind = riscv_sra
             instruction%rs2 = int(iand(ishft(word, -20), 31_int64), int32)
         else
             if (trim(records(index)%mnemonic) == 'addi') instruction%kind = riscv_addi
@@ -136,6 +138,7 @@ contains
                 (kind == riscv_or .and. trim(records(i)%mnemonic) == 'or') .or. &
                 (kind == riscv_xor .and. trim(records(i)%mnemonic) == 'xor') .or. &
                 (kind == riscv_sll .and. trim(records(i)%mnemonic) == 'sll') .or. &
+                (kind == riscv_sra .and. trim(records(i)%mnemonic) == 'sra') .or. &
                 (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi') .or. &
                 (kind == riscv_ori .and. trim(records(i)%mnemonic) == 'ori') .or. &
                 (kind == riscv_andi .and. trim(records(i)%mnemonic) == 'andi')) then
@@ -177,7 +180,8 @@ contains
         if (instruction%rs1 < 0_int32 .or. instruction%rs1 > 31_int32) return
         if (instruction%kind == riscv_add .or. instruction%kind == riscv_sub .or. &
             instruction%kind == riscv_and .or. instruction%kind == riscv_or .or. &
-            instruction%kind == riscv_xor .or. instruction%kind == riscv_sll) then
+            instruction%kind == riscv_xor .or. instruction%kind == riscv_sll .or. &
+            instruction%kind == riscv_sra) then
             if (instruction%rs2 < 0_int32 .or. instruction%rs2 > 31_int32) return
         end if
         validate_registers = riscv_ok
