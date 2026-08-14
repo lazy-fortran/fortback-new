@@ -69,6 +69,11 @@ source-dir = "test"
 main = "test_targetir_sx.f90"
 
 [[test]]
+name = "test_targetir_encoding"
+source-dir = "test"
+main = "test_targetir_encoding.f90"
+
+[[test]]
 name = "test_elf64"
 source-dir = "test"
 main = "test_elf64.f90"
