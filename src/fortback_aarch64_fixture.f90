@@ -7,6 +7,7 @@ module fortback_aarch64_fixture
 
     integer(int32), parameter, public :: aarch64_add = 1_int32
     integer(int32), parameter, public :: aarch64_sub = 2_int32
+    integer(int32), parameter, public :: aarch64_nop = 3_int32
 
     integer(int32), parameter, public :: aarch64_ok = 0_int32
     integer(int32), parameter, public :: aarch64_invalid_target = 1_int32
@@ -51,10 +52,14 @@ contains
             return
         end if
 
-        operands = ishft(int(instruction%immediate, int64), 10)
-        operands = ior(operands, ishft(int(instruction%rn, int64), 5))
-        operands = ior(operands, int(instruction%rd, int64))
-        word = ior(records(index)%match, operands)
+        if (instruction%kind == aarch64_nop) then
+            word = records(index)%match
+        else
+            operands = ishft(int(instruction%immediate, int64), 10)
+            operands = ior(operands, ishft(int(instruction%rn, int64), 5))
+            operands = ior(operands, int(instruction%rd, int64))
+            word = ior(records(index)%match, operands)
+        end if
     end subroutine aarch64_encode_fixed
 
     subroutine aarch64_decode_fixed(target, word, instruction, status, records)
@@ -86,17 +91,22 @@ contains
             return
         end if
 
-        if (trim(records(index)%name) == 'ADD_64_addsub_imm') then
+        if (trim(records(index)%name) == 'NOP_HI_hints') then
+            instruction%kind = aarch64_nop
+        else if (trim(records(index)%name) == 'ADD_64_addsub_imm') then
             instruction%kind = aarch64_add
+            instruction%immediate = int(iand(ishft(word, -10), 4095_int64), int32)
+            instruction%rn = int(iand(ishft(word, -5), 31_int64), int32)
+            instruction%rd = int(iand(word, 31_int64), int32)
         else if (trim(records(index)%name) == 'SUB_64_addsub_imm') then
             instruction%kind = aarch64_sub
+            instruction%immediate = int(iand(ishft(word, -10), 4095_int64), int32)
+            instruction%rn = int(iand(ishft(word, -5), 31_int64), int32)
+            instruction%rd = int(iand(word, 31_int64), int32)
         else
             status = aarch64_unsupported
             return
         end if
-        instruction%immediate = int(iand(ishft(word, -10), 4095_int64), int32)
-        instruction%rn = int(iand(ishft(word, -5), 31_int64), int32)
-        instruction%rd = int(iand(word, 31_int64), int32)
         status = aarch64_ok
     end subroutine aarch64_decode_fixed
 
@@ -108,7 +118,8 @@ contains
         find_record = 0
         do i = 1, size(records)
             if ((kind == aarch64_add .and. trim(records(i)%name) == 'ADD_64_addsub_imm') .or. &
-                (kind == aarch64_sub .and. trim(records(i)%name) == 'SUB_64_addsub_imm')) then
+                (kind == aarch64_sub .and. trim(records(i)%name) == 'SUB_64_addsub_imm') .or. &
+                (kind == aarch64_nop .and. trim(records(i)%name) == 'NOP_HI_hints')) then
                 find_record = i
                 return
             end if
@@ -123,7 +134,8 @@ contains
         find_word = 0
         do i = 1, size(records)
             if (iand(word, records(i)%mask) == records(i)%match) then
-                if (trim(records(i)%name) == 'ADD_64_addsub_imm' .or. &
+                if (trim(records(i)%name) == 'NOP_HI_hints' .or. &
+                    trim(records(i)%name) == 'ADD_64_addsub_imm' .or. &
                     trim(records(i)%name) == 'SUB_64_addsub_imm') then
                     find_word = i
                     return

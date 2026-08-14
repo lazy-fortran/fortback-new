@@ -5,16 +5,17 @@ program test_aarch64_fixture
         aarch64_source_ok
     use fortback_aarch64_fixture, only: aarch64_add, aarch64_decode_fixed, aarch64_encode_fixed, &
         aarch64_instruction_t, aarch64_invalid_operand, aarch64_invalid_target, aarch64_malformed, &
-        aarch64_ok, aarch64_sub, aarch64_unsupported
+        aarch64_nop, aarch64_ok, aarch64_sub, aarch64_unsupported
     implicit none
 
     type(target_ir_t) :: target, bad_target
     type(aarch64_instruction_t) :: instruction, decoded
-    type(aarch64_encoding_record_t) :: records(2)
+    type(aarch64_encoding_record_t) :: records(3)
     integer(int32) :: count, status
     integer(int64) :: word
     integer(int64), parameter :: add_word = int(z'9100416A', int64)
     integer(int64), parameter :: sub_word = int(z'D1048C62', int64)
+    integer(int64), parameter :: nop_word = int(z'D503201F', int64)
     character(len=*), parameter :: add = &
         '{"_type":"Instruction.Instruction","name":"ADD_64_addsub_imm",' // &
         '"operation_id":"ADD_addsub_imm","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
@@ -39,13 +40,21 @@ program test_aarch64_fixture
         '"start":26,"width":3},"value":{"_type":"Values.Value","value":"100"}},{"_type":' // &
         '"Instruction.Encodeset.Bits","range":{"_type":"Range","start":23,"width":3},' // &
         '"value":{"_type":"Values.Value","value":"010"}}]}}'
+    character(len=*), parameter :: nop = &
+        '{"_type":"Instruction.Instruction","name":"NOP_HI_hints",' // &
+        '"operation_id":"NOP_hints","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
+        '"width":32,"values":[{"_type":"Instruction.Encodeset.Bits",' // &
+        '"range":{"_type":"Range","start":0,"width":32},' // &
+        '"value":{"_type":"Values.Value",' // &
+        '"value":"11010101000000110010000000011111"}}]}}'
 
     target = make_target_ir('aarch64', 32_int32, .true., make_source_ref( &
         'aarchmrs-instructions', 'Instructions.json', &
         '439a0003e7904a4c93df27efd2702453336e00023d5f4c8ef3f0aa28291a10e3', 'IMPORTED'))
-    call import_aarch64_instructions(add // new_line('a') // sub, target%source, records, count, status)
+    call import_aarch64_instructions(add // new_line('a') // sub // new_line('a') // nop, &
+        target%source, records, count, status)
     call assert_int(status, aarch64_source_ok, 'source records were rejected')
-    call assert_int(count, 2_int32, 'source record count changed')
+    call assert_int(count, 3_int32, 'source record count changed')
 
     instruction = aarch64_instruction_t(aarch64_add, 10_int32, 11_int32, 16_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
@@ -60,6 +69,15 @@ program test_aarch64_fixture
     call assert64(word, sub_word, 'SUB fixed encoding changed')
     call check_decode(sub_word, instruction, 'SUB fixed word decode')
     call check_decode(word, instruction, 'SUB encode/decode round trip')
+
+    instruction = aarch64_instruction_t(aarch64_nop, 31_int32, 31_int32, 4095_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_ok, 'NOP was rejected')
+    call assert64(word, nop_word, 'NOP fixed encoding changed')
+    call check_decode(nop_word, aarch64_instruction_t(aarch64_nop, 0_int32, 0_int32, 0_int32), &
+        'NOP fixed word decode')
+    call check_decode(word, aarch64_instruction_t(aarch64_nop, 0_int32, 0_int32, 0_int32), &
+        'NOP encode/decode round trip')
 
     instruction%rd = 32_int32
     call aarch64_encode_fixed(target, instruction, word, status, records)
@@ -81,6 +99,8 @@ program test_aarch64_fixture
     call assert_int(status, aarch64_unsupported, 'unsupported word accepted')
     call aarch64_decode_fixed(target, int(z'9140416A', int64), decoded, status, records)
     call assert_int(status, aarch64_unsupported, 'shifted word accepted')
+    call aarch64_decode_fixed(target, int(z'D503201E', int64), decoded, status, records)
+    call assert_int(status, aarch64_unsupported, 'nearby NOP word accepted')
     instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 0_int32)
     call aarch64_encode_fixed(target, instruction, word, status)
     call assert_int(status, aarch64_unsupported, 'missing records accepted')
