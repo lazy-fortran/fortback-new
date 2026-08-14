@@ -125,7 +125,8 @@ contains
             trim(tokens(1)) /= 'ori' .and. &
             trim(tokens(1)) /= 'andi' .and. &
             trim(tokens(1)) /= 'slti' .and. &
-            trim(tokens(1)) /= 'sltiu') then
+            trim(tokens(1)) /= 'sltiu' .and. &
+            trim(tokens(1)) /= 'xori') then
             status = riscv_source_unsupported
             return
         end if
@@ -138,6 +139,7 @@ contains
         if (trim(tokens(1)) == 'addi' .or. trim(tokens(1)) == 'ori' .or. &
             trim(tokens(1)) == 'andi' .or. trim(tokens(1)) == 'slti' .or. &
             trim(tokens(1)) == 'sltiu' .or. &
+            trim(tokens(1)) == 'xori' .or. &
             trim(tokens(1)) == 'slli' .or. &
             trim(tokens(1)) == 'srli' .or. trim(tokens(1)) == 'srai') then
             record%format = 'I'
