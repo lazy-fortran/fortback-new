@@ -1,6 +1,7 @@
 program test_aarch64_field
     use iso_fortran_env, only: int32, int64
-    use fortback_aarch64_field, only: aarch64_extract_variable_range
+    use fortback_aarch64_field, only: aarch64_extract_variable_range, &
+        aarch64_insert_variable_range
     use fortback_aarch64_record, only: aarch64_record_invalid_target, &
         aarch64_record_malformed, aarch64_record_ok, aarch64_record_unsupported, &
         aarch64_validate_record
@@ -46,7 +47,7 @@ program test_aarch64_field
     type(target_ir_t) :: target, bad_target
     type(aarch64_encoding_record_t) :: records(3), bad_record
     integer(int32) :: count, status
-    integer(int64) :: value
+    integer(int64) :: value, packed
     integer(int64), parameter :: add_word = int(z'9100416A', int64)
     integer(int64), parameter :: sub_word = int(z'D1048C62', int64)
     integer(int64), parameter :: nop_word = int(z'D503201F', int64)
@@ -67,19 +68,46 @@ program test_aarch64_field
     call aarch64_extract_variable_range(target, records(2), sub_word, 1_int32, value, status)
     call assert_int64(value, 298082_int64, 'SUB range extraction changed')
     call assert_int(status, aarch64_record_ok, 'SUB range extraction failed')
+    call aarch64_insert_variable_range(target, records(1), add_word, 1_int32, 12345_int64, &
+        packed, status)
+    call assert_int64(packed, ior(records(1)%match, 12345_int64), 'ADD range insertion changed')
+    call assert_int(status, aarch64_record_ok, 'ADD range insertion failed')
+    call aarch64_extract_variable_range(target, records(1), packed, 1_int32, value, status)
+    call assert_int64(value, 12345_int64, 'ADD insertion did not round trip')
+    call assert_int(status, aarch64_record_ok, 'ADD insertion round trip failed')
+    call aarch64_insert_variable_range(target, records(2), sub_word, 1_int32, 7654321_int64, &
+        packed, status)
+    call assert_int64(packed, ior(records(2)%match, 7654321_int64), 'SUB range insertion changed')
+    call assert_int(status, aarch64_record_ok, 'SUB range insertion failed')
+    call aarch64_extract_variable_range(target, records(2), packed, 1_int32, value, status)
+    call assert_int64(value, 7654321_int64, 'SUB insertion did not round trip')
+    call assert_int(status, aarch64_record_ok, 'SUB insertion round trip failed')
     call aarch64_extract_variable_range(target, records(3), nop_word, 1_int32, value, status)
     call assert_int64(value, 0_int64, 'zero-range NOP returned a value')
     call assert_int(status, aarch64_record_unsupported, 'zero-range NOP was supported')
+    call aarch64_insert_variable_range(target, records(3), nop_word, 1_int32, 0_int64, packed, status)
+    call assert_int64(packed, 0_int64, 'zero-range NOP produced a word')
+    call assert_int(status, aarch64_record_unsupported, 'zero-range NOP insertion was supported')
 
     call aarch64_extract_variable_range(target, records(1), add_word, 0_int32, value, status)
     call assert_int(status, aarch64_record_unsupported, 'zero ordinal was accepted')
     call aarch64_extract_variable_range(target, records(1), add_word, 2_int32, value, status)
     call assert_int(status, aarch64_record_unsupported, 'out-of-range ordinal was accepted')
+    call aarch64_insert_variable_range(target, records(1), add_word, 0_int32, 0_int64, packed, status)
+    call assert_int(status, aarch64_record_unsupported, 'zero insertion ordinal was accepted')
+    call aarch64_insert_variable_range(target, records(1), add_word, 1_int32, int(z'800000', int64), &
+        packed, status)
+    call assert_int(status, aarch64_record_malformed, 'oversized insertion value was accepted')
+    call aarch64_insert_variable_range(target, records(1), add_word, 1_int32, -1_int64, packed, status)
+    call assert_int(status, aarch64_record_malformed, 'negative insertion value was accepted')
     call aarch64_extract_variable_range(target, records(1), -1_int64, 1_int32, value, status)
     call assert_int(status, aarch64_record_malformed, 'negative word was accepted')
     call aarch64_extract_variable_range(target, records(1), int(z'100000000', int64), 1_int32, &
         value, status)
     call assert_int(status, aarch64_record_malformed, 'wide word was accepted')
+    call aarch64_insert_variable_range(target, records(1), int(z'100000000', int64), 1_int32, &
+        0_int64, packed, status)
+    call assert_int(status, aarch64_record_malformed, 'wide insertion word was accepted')
 
     bad_record = records(1)
     bad_record%source%source_hash = ''
@@ -89,10 +117,18 @@ program test_aarch64_field
     bad_record%variable_ranges(1)%width = 0_int32
     call aarch64_extract_variable_range(target, bad_record, add_word, 1_int32, value, status)
     call assert_int(status, aarch64_record_malformed, 'malformed range was accepted')
+    bad_record = records(1)
+    bad_record%variable_range_count = 2_int32
+    bad_record%variable_ranges(2)%start = 1_int32
+    bad_record%variable_ranges(2)%width = 2_int32
+    call aarch64_insert_variable_range(target, bad_record, add_word, 1_int32, 0_int64, packed, status)
+    call assert_int(status, aarch64_record_malformed, 'overlapping insertion ranges were accepted')
     bad_target = target
     bad_target%architecture = 'riscv64'
     call aarch64_extract_variable_range(bad_target, records(1), add_word, 1_int32, value, status)
     call assert_int(status, aarch64_record_invalid_target, 'wrong target was accepted')
+    call aarch64_insert_variable_range(bad_target, records(1), add_word, 1_int32, 0_int64, packed, status)
+    call assert_int(status, aarch64_record_invalid_target, 'wrong insertion target was accepted')
 
     write (*, '(a)') 'AArch64 variable-range extraction checks: ok'
 
