@@ -1,6 +1,7 @@
 module fortback_targetir_table
     use iso_fortran_env, only: int32, int64
-    use fortback_target_ir, only: target_ir_t, target_ir_valid
+    use fortback_target_ir, only: source_ref_t, source_ref_valid, target_ir_t, &
+        target_ir_valid
     use fortback_targetir_codec, only: targetir_lookup_candidates, &
         targetir_lookup_ambiguous, targetir_lookup_no_match, targetir_validate_record
     use fortback_targetir_encoding, only: targetir_encoding_capacity, &
@@ -27,6 +28,7 @@ module fortback_targetir_table
     public :: targetir_encoding_table_clear
     public :: targetir_encoding_table_finalize
     public :: targetir_encoding_table_lookup_candidates
+    public :: targetir_encoding_table_lookup_source
 
 contains
 
@@ -123,6 +125,42 @@ contains
             match_count, status)
     end subroutine targetir_encoding_table_lookup_candidates
 
+    subroutine targetir_encoding_table_lookup_source(table, source, indices, &
+            match_count, status)
+        type(targetir_encoding_table_t), intent(in) :: table
+        type(source_ref_t), intent(in) :: source
+        integer(int32), intent(out) :: indices(:)
+        integer(int32), intent(out) :: match_count, status
+        integer(int32) :: i, selected_count
+
+        indices = 0_int32
+        match_count = 0_int32
+        status = validate_table(table)
+        if (status /= targetir_table_ok) return
+        if (.not. source_ref_valid(source)) then
+            status = targetir_table_malformed
+            return
+        end if
+
+        selected_count = 0_int32
+        do i = 1, table%count
+            if (same_source(table%records(i)%source, source)) then
+                selected_count = selected_count + 1_int32
+            end if
+        end do
+        if (selected_count > size(indices)) then
+            status = targetir_table_capacity
+            return
+        end if
+        do i = 1, table%count
+            if (same_source(table%records(i)%source, source)) then
+                match_count = match_count + 1_int32
+                indices(match_count) = i
+            end if
+        end do
+        status = targetir_table_ok
+    end subroutine targetir_encoding_table_lookup_source
+
     subroutine select_target_records(table, target, selected, mapping, count)
         type(targetir_encoding_table_t), intent(in) :: table
         type(target_ir_t), intent(in) :: target
@@ -211,5 +249,14 @@ contains
         if (left%little_endian .neqv. right%little_endian) return
         same_target = .true.
     end function same_target
+
+    pure logical function same_source(left, right)
+        type(source_ref_t), intent(in) :: left, right
+
+        same_source = trim(left%artifact) == trim(right%artifact)
+        if (trim(left%object) /= trim(right%object)) same_source = .false.
+        if (trim(left%source_hash) /= trim(right%source_hash)) same_source = .false.
+        if (trim(left%origin) /= trim(right%origin)) same_source = .false.
+    end function same_source
 
 end module fortback_targetir_table

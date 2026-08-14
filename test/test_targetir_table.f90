@@ -10,6 +10,7 @@ program test_targetir_table
     use fortback_targetir_table, only: targetir_encoding_table_append, &
         targetir_encoding_table_clear, &
         targetir_encoding_table_finalize, targetir_encoding_table_lookup_candidates, &
+        targetir_encoding_table_lookup_source, &
         targetir_encoding_table_t, targetir_table_capacity, targetir_table_duplicate, &
         targetir_table_invalid_target, targetir_table_malformed, targetir_table_ok
     implicit none
@@ -76,6 +77,31 @@ program test_targetir_table
     call assert_indices(indices, [2_int32, 0_int32, 0_int32, 0_int32], &
         'AArch64 table lookup order changed')
 
+    indices = 99_int32
+    call targetir_encoding_table_lookup_source(table, riscv_source, indices, &
+        match_count, status)
+    call assert_status(status, targetir_table_ok, 'source query failed')
+    call assert_int(match_count, 1_int32, 'source query count changed')
+    call assert_indices(indices, [1_int32, 0_int32, 0_int32, 0_int32], &
+        'source query order changed')
+
+    indices = 99_int32
+    call targetir_encoding_table_lookup_source(table, aarch_source, indices, &
+        match_count, status)
+    call assert_status(status, targetir_table_ok, 'second source query failed')
+    call assert_int(match_count, 1_int32, 'second source query count changed')
+    call assert_indices(indices, [2_int32, 0_int32, 0_int32, 0_int32], &
+        'second source query order changed')
+
+    indices = 99_int32
+    call targetir_encoding_table_lookup_source(table, &
+        make_source_ref('unknown', 'object', 'hash', 'IMPORTED'), indices, &
+        match_count, status)
+    call assert_status(status, targetir_table_ok, 'unknown source query failed')
+    call assert_int(match_count, 0_int32, 'unknown source query matched a record')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32, 0_int32], &
+        'unknown source query retained output')
+
     call targetir_encode_record(riscv_target, records(1), [1_int64, 2_int64, 3_int64], &
         word, status)
     call assert_status(status, targetir_encoding_ok, 'RISC-V table record did not encode')
@@ -117,6 +143,14 @@ program test_targetir_table
 
     call targetir_encoding_table_append(table, riscv_target, riscv_record, status)
     table%records(1)%fixed_match = int(z'02000000', int64)
+    indices = 99_int32
+    match_count = 99_int32
+    call targetir_encoding_table_lookup_source(table, riscv_source, indices, &
+        match_count, status)
+    call assert_status(status, targetir_table_malformed, 'malformed source table accepted')
+    call assert_int(match_count, 0_int32, 'failed source query retained count')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32, 0_int32], &
+        'failed source query retained output')
     records = targetir_encoding_record_t()
     records(1)%operation_id = 'stale'
     count = 99_int32
