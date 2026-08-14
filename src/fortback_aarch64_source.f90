@@ -193,7 +193,8 @@ contains
         character(len=*), intent(in) :: name
 
         supported_name = name == 'ADD_64_addsub_imm' .or. name == 'SUB_64_addsub_imm' .or. &
-            name == 'NOP_HI_hints' .or. name == 'ADR_only_pcreladdr'
+            name == 'NOP_HI_hints' .or. name == 'ADR_only_pcreladdr' .or. &
+            name == 'ADRP_only_pcreladdr'
     end function supported_name
 
 end module fortback_aarch64_source
