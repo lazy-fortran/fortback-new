@@ -7,14 +7,14 @@ program test_riscv_fixture
         riscv_decode_integer, &
         riscv_encode_integer, riscv_instruction_t, riscv_invalid_operand, &
         riscv_invalid_target, riscv_malformed, riscv_ok, riscv_or, riscv_sub, &
-        riscv_unsupported, riscv_xor
+        riscv_sll, riscv_unsupported, riscv_xor
     implicit none
 
     type(target_ir_t) :: target, bad_target
     type(riscv_instruction_t) :: instruction, decoded
     integer(int64) :: word
     integer(int32) :: count, status
-    type(riscv_opcode_record_t) :: records(6)
+    type(riscv_opcode_record_t) :: records(7)
     ! Fixed witness for the pinned rv_i object; no upstream payload is vendored.
     character(len=*), parameter :: source_text = &
         'add rd rs1 rs2 31..25=0 14..12=0 6..2=0x0C 1..0=3' // new_line('a') // &
@@ -22,6 +22,7 @@ program test_riscv_fixture
         'and rd rs1 rs2 31..25=0 14..12=7 6..2=0x0C 1..0=3' // new_line('a') // &
         'or rd rs1 rs2 31..25=0 14..12=6 6..2=0x0C 1..0=3' // new_line('a') // &
         'xor rd rs1 rs2 31..25=0 14..12=4 6..2=0x0C 1..0=3' // new_line('a') // &
+        'sll rd rs1 rs2 31..25=0 14..12=1 6..2=0x0C 1..0=3' // new_line('a') // &
         'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3' // new_line('a')
 
     target = make_target_ir('riscv64', 64_int32, .true., &
@@ -31,7 +32,7 @@ program test_riscv_fixture
 
     call import_riscv_opcodes(source_text, target%source, records, count, status)
     call assert_equal_integer(status, riscv_source_ok, 'source records were rejected')
-    call assert_equal_integer(count, 6_int32, 'source record count changed')
+    call assert_equal_integer(count, 7_int32, 'source record count changed')
 
     instruction = riscv_instruction_t(riscv_add, 10_int32, 10_int32, 11_int32, 0_int32)
     call riscv_encode_integer(target, instruction, word, status, records)
@@ -62,6 +63,12 @@ program test_riscv_fixture
     call assert_equal_integer64(word, int(z'00B54533', int64), 'xor encoding changed')
     call check_decode(target, word, instruction, 'xor decode')
 
+    instruction = riscv_instruction_t(riscv_sll, 10_int32, 10_int32, 11_int32, 0_int32)
+    call riscv_encode_integer(target, instruction, word, status, records)
+    call assert_equal_integer(status, riscv_ok, 'sll was rejected')
+    call assert_equal_integer64(word, int(z'00B51533', int64), 'sll encoding changed')
+    call check_decode(target, word, instruction, 'sll decode')
+
     instruction = riscv_instruction_t(riscv_addi, 10_int32, 10_int32, 0_int32, -1_int32)
     call riscv_encode_integer(target, instruction, word, status, records)
     call assert_equal_integer64(word, int(z'FFF50513', int64), 'addi encoding changed')
@@ -78,6 +85,10 @@ program test_riscv_fixture
     call riscv_encode_integer(target, instruction, word, status, records)
     call assert_equal_integer(status, riscv_invalid_operand, &
         'invalid xor register accepted')
+    instruction = riscv_instruction_t(riscv_sll, 1_int32, 2_int32, 32_int32, 0_int32)
+    call riscv_encode_integer(target, instruction, word, status, records)
+    call assert_equal_integer(status, riscv_invalid_operand, &
+        'invalid sll register accepted')
     instruction = riscv_instruction_t(riscv_addi, 1_int32, 1_int32, 0_int32, 2048_int32)
     call riscv_encode_integer(target, instruction, word, status, records)
     call assert_equal_integer(status, riscv_invalid_operand, 'wide immediate accepted')
@@ -89,10 +100,10 @@ program test_riscv_fixture
 
     bad_target = target
     bad_target%architecture = 'aarch64'
-    instruction = riscv_instruction_t(riscv_xor, 1_int32, 2_int32, 3_int32, 0_int32)
+    instruction = riscv_instruction_t(riscv_sll, 1_int32, 2_int32, 3_int32, 0_int32)
     call riscv_encode_integer(bad_target, instruction, word, status, records)
     call assert_equal_integer(status, riscv_invalid_target, 'wrong target accepted')
-    call riscv_decode_integer(bad_target, int(z'003141B3', int64), decoded, status, records)
+    call riscv_decode_integer(bad_target, int(z'003110B3', int64), decoded, status, records)
     call assert_equal_integer(status, riscv_invalid_target, 'wrong target decoded')
 
     write (*, '(a)') 'RISC-V fixture behavioral checks: ok'
