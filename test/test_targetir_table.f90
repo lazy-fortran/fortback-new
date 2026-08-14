@@ -10,7 +10,7 @@ program test_targetir_table
     use fortback_targetir_table, only: targetir_encoding_table_append, &
         targetir_encoding_table_clear, &
         targetir_encoding_table_finalize, targetir_encoding_table_lookup_candidates, &
-        targetir_encoding_table_lookup_source, &
+        targetir_encoding_table_lookup_origin, targetir_encoding_table_lookup_source, &
         targetir_encoding_table_t, targetir_table_capacity, targetir_table_duplicate, &
         targetir_table_invalid_target, targetir_table_malformed, targetir_table_ok
     implicit none
@@ -28,7 +28,7 @@ program test_targetir_table
     integer(int64), allocatable :: values(:)
 
     riscv_source = make_source_ref('riscv-opcodes', 'rv_i/addi', 'riscv-record-hash', 'IMPORTED')
-    aarch_source = make_source_ref('aarchmrs', 'A64/ADD', 'aarch-record-hash', 'PROSE')
+    aarch_source = make_source_ref('aarchmrs', 'A64/ADD', 'aarch-record-hash', 'IMPORTED')
     riscv_target_source = make_source_ref('riscv-isa', 'unprivileged', &
         'riscv-target-hash', 'IMPORTED')
     riscv_target = make_target_ir('riscv64', 64_int32, .true., riscv_target_source)
@@ -92,6 +92,35 @@ program test_targetir_table
     call assert_int(match_count, 1_int32, 'second source query count changed')
     call assert_indices(indices, [2_int32, 0_int32, 0_int32, 0_int32], &
         'second source query order changed')
+
+    indices = 99_int32
+    call targetir_encoding_table_lookup_origin(table, 'IMPORTED', indices, &
+        match_count, status)
+    call assert_status(status, targetir_table_ok, 'origin query failed')
+    call assert_int(match_count, 2_int32, 'origin query count changed')
+    call assert_indices(indices, [1_int32, 2_int32, 0_int32, 0_int32], &
+        'origin query order changed')
+
+    indices = 99_int32
+    call targetir_encoding_table_lookup_origin(table, 'PROSE', indices, &
+        match_count, status)
+    call assert_status(status, targetir_table_ok, 'second origin query failed')
+    call assert_int(match_count, 0_int32, 'second origin query count changed')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32, 0_int32], &
+        'second origin query order changed')
+
+    indices = 99_int32
+    call targetir_encoding_table_lookup_origin(table, ' ', indices, match_count, status)
+    call assert_status(status, targetir_table_malformed, 'blank origin query accepted')
+    call assert_int(match_count, 0_int32, 'failed origin query retained count')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32, 0_int32], &
+        'failed origin query retained output')
+
+    indices = 99_int32
+    call targetir_encoding_table_lookup_origin(table, 'IMPORTED', indices(1:0), &
+        match_count, status)
+    call assert_status(status, targetir_table_capacity, 'undersized origin query accepted')
+    call assert_int(match_count, 0_int32, 'capacity query retained count')
 
     indices = 99_int32
     call targetir_encoding_table_lookup_source(table, &

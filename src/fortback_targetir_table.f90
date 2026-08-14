@@ -28,6 +28,7 @@ module fortback_targetir_table
     public :: targetir_encoding_table_clear
     public :: targetir_encoding_table_finalize
     public :: targetir_encoding_table_lookup_candidates
+    public :: targetir_encoding_table_lookup_origin
     public :: targetir_encoding_table_lookup_source
 
 contains
@@ -124,6 +125,42 @@ contains
         call remap_lookup_result(local_indices, mapping, mapped_count, indices, &
             match_count, status)
     end subroutine targetir_encoding_table_lookup_candidates
+
+    subroutine targetir_encoding_table_lookup_origin(table, origin, indices, &
+            match_count, status)
+        type(targetir_encoding_table_t), intent(in) :: table
+        character(len=*), intent(in) :: origin
+        integer(int32), intent(out) :: indices(:)
+        integer(int32), intent(out) :: match_count, status
+        integer(int32) :: i, selected_count
+
+        indices = 0_int32
+        match_count = 0_int32
+        status = validate_table(table)
+        if (status /= targetir_table_ok) return
+        if (len_trim(origin) == 0) then
+            status = targetir_table_malformed
+            return
+        end if
+
+        selected_count = 0_int32
+        do i = 1, table%count
+            if (trim(table%records(i)%source%origin) == trim(origin)) then
+                selected_count = selected_count + 1_int32
+            end if
+        end do
+        if (selected_count > size(indices)) then
+            status = targetir_table_capacity
+            return
+        end if
+        do i = 1, table%count
+            if (trim(table%records(i)%source%origin) == trim(origin)) then
+                match_count = match_count + 1_int32
+                indices(match_count) = i
+            end if
+        end do
+        status = targetir_table_ok
+    end subroutine targetir_encoding_table_lookup_origin
 
     subroutine targetir_encoding_table_lookup_source(table, source, indices, &
             match_count, status)
