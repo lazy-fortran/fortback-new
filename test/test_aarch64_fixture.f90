@@ -5,12 +5,12 @@ program test_aarch64_fixture
         aarch64_source_ok
     use fortback_aarch64_fixture, only: aarch64_add, aarch64_decode_fixed, aarch64_encode_fixed, &
         aarch64_instruction_t, aarch64_invalid_operand, aarch64_invalid_target, aarch64_malformed, &
-        aarch64_nop, aarch64_ok, aarch64_sub, aarch64_unsupported
+        aarch64_adr, aarch64_nop, aarch64_ok, aarch64_sub, aarch64_unsupported
     implicit none
 
     type(target_ir_t) :: target, bad_target
     type(aarch64_instruction_t) :: instruction, decoded
-    type(aarch64_encoding_record_t) :: records(3)
+    type(aarch64_encoding_record_t) :: records(4)
     integer(int32) :: count, status
     integer(int64) :: word
     integer(int64), parameter :: add_word = int(z'9100416A', int64)
@@ -48,13 +48,23 @@ program test_aarch64_fixture
         '"value":{"_type":"Values.Value",' // &
         '"value":"11010101000000110010000000011111"}}]}}'
 
+    character(len=*), parameter :: adr = &
+        '{"_type":"Instruction.Instruction","name":"ADR_only_pcreladdr",' // &
+        '"operation_id":"ADR_pcreladdr","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
+        '"width":32,"values":[{"_type":"Instruction.Encodeset.Bits",' // &
+        '"range":{"_type":"Range","start":31,"width":1},' // &
+        '"value":{"_type":"Values.Value","value":"0"}},{"_type":' // &
+        '"Instruction.Encodeset.Bits","range":{"_type":"Range","start":24,"width":5},' // &
+        '"value":{"_type":"Values.Value","value":"10000"}}]}}'
+
     target = make_target_ir('aarch64', 32_int32, .true., make_source_ref( &
         'aarchmrs-instructions', 'Instructions.json', &
         '439a0003e7904a4c93df27efd2702453336e00023d5f4c8ef3f0aa28291a10e3', 'IMPORTED'))
-    call import_aarch64_instructions(add // new_line('a') // sub // new_line('a') // nop, &
+    call import_aarch64_instructions(add // new_line('a') // sub // new_line('a') // nop // &
+        new_line('a') // adr, &
         target%source, records, count, status)
     call assert_int(status, aarch64_source_ok, 'source records were rejected')
-    call assert_int(count, 3_int32, 'source record count changed')
+    call assert_int(count, 4_int32, 'source record count changed')
 
     instruction = aarch64_instruction_t(aarch64_add, 10_int32, 11_int32, 16_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
@@ -79,6 +89,13 @@ program test_aarch64_fixture
     call check_decode(word, aarch64_instruction_t(aarch64_nop, 0_int32, 0_int32, 0_int32), &
         'NOP encode/decode round trip')
 
+    instruction = aarch64_instruction_t(aarch64_adr, 5_int32, 0_int32, -4_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_ok, 'ADR was rejected')
+    call assert64(word, int(z'10FFFFE5', int64), 'ADR fixed encoding changed')
+    call check_decode(word, instruction, 'ADR encode/decode round trip')
+
+    instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 0_int32)
     instruction%rd = 32_int32
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_invalid_operand, 'invalid destination register accepted')
@@ -90,6 +107,9 @@ program test_aarch64_fixture
     instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 4096_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_invalid_operand, 'wide immediate accepted')
+    instruction = aarch64_instruction_t(aarch64_adr, 1_int32, 0_int32, 1048576_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_operand, 'wide ADR immediate accepted')
     instruction = aarch64_instruction_t(99_int32, 1_int32, 2_int32, 0_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_unsupported, 'wrong opcode accepted')
@@ -109,6 +129,8 @@ program test_aarch64_fixture
     instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 0_int32)
     call aarch64_encode_fixed(bad_target, instruction, word, status, records)
     call assert_int(status, aarch64_invalid_target, 'wrong target accepted')
+    call aarch64_decode_fixed(bad_target, int(z'10FFFFE5', int64), decoded, status, records)
+    call assert_int(status, aarch64_invalid_target, 'wrong target decoded')
 
     write (*, '(a)') 'AArch64 fixed codec behavioral checks: ok'
 
