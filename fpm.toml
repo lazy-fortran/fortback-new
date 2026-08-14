@@ -44,6 +44,11 @@ source-dir = "test"
 main = "test_aarch64_record.f90"
 
 [[test]]
+name = "test_aarch64_field"
+source-dir = "test"
+main = "test_aarch64_field.f90"
+
+[[test]]
 name = "test_aarch64_fixture"
 source-dir = "test"
 main = "test_aarch64_fixture.f90"
