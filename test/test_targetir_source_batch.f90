@@ -88,6 +88,15 @@ program test_targetir_source_batch
         'malformed source record accepted')
     call assert_table_empty(table, 'malformed batch retained a prefix')
 
+    bad_riscv = riscv_addi
+    bad_riscv%format = 'R'
+    controls(1) = make_riscv_i_source_batch_item(riscv_target, riscv_addi)
+    controls(2) = make_riscv_i_source_batch_item(riscv_target, bad_riscv)
+    call normalize_targetir_source_batch(controls, table, status)
+    call assert_status(status, targetir_source_batch_unsupported, &
+        'unsupported RISC-V source shape accepted')
+    call assert_table_empty(table, 'unsupported RISC-V batch retained a prefix')
+
     bad_target = make_target_ir('aarch64', 32_int32, .true., aarch_target_source)
     controls(2) = make_riscv_i_source_batch_item(bad_target, riscv_addi)
     call normalize_targetir_source_batch(controls, table, status)
@@ -120,8 +129,8 @@ program test_targetir_source_batch
     call assert_status(status, targetir_source_batch_capacity, 'capacity accepted')
     call assert_table_empty(table, 'capacity batch retained a prefix')
 
-    controls(1)%kind = 99_int32
-    controls(2) = make_riscv_i_source_batch_item(riscv_target, riscv_addi)
+    controls(1) = make_riscv_i_source_batch_item(riscv_target, riscv_addi)
+    controls(2)%kind = 99_int32
     call normalize_targetir_source_batch(controls, table, status)
     call assert_status(status, targetir_source_batch_unsupported, &
         'unknown source family accepted')
