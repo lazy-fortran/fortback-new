@@ -119,6 +119,7 @@ contains
             trim(tokens(1)) /= 'sll' .and. &
             trim(tokens(1)) /= 'sra' .and. &
             trim(tokens(1)) /= 'slli' .and. &
+            trim(tokens(1)) /= 'srli' .and. &
             trim(tokens(1)) /= 'addi' .and. &
             trim(tokens(1)) /= 'ori' .and. &
             trim(tokens(1)) /= 'andi') then
@@ -132,7 +133,8 @@ contains
             return
         end if
         if (trim(tokens(1)) == 'addi' .or. trim(tokens(1)) == 'ori' .or. &
-            trim(tokens(1)) == 'andi' .or. trim(tokens(1)) == 'slli') then
+            trim(tokens(1)) == 'andi' .or. trim(tokens(1)) == 'slli' .or. &
+            trim(tokens(1)) == 'srli') then
             record%format = 'I'
         else
             record%format = 'R'
