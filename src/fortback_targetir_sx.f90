@@ -22,6 +22,7 @@ module fortback_targetir_sx
 
     public :: write_targetir_v0
     public :: validate_targetir_v0
+    public :: query_targetir_v0_feature
 
 contains
 
@@ -76,6 +77,45 @@ contains
         end if
         status = targetir_sx_ok
     end subroutine write_targetir_v0
+
+    subroutine query_targetir_v0_feature(instructions, count, feature, indices, &
+            match_count, status)
+        type(targetir_sx_instruction_t), intent(in) :: instructions(:)
+        integer, intent(in) :: count
+        character(len=*), intent(in) :: feature
+        integer, intent(out) :: indices(:)
+        integer, intent(out) :: match_count, status
+        integer :: i, selected_count
+
+        indices = 0
+        match_count = 0
+        status = targetir_sx_invalid
+        if (count <= 0) return
+        if (count > size(instructions)) return
+        if (.not. nonempty_atom(feature)) return
+        do i = 1, count
+            if (.not. valid_instruction(instructions(i))) return
+        end do
+
+        selected_count = 0
+        do i = 1, count
+            if (trim(instructions(i)%feature) == trim(feature)) then
+                selected_count = selected_count + 1
+            end if
+        end do
+        if (selected_count == 0) return
+        if (selected_count > size(indices)) then
+            status = targetir_sx_capacity
+            return
+        end if
+        do i = 1, count
+            if (trim(instructions(i)%feature) == trim(feature)) then
+                match_count = match_count + 1
+                indices(match_count) = i
+            end if
+        end do
+        status = targetir_sx_ok
+    end subroutine query_targetir_v0_feature
 
     pure logical function validate_targetir_v0(text)
         character(len=*), intent(in) :: text
