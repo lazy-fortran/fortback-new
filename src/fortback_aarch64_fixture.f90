@@ -10,6 +10,7 @@ module fortback_aarch64_fixture
     integer(int32), parameter, public :: aarch64_nop = 3_int32
     integer(int32), parameter, public :: aarch64_adr = 4_int32
     integer(int32), parameter, public :: aarch64_adrp = 5_int32
+    integer(int32), parameter, public :: aarch64_ldr_literal = 6_int32
 
     integer(int32), parameter, public :: aarch64_ok = 0_int32
     integer(int32), parameter, public :: aarch64_invalid_target = 1_int32
@@ -62,6 +63,11 @@ contains
             operands = ior(operands, ishft(iand(immediate, int(z'001FFFFC', int64)), 3))
             operands = ior(operands, int(instruction%rd, int64))
             word = ior(records(index)%match, operands)
+        else if (instruction%kind == aarch64_ldr_literal) then
+            immediate = iand(int(instruction%immediate, int64) / 4_int64, int(z'0007FFFF', int64))
+            operands = ishft(immediate, 5)
+            operands = ior(operands, int(instruction%rd, int64))
+            word = ior(records(index)%match, operands)
         else
             operands = ishft(int(instruction%immediate, int64), 10)
             operands = ior(operands, ishft(int(instruction%rn, int64), 5))
@@ -111,6 +117,10 @@ contains
             instruction%kind = aarch64_adrp
             instruction%rd = int(iand(word, 31_int64), int32)
             instruction%immediate = decode_adrp_immediate(word)
+        else if (trim(records(index)%name) == 'LDR_32_ldst_immliteral') then
+            instruction%kind = aarch64_ldr_literal
+            instruction%rd = int(iand(word, 31_int64), int32)
+            instruction%immediate = decode_ldr_literal_immediate(word)
         else if (trim(records(index)%name) == 'ADD_64_addsub_imm') then
             instruction%kind = aarch64_add
             instruction%immediate = int(iand(ishft(word, -10), 4095_int64), int32)
@@ -139,7 +149,9 @@ contains
                 (kind == aarch64_sub .and. trim(records(i)%name) == 'SUB_64_addsub_imm') .or. &
                 (kind == aarch64_nop .and. trim(records(i)%name) == 'NOP_HI_hints') .or. &
                 (kind == aarch64_adr .and. trim(records(i)%name) == 'ADR_only_pcreladdr') .or. &
-                (kind == aarch64_adrp .and. trim(records(i)%name) == 'ADRP_only_pcreladdr')) then
+                (kind == aarch64_adrp .and. trim(records(i)%name) == 'ADRP_only_pcreladdr') .or. &
+                (kind == aarch64_ldr_literal .and. &
+                trim(records(i)%name) == 'LDR_32_ldst_immliteral')) then
                 find_record = i
                 return
             end if
@@ -158,7 +170,8 @@ contains
                     trim(records(i)%name) == 'ADD_64_addsub_imm' .or. &
                     trim(records(i)%name) == 'SUB_64_addsub_imm' .or. &
                     trim(records(i)%name) == 'ADR_only_pcreladdr' .or. &
-                    trim(records(i)%name) == 'ADRP_only_pcreladdr') then
+                    trim(records(i)%name) == 'ADRP_only_pcreladdr' .or. &
+                    trim(records(i)%name) == 'LDR_32_ldst_immliteral') then
                     find_word = i
                     return
                 end if
@@ -186,6 +199,12 @@ contains
             validate_operands = aarch64_ok
             return
         end if
+        if (instruction%kind == aarch64_ldr_literal) then
+            if (instruction%immediate < -1048576_int32 .or. instruction%immediate > 1048572_int32) return
+            if (mod(instruction%immediate, 4_int32) /= 0_int32) return
+            validate_operands = aarch64_ok
+            return
+        end if
         if (instruction%rn < 0_int32 .or. instruction%rn > 31_int32) return
         if (instruction%immediate < 0_int32 .or. instruction%immediate > 4095_int32) return
         validate_operands = aarch64_ok
@@ -210,5 +229,14 @@ contains
         if (immediate >= 1048576_int64) immediate = immediate - 2097152_int64
         decode_adrp_immediate = int(immediate, int32)
     end function decode_adrp_immediate
+
+    pure integer(int32) function decode_ldr_literal_immediate(word)
+        integer(int64), intent(in) :: word
+        integer(int64) :: immediate
+
+        immediate = iand(ishft(word, -5), int(z'0007FFFF', int64))
+        if (immediate >= 262144_int64) immediate = immediate - 524288_int64
+        decode_ldr_literal_immediate = int(immediate * 4_int64, int32)
+    end function decode_ldr_literal_immediate
 
 end module fortback_aarch64_fixture

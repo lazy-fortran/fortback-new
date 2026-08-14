@@ -53,17 +53,23 @@ program test_aarch64_source
         '"value":{"_type":"Values.Value","value":"1"}},{"_type":' // &
         '"Instruction.Encodeset.Bits","range":{"_type":"Range","start":24,"width":5},' // &
         '"value":{"_type":"Values.Value","value":"10000"}}]}}'
+    character(len=*), parameter :: ldr_literal = &
+        '{"_type":"Instruction.Instruction","name":"LDR_32_ldst_immliteral",' // &
+        '"operation_id":"LDR_32_ldst_immliteral","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
+        '"width":32,"values":[{"_type":"Instruction.Encodeset.Bits",' // &
+        '"range":{"_type":"Range","start":24,"width":8},' // &
+        '"value":{"_type":"Values.Value","value":"00011000"}}]}}'
     type(source_ref_t) :: source
-    type(aarch64_encoding_record_t) :: records(5)
+    type(aarch64_encoding_record_t) :: records(6)
     integer(int32) :: count, status
 
     source = make_source_ref('aarchmrs-instructions', 'Instructions.json', &
         '439a0003e7904a4c93df27efd2702453336e00023d5f4c8ef3f0aa28291a10e3', 'IMPORTED')
     call import_aarch64_instructions(add // new_line('a') // sub // new_line('a') // nop // &
-        new_line('a') // adr // new_line('a') // adrp, &
+        new_line('a') // adr // new_line('a') // adrp // new_line('a') // ldr_literal, &
         source, records, count, status)
     call assert_int(status, aarch64_source_ok, 'AArch64 witness rejected')
-    call assert_int(count, 5_int32, 'AArch64 record count changed')
+    call assert_int(count, 6_int32, 'AArch64 record count changed')
     call assert_int(records(1)%width, 32_int32, 'encoding width was not retained')
     call assert64(records(1)%match, int(z'91000000', int64), 'ADD match changed')
     call assert64(records(1)%mask, int(z'FF800000', int64), 'ADD mask changed')
@@ -99,6 +105,18 @@ program test_aarch64_source
         'ADRP source hash lost')
     call assert_equal(trim(records(5)%source%origin), trim(source%origin), &
         'ADRP source origin lost')
+    call assert_equal(trim(records(6)%name), 'LDR_32_ldst_immliteral', &
+        'LDR literal was not normalized')
+    call assert64(records(6)%match, int(z'18000000', int64), 'LDR literal match changed')
+    call assert64(records(6)%mask, int(z'FF000000', int64), 'LDR literal mask changed')
+    call assert_equal(trim(records(6)%source%artifact), trim(source%artifact), &
+        'LDR literal source artifact lost')
+    call assert_equal(trim(records(6)%source%object), trim(source%object), &
+        'LDR literal source object lost')
+    call assert_equal(trim(records(6)%source%source_hash), trim(source%source_hash), &
+        'LDR literal source hash lost')
+    call assert_equal(trim(records(6)%source%origin), trim(source%origin), &
+        'LDR literal source origin lost')
 
     call import_aarch64_instructions('not-json', source, records, count, status)
     call assert_int(status, aarch64_source_malformed, 'malformed object accepted')

@@ -5,12 +5,13 @@ program test_aarch64_fixture
         aarch64_source_ok
     use fortback_aarch64_fixture, only: aarch64_add, aarch64_decode_fixed, aarch64_encode_fixed, &
         aarch64_instruction_t, aarch64_invalid_operand, aarch64_invalid_target, aarch64_malformed, &
-        aarch64_adr, aarch64_adrp, aarch64_nop, aarch64_ok, aarch64_sub, aarch64_unsupported
+        aarch64_adr, aarch64_adrp, aarch64_ldr_literal, aarch64_nop, aarch64_ok, aarch64_sub, &
+        aarch64_unsupported
     implicit none
 
     type(target_ir_t) :: target, bad_target
     type(aarch64_instruction_t) :: instruction, decoded
-    type(aarch64_encoding_record_t) :: records(5)
+    type(aarch64_encoding_record_t) :: records(6)
     integer(int32) :: count, status
     integer(int64) :: word
     integer(int64), parameter :: add_word = int(z'9100416A', int64)
@@ -64,15 +65,21 @@ program test_aarch64_fixture
         '"value":{"_type":"Values.Value","value":"1"}},{"_type":' // &
         '"Instruction.Encodeset.Bits","range":{"_type":"Range","start":24,"width":5},' // &
         '"value":{"_type":"Values.Value","value":"10000"}}]}}'
+    character(len=*), parameter :: ldr_literal = &
+        '{"_type":"Instruction.Instruction","name":"LDR_32_ldst_immliteral",' // &
+        '"operation_id":"LDR_32_ldst_immliteral","encoding":{"_type":"Instruction.Encodeset.Encodeset",' // &
+        '"width":32,"values":[{"_type":"Instruction.Encodeset.Bits",' // &
+        '"range":{"_type":"Range","start":24,"width":8},' // &
+        '"value":{"_type":"Values.Value","value":"00011000"}}]}}'
 
     target = make_target_ir('aarch64', 32_int32, .true., make_source_ref( &
         'aarchmrs-instructions', 'Instructions.json', &
         '439a0003e7904a4c93df27efd2702453336e00023d5f4c8ef3f0aa28291a10e3', 'IMPORTED'))
     call import_aarch64_instructions(add // new_line('a') // sub // new_line('a') // nop // &
-        new_line('a') // adr // new_line('a') // adrp, &
+        new_line('a') // adr // new_line('a') // adrp // new_line('a') // ldr_literal, &
         target%source, records, count, status)
     call assert_int(status, aarch64_source_ok, 'source records were rejected')
-    call assert_int(count, 5_int32, 'source record count changed')
+    call assert_int(count, 6_int32, 'source record count changed')
 
     instruction = aarch64_instruction_t(aarch64_add, 10_int32, 11_int32, 16_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
@@ -114,6 +121,17 @@ program test_aarch64_fixture
     call assert64(word, int(z'F07FFFE7', int64), 'maximum ADRP encoding changed')
     call check_decode(word, instruction, 'maximum ADRP page offset decode')
 
+    instruction = aarch64_instruction_t(aarch64_ldr_literal, 5_int32, 0_int32, -4_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_ok, 'LDR literal was rejected')
+    call assert64(word, int(z'18FFFFE5', int64), 'LDR literal negative encoding changed')
+    call check_decode(word, instruction, 'LDR literal negative offset decode')
+    instruction = aarch64_instruction_t(aarch64_ldr_literal, 7_int32, 0_int32, 1048572_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_ok, 'maximum LDR literal offset was rejected')
+    call assert64(word, int(z'187FFFE7', int64), 'maximum LDR literal encoding changed')
+    call check_decode(word, instruction, 'maximum LDR literal offset decode')
+
     instruction = aarch64_instruction_t(aarch64_add, 1_int32, 2_int32, 0_int32)
     instruction%rd = 32_int32
     call aarch64_encode_fixed(target, instruction, word, status, records)
@@ -135,6 +153,15 @@ program test_aarch64_fixture
     instruction = aarch64_instruction_t(aarch64_adrp, 1_int32, 0_int32, -1048577_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_invalid_operand, 'negative wide ADRP page offset accepted')
+    instruction = aarch64_instruction_t(aarch64_ldr_literal, 1_int32, 0_int32, 2_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_operand, 'unaligned LDR literal offset accepted')
+    instruction = aarch64_instruction_t(aarch64_ldr_literal, 1_int32, 0_int32, 1048576_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_operand, 'wide LDR literal offset accepted')
+    instruction = aarch64_instruction_t(aarch64_ldr_literal, 32_int32, 0_int32, -4_int32)
+    call aarch64_encode_fixed(target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_operand, 'invalid LDR literal destination accepted')
     instruction = aarch64_instruction_t(99_int32, 1_int32, 2_int32, 0_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_unsupported, 'wrong opcode accepted')
@@ -161,6 +188,11 @@ program test_aarch64_fixture
     call assert_int(status, aarch64_invalid_target, 'wrong target accepted ADRP')
     call aarch64_decode_fixed(bad_target, int(z'90FFFFE5', int64), decoded, status, records)
     call assert_int(status, aarch64_invalid_target, 'wrong target decoded ADRP')
+    instruction = aarch64_instruction_t(aarch64_ldr_literal, 5_int32, 0_int32, -4_int32)
+    call aarch64_encode_fixed(bad_target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_target, 'wrong target accepted LDR literal')
+    call aarch64_decode_fixed(bad_target, int(z'18FFFFE5', int64), decoded, status, records)
+    call assert_int(status, aarch64_invalid_target, 'wrong target decoded LDR literal')
 
     write (*, '(a)') 'AArch64 fixed codec behavioral checks: ok'
 
