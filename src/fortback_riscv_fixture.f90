@@ -13,6 +13,7 @@ module fortback_riscv_fixture
     integer(int32), parameter, public :: riscv_xor = 6_int32
     integer(int32), parameter, public :: riscv_sll = 7_int32
     integer(int32), parameter, public :: riscv_ori = 8_int32
+    integer(int32), parameter, public :: riscv_andi = 9_int32
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -57,7 +58,8 @@ contains
             status = riscv_unsupported
             return
         end if
-        if ((instruction%kind == riscv_addi .or. instruction%kind == riscv_ori) .and. &
+        if ((instruction%kind == riscv_addi .or. instruction%kind == riscv_ori .or. &
+            instruction%kind == riscv_andi) .and. &
             (instruction%immediate < -2048_int32 .or. &
             instruction%immediate > 2047_int32)) then
             status = riscv_invalid_operand
@@ -65,7 +67,8 @@ contains
         end if
         operands = ishft(int(instruction%rd, int64), 7)
         operands = ior(operands, ishft(int(instruction%rs1, int64), 15))
-        if (instruction%kind == riscv_addi .or. instruction%kind == riscv_ori) then
+        if (instruction%kind == riscv_addi .or. instruction%kind == riscv_ori .or. &
+            instruction%kind == riscv_andi) then
             operands = ior(operands, ishft(iand(int(instruction%immediate, int64), &
                 4095_int64), 20))
         else
@@ -113,6 +116,7 @@ contains
         else
             if (trim(records(index)%mnemonic) == 'addi') instruction%kind = riscv_addi
             if (trim(records(index)%mnemonic) == 'ori') instruction%kind = riscv_ori
+            if (trim(records(index)%mnemonic) == 'andi') instruction%kind = riscv_andi
             immediate = iand(ishft(word, -20), 4095_int64)
             if (immediate >= 2048_int64) immediate = immediate - 4096_int64
             instruction%immediate = int(immediate, int32)
@@ -133,7 +137,8 @@ contains
                 (kind == riscv_xor .and. trim(records(i)%mnemonic) == 'xor') .or. &
                 (kind == riscv_sll .and. trim(records(i)%mnemonic) == 'sll') .or. &
                 (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi') .or. &
-                (kind == riscv_ori .and. trim(records(i)%mnemonic) == 'ori')) then
+                (kind == riscv_ori .and. trim(records(i)%mnemonic) == 'ori') .or. &
+                (kind == riscv_andi .and. trim(records(i)%mnemonic) == 'andi')) then
                 find_record = i
                 return
             end if
