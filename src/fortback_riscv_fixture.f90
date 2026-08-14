@@ -10,6 +10,7 @@ module fortback_riscv_fixture
     integer(int32), parameter, public :: riscv_addi = 3_int32
     integer(int32), parameter, public :: riscv_and = 4_int32
     integer(int32), parameter, public :: riscv_or = 5_int32
+    integer(int32), parameter, public :: riscv_xor = 6_int32
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -103,6 +104,7 @@ contains
             if (trim(records(index)%mnemonic) == 'sub') instruction%kind = riscv_sub
             if (trim(records(index)%mnemonic) == 'and') instruction%kind = riscv_and
             if (trim(records(index)%mnemonic) == 'or') instruction%kind = riscv_or
+            if (trim(records(index)%mnemonic) == 'xor') instruction%kind = riscv_xor
             instruction%rs2 = int(iand(ishft(word, -20), 31_int64), int32)
         else
             instruction%kind = riscv_addi
@@ -123,6 +125,7 @@ contains
                 (kind == riscv_sub .and. trim(records(i)%mnemonic) == 'sub') .or. &
                 (kind == riscv_and .and. trim(records(i)%mnemonic) == 'and') .or. &
                 (kind == riscv_or .and. trim(records(i)%mnemonic) == 'or') .or. &
+                (kind == riscv_xor .and. trim(records(i)%mnemonic) == 'xor') .or. &
                 (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi')) then
                 find_record = i
                 return
@@ -161,7 +164,8 @@ contains
         if (instruction%rd < 0_int32 .or. instruction%rd > 31_int32) return
         if (instruction%rs1 < 0_int32 .or. instruction%rs1 > 31_int32) return
         if (instruction%kind == riscv_add .or. instruction%kind == riscv_sub .or. &
-            instruction%kind == riscv_and .or. instruction%kind == riscv_or) then
+            instruction%kind == riscv_and .or. instruction%kind == riscv_or .or. &
+            instruction%kind == riscv_xor) then
             if (instruction%rs2 < 0_int32 .or. instruction%rs2 > 31_int32) return
         end if
         validate_registers = riscv_ok

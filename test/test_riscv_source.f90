@@ -9,9 +9,10 @@ program test_riscv_source
         'add rd rs1 rs2 31..25=0 14..12=0 6..2=0x0C 1..0=3' // new_line('a') // &
         'sub rd rs1 rs2 31..25=0x20 14..12=0 6..2=0x0C 1..0=3' // new_line('a') // &
         'or rd rs1 rs2 31..25=0 14..12=6 6..2=0x0C 1..0=3' // new_line('a') // &
+        'xor rd rs1 rs2 31..25=0 14..12=4 6..2=0x0C 1..0=3' // new_line('a') // &
         'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3' // new_line('a')
     type(source_ref_t) :: source
-    type(riscv_opcode_record_t) :: records(4)
+    type(riscv_opcode_record_t) :: records(5)
     integer(int32) :: count, status
 
     source = make_source_ref('riscv-opcodes', 'rv_i', &
@@ -19,18 +20,21 @@ program test_riscv_source
         'IMPORTED')
     call import_riscv_opcodes(source_text, source, records, count, status)
     call assert_equal_int(status, riscv_source_ok, 'canonical witness rejected')
-    call assert_equal_int(count, 4_int32, 'bounded importer changed record count')
+    call assert_equal_int(count, 5_int32, 'bounded importer changed record count')
     call assert_equal(trim(records(1)%mnemonic), 'add', 'add was not normalized')
     call assert_equal(trim(records(2)%mnemonic), 'sub', 'sub was not normalized')
     call assert_equal(trim(records(3)%mnemonic), 'or', 'or was not normalized')
-    call assert_equal(trim(records(4)%mnemonic), 'addi', 'addi was not normalized')
+    call assert_equal(trim(records(4)%mnemonic), 'xor', 'xor was not normalized')
+    call assert_equal(trim(records(5)%mnemonic), 'addi', 'addi was not normalized')
     call assert_equal64(records(1)%match, int(z'00000033', int64), 'add match changed')
     call assert_equal64(records(2)%match, int(z'40000033', int64), 'sub match changed')
     call assert_equal64(records(3)%match, int(z'00006033', int64), 'or match changed')
-    call assert_equal64(records(4)%match, int(z'00000013', int64), 'addi match changed')
+    call assert_equal64(records(4)%match, int(z'00004033', int64), 'xor match changed')
+    call assert_equal64(records(5)%match, int(z'00000013', int64), 'addi match changed')
     call assert_equal64(records(1)%mask, int(z'FE00707F', int64), 'add mask changed')
     call assert_equal64(records(3)%mask, int(z'FE00707F', int64), 'or mask changed')
-    call assert_equal64(records(4)%mask, int(z'0000707F', int64), 'addi mask changed')
+    call assert_equal64(records(4)%mask, int(z'FE00707F', int64), 'xor mask changed')
+    call assert_equal64(records(5)%mask, int(z'0000707F', int64), 'addi mask changed')
     call assert_equal(trim(records(1)%source%artifact), 'riscv-opcodes', &
         'artifact provenance was lost')
     call assert_equal(trim(records(1)%source%object), 'rv_i', 'object provenance was lost')
@@ -38,6 +42,8 @@ program test_riscv_source
         trim(source%source_hash), 'source hash provenance was lost')
     call assert_equal(trim(records(3)%source%source_hash), &
         trim(source%source_hash), 'or source hash provenance was lost')
+    call assert_equal(trim(records(4)%source%source_hash), &
+        trim(source%source_hash), 'xor source hash provenance was lost')
     call assert_equal(trim(records(1)%source%origin), 'IMPORTED', 'origin was lost')
     write (*, '(a)') 'RISC-V source importer checks: ok'
 
