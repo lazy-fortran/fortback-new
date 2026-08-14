@@ -4,7 +4,8 @@ program test_targetir_codec
         aarch64_variable_range_t
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: make_source_ref, make_target_ir, source_ref_t, target_ir_t
-    use fortback_targetir_codec, only: targetir_decode_record, targetir_encode_record, &
+    use fortback_targetir_codec, only: targetir_decode_record, targetir_decode_unique, &
+        targetir_encode_record, &
         targetir_lookup_ambiguous, targetir_lookup_candidates, targetir_lookup_no_match, &
         targetir_lookup_unsupported_word, targetir_lookup_capacity
     use fortback_targetir_encoding, only: normalize_aarch64_record, &
@@ -22,7 +23,7 @@ program test_targetir_codec
     type(aarch64_encoding_record_t) :: aarch_record
     integer(int64) :: values(2), word
     integer(int64), allocatable :: decoded(:)
-    integer(int32) :: indices(3), small_indices(1), match_count
+    integer(int32) :: indices(3), small_indices(1), match_count, candidate_index
     integer(int32) :: status
 
     source = make_source_ref('target-spec', 'encoding', 'codec-hash', 'IMPORTED')
@@ -106,6 +107,31 @@ program test_targetir_codec
     call assert_status(status, targetir_encoding_ok, 'AArch64 normalized word rejected')
     call assert_values(decoded, [int(z'123456', int64)], 'AArch64 adapter round trip changed')
 
+    one_record(1) = normalized
+    decoded = [99_int64]
+    candidate_index = 99_int32
+    call targetir_decode_unique(target, one_record, word, candidate_index, decoded, status)
+    call assert_status(status, targetir_encoding_ok, 'unique decode rejected')
+    call assert_int(candidate_index, 1_int32, 'unique decode index changed')
+    call assert_values(decoded, [int(z'123456', int64)], 'unique decode values changed')
+
+    decoded = [99_int64]
+    candidate_index = 99_int32
+    call targetir_decode_unique(target, one_record, int(z'34000000', int64), &
+        candidate_index, decoded, status)
+    call assert_status(status, targetir_lookup_no_match, 'unique no-match not reported')
+    call assert_int(candidate_index, 0_int32, 'no-match index not cleared')
+    call assert_unallocated(decoded, 'no-match values not cleared')
+
+    decoded = [99_int64]
+    candidate_index = 99_int32
+    call targetir_decode_unique(target, one_record, int(z'100000000', int64), &
+        candidate_index, decoded, status)
+    call assert_status(status, targetir_lookup_unsupported_word, &
+        'unique unsupported word not reported')
+    call assert_int(candidate_index, 0_int32, 'unsupported index not cleared')
+    call assert_unallocated(decoded, 'unsupported values not cleared')
+
     record = targetir_encoding_record_t()
     record%target = target
     record%operation_id = 'first'
@@ -121,6 +147,14 @@ program test_targetir_codec
     call assert_status(status, targetir_lookup_ambiguous, 'ambiguous lookup not reported')
     call assert_int(match_count, 2_int32, 'ambiguous lookup count changed')
     call assert_indices(indices, [1_int32, 2_int32, 0_int32], 'lookup order changed')
+
+    decoded = [99_int64]
+    candidate_index = 99_int32
+    call targetir_decode_unique(target, record_table, int(z'12345678', int64), &
+        candidate_index, decoded, status)
+    call assert_status(status, targetir_lookup_ambiguous, 'unique ambiguity not reported')
+    call assert_int(candidate_index, 0_int32, 'ambiguous index not cleared')
+    call assert_unallocated(decoded, 'ambiguous values not cleared')
 
     one_record(1) = normalized
     call targetir_lookup_candidates(target, one_record, int(z'34000000', int64), &
@@ -158,6 +192,15 @@ program test_targetir_codec
     call assert_indices(indices, [0_int32, 0_int32, 0_int32], &
         'malformed lookup output not cleared')
 
+    decoded = [99_int64]
+    candidate_index = 99_int32
+    call targetir_decode_unique(target, one_record, int(z'12345678', int64), &
+        candidate_index, decoded, status)
+    call assert_status(status, targetir_encoding_malformed, &
+        'unique malformed table not reported')
+    call assert_int(candidate_index, 0_int32, 'malformed index not cleared')
+    call assert_unallocated(decoded, 'malformed values not cleared')
+
     wrong_target = target
     wrong_target%architecture = 'riscv64'
     call targetir_lookup_candidates(wrong_target, one_record, int(z'12345678', int64), &
@@ -166,6 +209,15 @@ program test_targetir_codec
         'invalid target lookup not reported')
     call assert_indices(indices, [0_int32, 0_int32, 0_int32], &
         'invalid target lookup output not cleared')
+
+    decoded = [99_int64]
+    candidate_index = 99_int32
+    call targetir_decode_unique(wrong_target, one_record, int(z'12345678', int64), &
+        candidate_index, decoded, status)
+    call assert_status(status, targetir_encoding_invalid_target, &
+        'unique invalid target not reported')
+    call assert_int(candidate_index, 0_int32, 'invalid target index not cleared')
+    call assert_unallocated(decoded, 'invalid target values not cleared')
 
     write (*, '(a)') 'TargetIR generic codec behavioral checks: ok'
 

@@ -13,6 +13,7 @@ module fortback_targetir_codec
     public :: targetir_encode_record
     public :: targetir_decode_record
     public :: targetir_lookup_candidates
+    public :: targetir_decode_unique
 
     integer(int32), parameter, public :: targetir_lookup_no_match = 5_int32
     integer(int32), parameter, public :: targetir_lookup_ambiguous = 6_int32
@@ -132,6 +133,31 @@ contains
             status = targetir_encoding_ok
         end if
     end subroutine targetir_lookup_candidates
+
+    subroutine targetir_decode_unique(target, records, word, candidate_index, values, status)
+        type(target_ir_t), intent(in) :: target
+        type(targetir_encoding_record_t), intent(in) :: records(:)
+        integer(int64), intent(in) :: word
+        integer(int32), intent(out) :: candidate_index
+        integer(int64), allocatable, intent(out) :: values(:)
+        integer(int32), intent(out) :: status
+        integer(int32), allocatable :: indices(:)
+        integer(int32) :: match_count
+
+        candidate_index = 0_int32
+        status = targetir_encoding_malformed
+        allocate (indices(size(records)))
+        call targetir_lookup_candidates(target, records, word, indices, match_count, status)
+        if (status /= targetir_encoding_ok) return
+        if (match_count /= 1_int32) then
+            status = targetir_lookup_ambiguous
+            return
+        end if
+
+        candidate_index = indices(1)
+        call targetir_decode_record(target, records(candidate_index), word, values, status)
+        if (status /= targetir_encoding_ok) candidate_index = 0_int32
+    end subroutine targetir_decode_unique
 
     pure integer(int32) function validate_record(target, record)
         type(target_ir_t), intent(in) :: target
