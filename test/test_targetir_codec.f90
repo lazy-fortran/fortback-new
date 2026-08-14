@@ -4,20 +4,25 @@ program test_targetir_codec
         aarch64_variable_range_t
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: make_source_ref, make_target_ir, source_ref_t, target_ir_t
-    use fortback_targetir_codec, only: targetir_decode_record, targetir_encode_record
+    use fortback_targetir_codec, only: targetir_decode_record, targetir_encode_record, &
+        targetir_lookup_ambiguous, targetir_lookup_candidates, targetir_lookup_no_match, &
+        targetir_lookup_unsupported_word, targetir_lookup_capacity
     use fortback_targetir_encoding, only: normalize_aarch64_record, &
         normalize_riscv_i_record, targetir_encoding_invalid_target, &
-        targetir_encoding_malformed, targetir_encoding_ok, targetir_encoding_unsupported, &
+        targetir_encoding_malformed, targetir_encoding_ok, &
+        targetir_encoding_unsupported, &
         targetir_encoding_record_t, targetir_variable_field_t
     implicit none
 
     type(source_ref_t) :: source
     type(target_ir_t) :: target, wrong_target
     type(targetir_encoding_record_t) :: record, normalized
+    type(targetir_encoding_record_t) :: record_table(2), one_record(1)
     type(riscv_opcode_record_t) :: riscv_record
     type(aarch64_encoding_record_t) :: aarch_record
     integer(int64) :: values(2), word
     integer(int64), allocatable :: decoded(:)
+    integer(int32) :: indices(3), small_indices(1), match_count
     integer(int32) :: status
 
     source = make_source_ref('target-spec', 'encoding', 'codec-hash', 'IMPORTED')
@@ -101,6 +106,67 @@ program test_targetir_codec
     call assert_status(status, targetir_encoding_ok, 'AArch64 normalized word rejected')
     call assert_values(decoded, [int(z'123456', int64)], 'AArch64 adapter round trip changed')
 
+    record = targetir_encoding_record_t()
+    record%target = target
+    record%operation_id = 'first'
+    record%word_bits = 32_int32
+    record%fixed_mask = int(z'FF000000', int64)
+    record%fixed_match = int(z'12000000', int64)
+    record%source = source
+    normalized = record
+    record%operation_id = 'second'
+    record_table = [normalized, record]
+    call targetir_lookup_candidates(target, record_table, int(z'12345678', int64), &
+        indices, match_count, status)
+    call assert_status(status, targetir_lookup_ambiguous, 'ambiguous lookup not reported')
+    call assert_int(match_count, 2_int32, 'ambiguous lookup count changed')
+    call assert_indices(indices, [1_int32, 2_int32, 0_int32], 'lookup order changed')
+
+    one_record(1) = normalized
+    call targetir_lookup_candidates(target, one_record, int(z'34000000', int64), &
+        indices, match_count, status)
+    call assert_status(status, targetir_lookup_no_match, 'no-match lookup not reported')
+    call assert_int(match_count, 0_int32, 'no-match lookup count changed')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32], 'no-match output not cleared')
+
+    call targetir_lookup_candidates(target, record_table, int(z'34000000', int64), &
+        small_indices, match_count, status)
+    call assert_status(status, targetir_lookup_no_match, &
+        'no-match table incorrectly required capacity')
+    call assert_int(match_count, 0_int32, 'large no-match count changed')
+    call assert_indices(small_indices, [0_int32], 'large no-match output not cleared')
+
+    call targetir_lookup_candidates(target, one_record, int(z'100000000', int64), &
+        indices, match_count, status)
+    call assert_status(status, targetir_lookup_unsupported_word, &
+        'unsupported word lookup not reported')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32], &
+        'unsupported word output not cleared')
+
+    call targetir_lookup_candidates(target, record_table, int(z'12345678', int64), &
+        small_indices, match_count, status)
+    call assert_status(status, targetir_lookup_capacity, 'lookup capacity not reported')
+    call assert_int(match_count, 0_int32, 'capacity lookup count not cleared')
+    call assert_indices(small_indices, [0_int32], 'capacity lookup output not cleared')
+
+    record%fixed_match = int(z'12000001', int64)
+    one_record(1) = record
+    call targetir_lookup_candidates(target, one_record, int(z'12345678', int64), indices, &
+        match_count, status)
+    call assert_status(status, targetir_encoding_malformed, 'malformed lookup not reported')
+    call assert_int(match_count, 0_int32, 'malformed lookup count not cleared')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32], &
+        'malformed lookup output not cleared')
+
+    wrong_target = target
+    wrong_target%architecture = 'riscv64'
+    call targetir_lookup_candidates(wrong_target, one_record, int(z'12345678', int64), &
+        indices, match_count, status)
+    call assert_status(status, targetir_encoding_invalid_target, &
+        'invalid target lookup not reported')
+    call assert_indices(indices, [0_int32, 0_int32, 0_int32], &
+        'invalid target lookup output not cleared')
+
     write (*, '(a)') 'TargetIR generic codec behavioral checks: ok'
 
 contains
@@ -128,6 +194,21 @@ contains
         if (size(actual) /= size(expected)) error stop message
         if (any(actual /= expected)) error stop message
     end subroutine assert_values
+
+    subroutine assert_int(actual, expected, message)
+        integer(int32), intent(in) :: actual, expected
+        character(len=*), intent(in) :: message
+
+        if (actual /= expected) error stop message
+    end subroutine assert_int
+
+    subroutine assert_indices(actual, expected, message)
+        integer(int32), intent(in) :: actual(:), expected(:)
+        character(len=*), intent(in) :: message
+
+        if (size(actual) /= size(expected)) error stop message
+        if (any(actual /= expected)) error stop message
+    end subroutine assert_indices
 
     subroutine assert_unallocated(actual, message)
         integer(int64), allocatable, intent(in) :: actual(:)
