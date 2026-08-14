@@ -123,6 +123,9 @@ program test_aarch64_source
     call import_aarch64_instructions(substitute(add, 'ADD_64_addsub_imm', 'LDR_64_imm'), &
         source, records, count, status)
     call assert_int(status, aarch64_source_unsupported, 'unsupported instruction accepted')
+    call import_aarch64_instructions(substitute(nop, '11010101000000110010000000011111', &
+        '1101010100000011001000000001111'), source, records, count, status)
+    call assert_int(status, aarch64_source_malformed, 'partial NOP encoding accepted')
     write (*, '(a)') 'AArch64 source importer checks: ok'
 
 contains

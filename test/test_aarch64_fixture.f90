@@ -11,7 +11,7 @@ program test_aarch64_fixture
 
     type(target_ir_t) :: target, bad_target
     type(aarch64_instruction_t) :: instruction, decoded
-    type(aarch64_encoding_record_t) :: records(6)
+    type(aarch64_encoding_record_t) :: records(6), bad_records(6)
     integer(int32) :: count, status
     integer(int64) :: word
     integer(int64), parameter :: add_word = int(z'9100416A', int64)
@@ -95,7 +95,7 @@ program test_aarch64_fixture
     call check_decode(sub_word, instruction, 'SUB fixed word decode')
     call check_decode(word, instruction, 'SUB encode/decode round trip')
 
-    instruction = aarch64_instruction_t(aarch64_nop, 31_int32, 31_int32, 4095_int32)
+    instruction = aarch64_instruction_t(aarch64_nop, 32_int32, -1_int32, -1_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
     call assert_int(status, aarch64_ok, 'NOP was rejected')
     call assert64(word, nop_word, 'NOP fixed encoding changed')
@@ -103,6 +103,17 @@ program test_aarch64_fixture
         'NOP fixed word decode')
     call check_decode(word, aarch64_instruction_t(aarch64_nop, 0_int32, 0_int32, 0_int32), &
         'NOP encode/decode round trip')
+
+    bad_records = records
+    bad_records(3)%mask = 0_int64
+    call aarch64_encode_fixed(target, instruction, word, status, bad_records)
+    call assert_int(status, aarch64_unsupported, 'malformed NOP record accepted')
+    call aarch64_decode_fixed(target, nop_word, decoded, status, bad_records)
+    call assert_int(status, aarch64_unsupported, 'malformed NOP record decoded')
+    bad_records = records
+    bad_records(3)%name = 'unsupported'
+    call aarch64_encode_fixed(target, instruction, word, status, bad_records)
+    call assert_int(status, aarch64_unsupported, 'unsupported NOP record accepted')
 
     instruction = aarch64_instruction_t(aarch64_adr, 5_int32, 0_int32, -4_int32)
     call aarch64_encode_fixed(target, instruction, word, status, records)
@@ -193,6 +204,11 @@ program test_aarch64_fixture
     call assert_int(status, aarch64_invalid_target, 'wrong target accepted LDR literal')
     call aarch64_decode_fixed(bad_target, int(z'18FFFFE5', int64), decoded, status, records)
     call assert_int(status, aarch64_invalid_target, 'wrong target decoded LDR literal')
+    instruction = aarch64_instruction_t(aarch64_nop, 0_int32, 0_int32, 0_int32)
+    call aarch64_encode_fixed(bad_target, instruction, word, status, records)
+    call assert_int(status, aarch64_invalid_target, 'wrong target accepted NOP')
+    call aarch64_decode_fixed(bad_target, nop_word, decoded, status, records)
+    call assert_int(status, aarch64_invalid_target, 'wrong target decoded NOP')
 
     write (*, '(a)') 'AArch64 fixed codec behavioral checks: ok'
 

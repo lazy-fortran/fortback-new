@@ -1,7 +1,7 @@
 module fortback_aarch64_fixture
     use iso_fortran_env, only: int32, int64
     use fortback_aarch64_source, only: aarch64_encoding_record_t
-    use fortback_target_ir, only: target_ir_t
+    use fortback_target_ir, only: source_ref_valid, target_ir_t
     implicit none
     private
 
@@ -147,7 +147,7 @@ contains
         do i = 1, size(records)
             if ((kind == aarch64_add .and. trim(records(i)%name) == 'ADD_64_addsub_imm') .or. &
                 (kind == aarch64_sub .and. trim(records(i)%name) == 'SUB_64_addsub_imm') .or. &
-                (kind == aarch64_nop .and. trim(records(i)%name) == 'NOP_HI_hints') .or. &
+                (kind == aarch64_nop .and. valid_nop_record(records(i))) .or. &
                 (kind == aarch64_adr .and. trim(records(i)%name) == 'ADR_only_pcreladdr') .or. &
                 (kind == aarch64_adrp .and. trim(records(i)%name) == 'ADRP_only_pcreladdr') .or. &
                 (kind == aarch64_ldr_literal .and. &
@@ -166,7 +166,7 @@ contains
         find_word = 0
         do i = 1, size(records)
             if (iand(word, records(i)%mask) == records(i)%match) then
-                if (trim(records(i)%name) == 'NOP_HI_hints' .or. &
+                if (valid_nop_record(records(i)) .or. &
                     trim(records(i)%name) == 'ADD_64_addsub_imm' .or. &
                     trim(records(i)%name) == 'SUB_64_addsub_imm' .or. &
                     trim(records(i)%name) == 'ADR_only_pcreladdr' .or. &
@@ -193,6 +193,10 @@ contains
         type(aarch64_instruction_t), intent(in) :: instruction
 
         validate_operands = aarch64_invalid_operand
+        if (instruction%kind == aarch64_nop) then
+            validate_operands = aarch64_ok
+            return
+        end if
         if (instruction%rd < 0_int32 .or. instruction%rd > 31_int32) return
         if (instruction%kind == aarch64_adr .or. instruction%kind == aarch64_adrp) then
             if (instruction%immediate < -1048576_int32 .or. instruction%immediate > 1048575_int32) return
@@ -209,6 +213,31 @@ contains
         if (instruction%immediate < 0_int32 .or. instruction%immediate > 4095_int32) return
         validate_operands = aarch64_ok
     end function validate_operands
+
+    pure logical function valid_nop_record(record)
+        type(aarch64_encoding_record_t), intent(in) :: record
+
+        valid_nop_record = trim(record%name) == 'NOP_HI_hints'
+        if (.not. valid_nop_record) return
+        if (record%width /= 32_int32) then
+            valid_nop_record = .false.
+            return
+        end if
+        if (record%mask /= int(z'FFFFFFFF', int64)) then
+            valid_nop_record = .false.
+            return
+        end if
+        if (trim(record%target%architecture) /= 'aarch64') then
+            valid_nop_record = .false.
+            return
+        end if
+        if (record%target%word_bits /= 32_int32 .or. &
+            .not. record%target%little_endian) then
+            valid_nop_record = .false.
+            return
+        end if
+        if (.not. source_ref_valid(record%source)) valid_nop_record = .false.
+    end function valid_nop_record
 
     pure integer(int32) function decode_adr_immediate(word)
         integer(int64), intent(in) :: word

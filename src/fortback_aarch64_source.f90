@@ -114,6 +114,8 @@ contains
             cursor = cursor + end_quote
         end do
         if (.not. found) return
+        if (trim(record%name) == 'NOP_HI_hints' .and. &
+            record%mask /= int(z'FFFFFFFF', int64)) return
         status = aarch64_source_ok
     end subroutine parse_record
 
