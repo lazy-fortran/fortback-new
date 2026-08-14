@@ -14,6 +14,7 @@ module fortback_targetir_codec
     public :: targetir_decode_record
     public :: targetir_lookup_candidates
     public :: targetir_decode_unique
+    public :: targetir_validate_record
 
     integer(int32), parameter, public :: targetir_lookup_no_match = 5_int32
     integer(int32), parameter, public :: targetir_lookup_ambiguous = 6_int32
@@ -32,7 +33,7 @@ contains
         integer(int64) :: value_mask
 
         word = 0_int64
-        status = validate_record(target, record)
+        status = targetir_validate_record(target, record)
         if (status /= targetir_encoding_ok) return
         if (size(values) /= record%variable_field_count) then
             status = targetir_encoding_malformed
@@ -61,7 +62,7 @@ contains
         integer(int32) :: i
         integer(int64) :: value_mask
 
-        status = validate_record(target, record)
+        status = targetir_validate_record(target, record)
         if (status /= targetir_encoding_ok) return
         if (word < 0_int64 .or. word > instruction_word_max) then
             status = targetir_encoding_malformed
@@ -99,7 +100,7 @@ contains
             return
         end if
         do i = 1, size(records)
-            status = validate_record(target, records(i))
+            status = targetir_validate_record(target, records(i))
             if (status /= targetir_encoding_ok) then
                 indices = 0_int32
                 match_count = 0_int32
@@ -159,20 +160,20 @@ contains
         if (status /= targetir_encoding_ok) candidate_index = 0_int32
     end subroutine targetir_decode_unique
 
-    pure integer(int32) function validate_record(target, record)
+    pure integer(int32) function targetir_validate_record(target, record)
         type(target_ir_t), intent(in) :: target
         type(targetir_encoding_record_t), intent(in) :: record
         integer(int32) :: i
         integer(int64) :: occupied, field_mask
 
-        validate_record = targetir_encoding_invalid_target
+        targetir_validate_record = targetir_encoding_invalid_target
         if (.not. target_ir_valid(target)) return
         if (.not. target_ir_valid(record%target)) return
         if (trim(target%architecture) /= trim(record%target%architecture)) return
         if (target%word_bits /= record%target%word_bits) return
         if (target%little_endian .neqv. record%target%little_endian) return
 
-        validate_record = targetir_encoding_malformed
+        targetir_validate_record = targetir_encoding_malformed
         if (.not. source_ref_valid(record%source)) return
         if (len_trim(record%operation_id) == 0) return
         if (record%word_bits /= 32_int32) return
@@ -194,8 +195,8 @@ contains
             if (iand(occupied, field_mask) /= 0_int64) return
             occupied = ior(occupied, field_mask)
         end do
-        validate_record = targetir_encoding_ok
-    end function validate_record
+        targetir_validate_record = targetir_encoding_ok
+    end function targetir_validate_record
 
     pure integer(int64) function field_mask_for(field)
         use fortback_targetir_encoding, only: targetir_variable_field_t
