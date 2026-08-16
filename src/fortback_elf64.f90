@@ -22,6 +22,7 @@ module fortback_elf64
 
     public :: write_elf64_object
     public :: write_elf64_object_to_unit
+    public :: write_elf64_executable
 
 contains
 
@@ -74,6 +75,67 @@ contains
         if (io_status /= 0) status = elf64_io_error
     end subroutine write_elf64_object_to_unit
 
+    subroutine write_elf64_executable(metadata, source, words, bytes, status)
+        type(elf64_target_t), intent(in) :: metadata
+        type(source_ref_t), intent(in) :: source
+        integer(int64), intent(in) :: words(:)
+        integer(int8), allocatable, intent(out) :: bytes(:)
+        integer(int32), intent(out) :: status
+        integer(int64) :: code_size, load_size, section_offset, image_size
+        integer :: i, offset
+
+        if (allocated(bytes)) deallocate (bytes)
+        allocate (bytes(0))
+        status = validate_executable_input(metadata, source, words)
+        if (status /= elf64_ok) return
+
+        code_size = 4_int64 * int(size(words), int64)
+        load_size = 176_int64 + code_size
+        section_offset = ((load_size + 23_int64) / 8_int64) * 8_int64
+        image_size = section_offset + 192_int64
+        if (image_size > int(huge(0), int64)) then
+            status = elf64_capacity
+            return
+        end if
+        deallocate (bytes)
+        allocate (bytes(int(image_size)))
+        bytes = 0_int8
+        call emit_ident(bytes, metadata)
+        call put_u16(bytes, 17, 2_int16)
+        call put_u16(bytes, 19, metadata%machine)
+        call put_u32(bytes, 21, 1_int32)
+        call put_u32(bytes, 49, 4_int32)
+        call put_u64(bytes, 25, int(z'100B0', int64))
+        call put_u64(bytes, 33, 64_int64)
+        call put_u64(bytes, 41, section_offset)
+        call put_u16(bytes, 53, 64_int16)
+        call put_u16(bytes, 55, 56_int16)
+        call put_u16(bytes, 57, 2_int16)
+        call put_u16(bytes, 59, 64_int16)
+        call put_u16(bytes, 61, 3_int16)
+        call put_u16(bytes, 63, 2_int16)
+        call put_u32(bytes, 65, int(z'70000003', int32))
+        call put_u32(bytes, 69, 4_int32)
+        call put_u64(bytes, 73, 0_int64)
+        call put_u64(bytes, 113, 8_int64)
+        call put_u32(bytes, 121, 1_int32)
+        call put_u32(bytes, 125, 5_int32)
+        call put_u64(bytes, 137, int(z'10000', int64))
+        call put_u64(bytes, 145, int(z'10000', int64))
+        call put_u64(bytes, 153, load_size)
+        call put_u64(bytes, 161, load_size)
+        call put_u64(bytes, 169, int(z'1000', int64))
+        do i = 1, size(words)
+            offset = 177 + 4 * (i - 1)
+            bytes(offset:offset + 3) = word_bytes(words(i))
+        end do
+        bytes(int(load_size) + 1:int(load_size) + 16) = [0_int8, 46_int8, &
+            116_int8, 101_int8, 120_int8, &
+            116_int8, 0_int8, 46_int8, 115_int8, 104_int8, 115_int8, 116_int8, &
+            114_int8, 116_int8, 97_int8, 98_int8]
+        call emit_executable_sections(bytes, section_offset, load_size, code_size)
+    end subroutine write_elf64_executable
+
     integer(int32) function validate_input(metadata, source, word)
         type(elf64_target_t), intent(in) :: metadata
         type(source_ref_t), intent(in) :: source
@@ -100,6 +162,27 @@ contains
         end if
         validate_input = elf64_ok
     end function validate_input
+
+    integer(int32) function validate_executable_input(metadata, source, words)
+        type(elf64_target_t), intent(in) :: metadata
+        type(source_ref_t), intent(in) :: source
+        integer(int64), intent(in) :: words(:)
+
+        validate_executable_input = elf64_invalid_target
+        if (metadata%target%word_bits /= 64_int32) return
+        if (.not. metadata%target%little_endian) return
+        if (trim(metadata%target%architecture) /= 'riscv64') return
+        if (metadata%machine /= elf64_machine_riscv) return
+        if (.not. source_ref_valid(source)) then
+            validate_executable_input = elf64_invalid_source
+            return
+        end if
+        if (size(words) == 0) then
+            validate_executable_input = elf64_empty_word
+            return
+        end if
+        validate_executable_input = elf64_ok
+    end function validate_executable_input
 
     subroutine emit_ident(bytes, metadata)
         integer(int8), intent(inout) :: bytes(:)
@@ -135,6 +218,27 @@ contains
         call put_u64(bytes, 249, 16_int64)
         call put_u64(bytes, 265, 1_int64)
     end subroutine emit_section_headers
+
+    subroutine emit_executable_sections(bytes, section_offset, string_offset, code_size)
+        integer(int8), intent(inout) :: bytes(:)
+        integer(int64), intent(in) :: section_offset, string_offset, code_size
+        integer :: text_header, string_header
+
+        text_header = int(section_offset) + 65
+        string_header = int(section_offset) + 129
+        call put_u32(bytes, text_header, 1_int32)
+        call put_u32(bytes, text_header + 4, 1_int32)
+        call put_u64(bytes, text_header + 8, 6_int64)
+        call put_u64(bytes, text_header + 16, int(z'100B0', int64))
+        call put_u64(bytes, text_header + 24, 176_int64)
+        call put_u64(bytes, text_header + 32, code_size)
+        call put_u64(bytes, text_header + 48, 4_int64)
+        call put_u32(bytes, string_header, 7_int32)
+        call put_u32(bytes, string_header + 4, 3_int32)
+        call put_u64(bytes, string_header + 24, string_offset)
+        call put_u64(bytes, string_header + 32, 16_int64)
+        call put_u64(bytes, string_header + 48, 1_int64)
+    end subroutine emit_executable_sections
 
     pure function word_bytes(word) result(bytes)
         integer(int64), intent(in) :: word

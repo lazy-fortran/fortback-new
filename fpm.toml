@@ -13,6 +13,11 @@ auto-examples = false
 [library]
 source-dir = "src"
 
+[[executable]]
+name = "fortback-mir-v0"
+source-dir = "app"
+main = "fortback_mir_v0.f90"
+
 [[test]]
 name = "test_target_ir"
 source-dir = "test"
@@ -112,3 +117,8 @@ main = "test_riscv_elf64.f90"
 name = "test_aarch64_elf64"
 source-dir = "test"
 main = "test_aarch64_elf64.f90"
+
+[[test]]
+name = "test_mir_v0_riscv_linux"
+source-dir = "test"
+main = "test_mir_v0_riscv_linux.f90"
