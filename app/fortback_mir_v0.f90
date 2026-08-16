@@ -38,7 +38,7 @@ program fortback_mir_v0
         error stop 2
     end if
 
-    call write_mir_v0_riscv_linux(input, output_path, status, diagnostic)
+    call write_mir_v0_riscv_linux(input(:int(file_size)), output_path, status, diagnostic)
     if (status /= mir_v0_bridge_ok) then
         write (error_unit, '(a)') trim(diagnostic)
         if (status == mir_v0_bridge_io_error) error stop 3
