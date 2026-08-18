@@ -47,9 +47,9 @@ module fortback_mir_v0_riscv_linux
     public :: write_mir_v0_riscv_linux
     public :: riscv_linux_artifact_provenance_valid
 
-    integer, parameter :: token_capacity = 2048
+    integer, parameter :: token_capacity = 4096
     integer, parameter :: token_length = 256
-    integer, parameter :: instruction_capacity = 48
+    integer, parameter :: instruction_capacity = 88
 
     type :: bridge_instruction_t
         integer(int32) :: id = 0_int32
@@ -81,7 +81,7 @@ contains
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
         type(riscv_opcode_record_t) :: records(9)
-        integer(int64) :: words(128), values(3)
+        integer(int64) :: words(256), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
         character(len=512) :: opcode_text
@@ -102,7 +102,7 @@ contains
         logical :: print_variable_four_item_route
         logical :: print_variable_five_item_route
         logical :: print_variable_six_item_route
-        logical :: print_variable_seven_to_twenty_item_route
+        logical :: print_variable_seven_to_forty_item_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -150,13 +150,13 @@ contains
         print_variable_four_item_route = is_print_variable_four_item_candidate(mir)
         print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
         print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
-        print_variable_seven_to_twenty_item_route = &
-            is_print_variable_seven_to_twenty_item_candidate(mir)
+        print_variable_seven_to_forty_item_route = &
+            is_print_variable_seven_to_forty_item_candidate(mir)
         print_route = trim(mir%name) == 'p' .and. &
             trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
             .not. print_variable_route
-        if (print_variable_seven_to_twenty_item_route) then
-            call encode_print_variable_seven_to_twenty(target, records, mir, words, emitted_count, &
+        if (print_variable_seven_to_forty_item_route) then
+            call encode_print_variable_seven_to_forty(target, records, mir, words, emitted_count, &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
         else if (print_variable_three_item_route .or. print_variable_four_item_route .or. &
@@ -1018,7 +1018,7 @@ contains
         call set_diagnostic(diagnostic, '')
     end subroutine compile_mir_v0_riscv_linux
 
-    subroutine encode_print_variable_seven_to_twenty(target, records, mir, words, emitted_count, &
+    subroutine encode_print_variable_seven_to_forty(target, records, mir, words, emitted_count, &
             status, diagnostic)
         type(target_ir_t), intent(in) :: target
         type(riscv_opcode_record_t), intent(in) :: records(:)
@@ -1128,7 +1128,7 @@ contains
             mir_v0_riscv_linux_ecall_operands, words(word_index), status, diagnostic)
         if (status /= mir_v0_bridge_ok) return
         emitted_count = word_index
-    end subroutine encode_print_variable_seven_to_twenty
+    end subroutine encode_print_variable_seven_to_forty
 
     subroutine write_mir_v0_riscv_linux(input, path, status, diagnostic)
         character(len=*), intent(in) :: input
@@ -1231,7 +1231,7 @@ contains
         logical :: print_variable_four_item_route
         logical :: print_variable_five_item_route
         logical :: print_variable_six_item_route
-        logical :: print_variable_seven_to_twenty_item_route
+        logical :: print_variable_seven_to_forty_item_route
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
@@ -1243,8 +1243,8 @@ contains
         print_variable_four_item_route = is_print_variable_four_item_candidate(mir)
         print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
         print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
-        print_variable_seven_to_twenty_item_route = &
-            is_print_variable_seven_to_twenty_item_candidate(mir)
+        print_variable_seven_to_forty_item_route = &
+            is_print_variable_seven_to_forty_item_candidate(mir)
         if (.not. mir_v0_bridge_policy_function_supported(mir%name)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
@@ -1262,8 +1262,8 @@ contains
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
-        if (print_variable_seven_to_twenty_item_route) then
-            if (.not. valid_print_variable_seven_to_twenty_item(mir)) then
+        if (print_variable_seven_to_forty_item_route) then
+            if (.not. valid_print_variable_seven_to_forty_item(mir)) then
                 call set_diagnostic(diagnostic, &
                     'mir-v0: PRINT seven-to-twenty-item witness is out of scope')
                 return
@@ -1499,13 +1499,13 @@ contains
             mir%instructions(19)%opcode == mir_v0_opcode_return
     end function is_print_variable_six_item_candidate
 
-    logical function is_print_variable_seven_to_twenty_item_candidate(mir) result(candidate)
+    logical function is_print_variable_seven_to_forty_item_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
         integer :: index, item_count
 
         candidate = .false.
         if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count < 21_int32 .or. mir%instruction_count > 47_int32) return
+        if (mir%instruction_count < 21_int32 .or. mir%instruction_count > 87_int32) return
         if (mod(mir%instruction_count - 7_int32, 2_int32) /= 0_int32) return
         item_count = (mir%instruction_count - 7) / 2
         if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
@@ -1522,7 +1522,7 @@ contains
         end do
         if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
         candidate = .true.
-    end function is_print_variable_seven_to_twenty_item_candidate
+    end function is_print_variable_seven_to_forty_item_candidate
 
     logical function is_print_variable_expression_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
@@ -1782,7 +1782,7 @@ contains
         valid = .true.
     end function valid_print_variable_six_item
 
-    logical function valid_print_variable_seven_to_twenty_item(mir) result(valid)
+    logical function valid_print_variable_seven_to_forty_item(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
         integer :: index, item_count
 
@@ -1820,7 +1820,7 @@ contains
             if (mir%instructions(6 + 2 * index)%result_id < 7_int32) return
         end do
         valid = .true.
-    end function valid_print_variable_seven_to_twenty_item
+    end function valid_print_variable_seven_to_forty_item
 
     logical function valid_print_variable_expression(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir

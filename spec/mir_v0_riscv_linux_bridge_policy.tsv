@@ -207,6 +207,7 @@ route-pattern source-rule frontend-ast-v1/storage-sequence-7 count 27 pattern st
 route-pattern source-rule frontend-ast-v1/storage-sequence-8 count 31 pattern storage-sequence
 route-pattern source-rule frontend-ast-v1/storage-sequence-9 count 35 pattern storage-sequence
 route-pattern source-rule frontend-ast-v1/storage-sequence-10 count 39 pattern storage-sequence
+route-pattern source-rule frontend-ast-v2/print-stmt count 49 pattern stored-variable-print
 literal-range opcode const min 0 max 2047
 result-shape integer 1 integer i32
 result-shape integer-loaded 0 integer i32
@@ -233,6 +234,26 @@ result-shape integer-variable-print-value-actual-22 22 integer i32
 result-shape integer-variable-print-value-actual-23 23 integer i32
 result-shape integer-variable-print-value-actual-24 24 integer i32
 result-shape integer-variable-print-value-actual-25 25 integer i32
+result-shape integer-variable-print-value-actual-26 26 integer i32
+result-shape integer-variable-print-value-actual-27 27 integer i32
+result-shape integer-variable-print-value-actual-28 28 integer i32
+result-shape integer-variable-print-value-actual-29 29 integer i32
+result-shape integer-variable-print-value-actual-30 30 integer i32
+result-shape integer-variable-print-value-actual-31 31 integer i32
+result-shape integer-variable-print-value-actual-32 32 integer i32
+result-shape integer-variable-print-value-actual-33 33 integer i32
+result-shape integer-variable-print-value-actual-34 34 integer i32
+result-shape integer-variable-print-value-actual-35 35 integer i32
+result-shape integer-variable-print-value-actual-36 36 integer i32
+result-shape integer-variable-print-value-actual-37 37 integer i32
+result-shape integer-variable-print-value-actual-38 38 integer i32
+result-shape integer-variable-print-value-actual-39 39 integer i32
+result-shape integer-variable-print-value-actual-40 40 integer i32
+result-shape integer-variable-print-value-actual-41 41 integer i32
+result-shape integer-variable-print-value-actual-42 42 integer i32
+result-shape integer-variable-print-value-actual-43 43 integer i32
+result-shape integer-variable-print-value-actual-44 44 integer i32
+result-shape integer-variable-print-value-actual-45 45 integer i32
 result-shape integer-literal-right 1 integer i32
 result-shape integer-expression-result 2 integer i32
 result-shape integer-sequence-store-literal 1 integer i32

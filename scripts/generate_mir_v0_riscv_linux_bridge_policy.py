@@ -14,7 +14,8 @@ def read_policy():
     policy = {"storage-policy": None, "instruction-count": None, "instructions": [],
               "result-shapes": [], "source-rules": [], "literal-ranges": [],
               "source-literals": [], "source-literal-sequences": [],
-              "frame-operation": None, "exit-status-operation": None, "route-operations": []}
+              "frame-operation": None, "exit-status-operation": None, "route-operations": [],
+              "generated-source-routes": []}
     shape_names = set()
     for line_number, line in enumerate(INPUT.read_text().splitlines(), 1):
         fields = line.split()
@@ -44,8 +45,16 @@ def read_policy():
             policy["route-operations"].append((fields[2], int(fields[4]), fields[6]))
         elif (fields[0] == "route-pattern" and len(fields) == 7 and
               fields[1] == "source-rule" and fields[3] == "count" and
-              fields[5] == "pattern" and fields[6] == "storage-sequence"):
+              fields[5] == "pattern" and fields[6] in ("storage-sequence", "stored-variable-print")):
             count = int(fields[4])
+            if fields[6] == "stored-variable-print":
+                counts = range(count, 88, 2) if count == 49 else (count,)
+                for generated_count in counts:
+                    policy["generated-source-routes"].append((fields[2], generated_count))
+                    if fields[2] == "frontend-ast-v2/print-stmt":
+                        policy["generated-source-routes"].append((
+                            "frontend-ast-v2/execution-part", generated_count))
+                continue
             operations = [(0, "addi"), (1, "sd")]
             for index in range(2, count - 1):
                 operations.append(((index), ("ld", "addi", "add", "sd")[(index - 2) % 4]))
@@ -122,6 +131,27 @@ def read_policy():
         raise SystemExit(f"{INPUT}: at least one result-shape row is required")
     if not policy["source-rules"]:
         raise SystemExit(f"{INPUT}: at least one source-rule row is required")
+    for source_rule, instruction_count in policy["generated-source-routes"]:
+        if instruction_count < 49 or instruction_count > 87 or instruction_count % 2 == 0:
+            raise SystemExit(f"{INPUT}: stored-variable PRINT count is out of range")
+        item_count = (instruction_count - 7) // 2
+        shapes = ["integer-literal-left", "integer-sequence-store-literal",
+                  "integer-sequence-loaded", "integer-sequence-literal-right",
+                  "integer-sequence-expression", "integer-sequence-expression-result",
+                  "integer-sequence-3-loaded", "integer-sequence-3-loaded"]
+        for item_index in range(2, item_count + 1):
+            shape = "integer-variable-print-value"
+            if item_index == 2:
+                shape = "integer-variable-print-value-actual"
+            elif item_index >= 4:
+                shape = f"integer-variable-print-value-actual-{item_index + 5}"
+            shapes.extend((shape, shape))
+        shapes.append(shapes[-1])
+        policy["source-rules"].append(("main", source_rule, tuple(shapes),
+                                        ("const", "store", "load", "const", "pow", "store",
+                                         "load", "output") +
+                                        tuple(opcode for _ in range(item_count - 1)
+                                              for opcode in ("load", "output")) + ("return",)))
     if policy["storage-policy"] is None:
         raise SystemExit(f"{INPUT}: storage policy is required")
     if policy["frame-operation"] is None or policy["exit-status-operation"] is None:

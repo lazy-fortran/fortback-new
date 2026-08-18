@@ -44,7 +44,7 @@ program test_mir_v0_bridge_generated
         'frontend-ast-v2/stop-stmt'), 2_int32, 'STOP route count changed')
     call assert_true(mir_v0_bridge_policy_instruction_count_matches('p', &
         'frontend-ast-v2/print-stmt', 7_int32), 'three-item PRINT route count changed')
-    do item_count = 11, 20
+    do item_count = 11, 40
         call assert_true(mir_v0_bridge_policy_instruction_count_matches('main', &
             'frontend-ast-v2/print-stmt', 2_int32*item_count + 7_int32), &
             'bounded stored-variable PRINT route count missing')
@@ -55,7 +55,7 @@ program test_mir_v0_bridge_generated
         'generated logical value kind changed')
     call assert_equal(mir_v0_value_kind_value('character'), 6_int32, &
         'generated character value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 69_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 89_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
