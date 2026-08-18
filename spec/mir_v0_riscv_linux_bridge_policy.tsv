@@ -1,6 +1,6 @@
 # field key value machine-operation
 instruction-count value 7
-instruction opcode 0 add addi
+instruction opcode 0 add add
 instruction opcode 1 mul mul
 instruction opcode 2 div div
 instruction opcode 3 sub sub
@@ -9,6 +9,9 @@ instruction opcode 5 return return
 instruction opcode 6 const addi
 literal opcode const value 1
 literal opcode const value 2
+literal opcode const value 3
+literal opcode const value 5
+literal opcode const value 6
 literal opcode const value 7
 result-shape integer 1 integer i32
 result-shape integer-expression 2 integer i32
@@ -31,6 +34,9 @@ source-rule function main frontend-ast-v1/assignment integer store return
 source-rule function main frontend-ast-v1/assignment integer const store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer add store return
 source-rule function main frontend-ast-v1/expression integer-literal-left,integer-literal-right,integer-expression-result,integer-expression-result,integer-expression-result const const add store return
+source-rule function main frontend-ast-v1/expression integer-literal-left,integer-literal-right,integer-expression-result,integer-expression-result,integer-expression-result const const mul store return
+source-rule function main frontend-ast-v1/expression integer-literal-left,integer-literal-right,integer-expression-result,integer-expression-result,integer-expression-result const const div store return
+source-rule function main frontend-ast-v1/expression integer-literal-left,integer-literal-right,integer-expression-result,integer-expression-result,integer-expression-result const const sub store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer mul store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer div store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer sub store return

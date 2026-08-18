@@ -131,7 +131,7 @@ contains
         operation = ''
         select case (opcode)
         case (mir_v0_opcode_add)
-            operation = 'addi'
+            operation = 'add'
         case (mir_v0_opcode_mul)
             operation = 'mul'
         case (mir_v0_opcode_div)
@@ -229,6 +229,18 @@ contains
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
+                if (instruction_count == 5_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 5_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 5_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
                 if (instruction_count == 3_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
@@ -315,7 +327,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 7_int32) return
+                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -368,7 +380,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 7_int32) return
+                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -427,7 +439,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 7_int32) return
+                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -478,7 +490,7 @@ contains
                             return
                         end if
                     case (2_int32)
-                        if (opcode /= mir_v0_opcode_add) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_sub) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-expression-result', result_id, result_kind, result_type)) then
                         else
@@ -507,7 +519,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 7_int32) return
+                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -565,7 +577,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 7_int32) return
+                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
                 case default
                     if (literal_present) return
                 end select

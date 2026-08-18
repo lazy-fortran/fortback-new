@@ -2,7 +2,8 @@ module fortback_mir_v0_riscv_linux
     use iso_fortran_env, only: int8, int32, int64
     use fortback_elf64, only: elf64_machine_riscv, elf64_target_t, &
         write_elf64_executable
-    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_const, mir_v0_opcode_value, &
+    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, mir_v0_opcode_const, &
+        mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
         mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
@@ -71,7 +72,7 @@ contains
         type(elf64_target_t) :: metadata
         type(riscv_opcode_record_t) :: records(6)
         integer(int64) :: words(5), values(3)
-        integer(int32) :: count, source_status
+        integer(int32) :: count, index, source_status
         character(len=16) :: operation
         character(len=512) :: opcode_text
         artifact = riscv_linux_artifact_t()
@@ -102,20 +103,26 @@ contains
         end if
 
         if (mir%instruction_count == 5_int32) then
-            values = [10_int64, 0_int64, int(mir%instructions(1)%literal, int64)]
-            call encode_operation(target, records, 'addi', values, words(1), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            values = [11_int64, 0_int64, int(mir%instructions(2)%literal, int64)]
-            call encode_operation(target, records, 'addi', values, words(2), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            values = [10_int64, 10_int64, 11_int64]
-            call encode_operation(target, records, 'add', values, words(3), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            values = [17_int64, 0_int64, 93_int64]
-            call encode_operation(target, records, 'addi', values, words(4), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
+            do index = 1, 4
+                operation = mir_v0_bridge_policy_machine_operation_for( &
+                    mir%instructions(index)%opcode)
+                select case (index)
+                case (1)
+                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                case (2)
+                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                case (3)
+                    values = [10_int64, 10_int64, 11_int64]
+                case (4)
+                    values = [17_int64, 0_int64, 93_int64]
+                end select
+                call encode_operation(target, records, trim(operation), values, words(index), &
+                    status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+            end do
         else
             operation = mir_v0_bridge_policy_machine_operation_for(mir%instructions(1)%opcode)
+            if (mir%instructions(1)%opcode == mir_v0_opcode_add) operation = 'addi'
             values = [10_int64, 0_int64, 0_int64]
             if (mir%instructions(1)%opcode == mir_v0_opcode_const) then
                 values(3) = int(mir%instructions(1)%literal, int64)
