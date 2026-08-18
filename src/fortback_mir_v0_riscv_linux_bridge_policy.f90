@@ -18,7 +18,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 10_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 52_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 53_int32
     character(len=16), parameter, public :: mir_v0_bridge_policy_storage_key = 'x'
     integer(int32), parameter, public :: mir_v0_bridge_policy_storage_offset = 0_int32
     integer(int32), parameter, public :: mir_v0_bridge_policy_frame_size = 16_int32
@@ -92,6 +92,11 @@ contains
             mir_v0_bridge_policy_result_shape_matches = .true.
         case ('integer-variable-print-value-actual')
             if (result_id /= 7_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-variable-print-value-actual-9')
+            if (result_id /= 9_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
@@ -2235,8 +2240,6 @@ contains
                         if (opcode /= mir_v0_opcode_load) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
-                        else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2244,8 +2247,6 @@ contains
                         if (opcode /= mir_v0_opcode_output) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
-                        else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2254,7 +2255,7 @@ contains
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                                'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2263,7 +2264,7 @@ contains
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                                'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2272,7 +2273,7 @@ contains
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                                'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2814,8 +2815,6 @@ contains
                         if (opcode /= mir_v0_opcode_load) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
-                        else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2823,8 +2822,6 @@ contains
                         if (opcode /= mir_v0_opcode_output) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
-                        else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2833,7 +2830,7 @@ contains
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                                'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2842,7 +2839,7 @@ contains
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                                'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
@@ -2851,7 +2848,7 @@ contains
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
-                                'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                                'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if

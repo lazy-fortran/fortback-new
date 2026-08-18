@@ -1370,11 +1370,14 @@ contains
         if (mir%instructions(12)%result_id /= 8_int32 .and. &
             mir%instructions(12)%result_id /= 7_int32) return
         if (mir%instructions(13)%result_id /= 8_int32 .and. &
-            mir%instructions(13)%result_id /= 7_int32) return
+            mir%instructions(13)%result_id /= 7_int32 .and. &
+            mir%instructions(13)%result_id /= 9_int32) return
         if (mir%instructions(14)%result_id /= 8_int32 .and. &
-            mir%instructions(14)%result_id /= 7_int32) return
+            mir%instructions(14)%result_id /= 7_int32 .and. &
+            mir%instructions(14)%result_id /= 9_int32) return
         if (mir%instructions(15)%result_id /= 8_int32 .and. &
-            mir%instructions(15)%result_id /= 7_int32) return
+            mir%instructions(15)%result_id /= 7_int32 .and. &
+            mir%instructions(15)%result_id /= 9_int32) return
         valid = .true.
     end function valid_print_variable_four_item
 
