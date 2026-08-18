@@ -391,6 +391,10 @@ def render(policy):
                 if (function_name == 'p' and source_rule == 'frontend-ast-v2/print-stmt' and
                         instruction_index in (0, 2, 4)):
                     count_guard = ' .and. instruction_count /= 7_int32'
+                    if instruction_index == 0 and literal == 7:
+                        lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. instruction_count /= 7_int32 .and. instruction_count /= 5_int32 .and. literal /= {literal}_int32) return",
+                                  f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. instruction_count == 5_int32 .and. literal /= 7_int32 .and. literal /= 17_int32) return"]
+                        continue
                 lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32{count_guard} .and. literal /= {literal}_int32) return"]
             seen_sequence_lengths = set()
             for values in source_literal_sequences.get(function_name, {}).get(source_rule, []):

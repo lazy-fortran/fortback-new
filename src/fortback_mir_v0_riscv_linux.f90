@@ -3,7 +3,8 @@ module fortback_mir_v0_riscv_linux
     use fortback_elf64, only: elf64_machine_riscv, elf64_target_t, &
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, mir_v0_opcode_const, &
-        mir_v0_opcode_load, mir_v0_opcode_value, &
+        mir_v0_opcode_load, mir_v0_opcode_output, mir_v0_opcode_return, mir_v0_opcode_store, &
+        mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
         mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
@@ -92,7 +93,7 @@ contains
         logical :: storage_sequence_5_route
         logical :: storage_sequence_6_route
         logical :: storage_sequence_generated_route
-        logical :: print_route
+        logical :: print_route, print_variable_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -133,9 +134,87 @@ contains
         storage_sequence_generated_route = mir%instruction_count == 27_int32 .or. &
             mir%instruction_count == 31_int32 .or. mir%instruction_count == 35_int32 .or. &
             mir%instruction_count == 39_int32
+        print_variable_route = is_print_variable_candidate(mir)
         print_route = trim(mir%name) == 'p' .and. &
-            trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt'
-        if (print_route) then
+            trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
+            .not. print_variable_route
+        if (print_variable_route) then
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
+                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            call encode_operation(target, records, 'addi', &
+                [10_int64, 0_int64, int(mir%instructions(1)%literal, int64)], words(2), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+                [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(3), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
+                [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(4), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = 4_int32
+            print_buffer_offset = 0_int32
+            write (print_digits, '(i0)') mir%instructions(1)%literal
+            print_digit_count = len_trim(print_digits)
+            do print_digit_index = 1, print_digit_count
+                call encode_operation(target, records, 'addi', &
+                    [5_int64, 0_int64, int(iachar(print_digits(print_digit_index:print_digit_index)), int64)], &
+                    words(emitted_count + 1), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                emitted_count = emitted_count + 1_int32
+                call encode_operation(target, records, 'sb', &
+                    [5_int64, 2_int64, int(print_buffer_offset, int64)], &
+                    words(emitted_count + 1), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                emitted_count = emitted_count + 1_int32
+                print_buffer_offset = print_buffer_offset + 1_int32
+            end do
+            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'sb', &
+                [5_int64, 2_int64, int(print_buffer_offset, int64)], words(emitted_count + 1), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
+                words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], &
+                words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'addi', [12_int64, 0_int64, &
+                int(print_buffer_offset + 1_int32, int64)], words(emitted_count + 1), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], &
+                words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'addi', [10_int64, 0_int64, 0_int64], &
+                words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, 'addi', [17_int64, 0_int64, 93_int64], &
+                words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(emitted_count + 1), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = emitted_count + 1_int32
+        else if (print_route) then
             call encode_operation(target, records, 'addi', [2_int64, 2_int64, -16_int64], &
                 words(1), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
@@ -609,6 +688,12 @@ contains
                     end if
                 end if
             end if
+            if (is_print_variable_candidate(mir)) then
+                if (.not. valid_print_variable(mir)) then
+                    call set_diagnostic(diagnostic, 'mir-v0: PRINT variable witness is out of scope')
+                    return
+                end if
+            end if
         end if
         do index = 1, mir%instruction_count
             if (.not. mir_v0_bridge_policy_opcode_supported(mir%instructions(index)%opcode)) then
@@ -636,6 +721,39 @@ contains
         ok = .true.
         status = mir_v0_bridge_ok
     end function validate_scope
+
+    logical function is_print_variable_candidate(mir) result(candidate)
+        type(parsed_mir_t), intent(in) :: mir
+
+        candidate = .false.
+        if (trim(mir%name) /= 'p') return
+        if (mir%instruction_count /= 5_int32) return
+        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+        candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
+            mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
+            mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
+            mir%instructions(4)%opcode == mir_v0_opcode_output .and. &
+            mir%instructions(5)%opcode == mir_v0_opcode_return
+    end function is_print_variable_candidate
+
+    logical function valid_print_variable(mir) result(valid)
+        type(parsed_mir_t), intent(in) :: mir
+
+        valid = .false.
+        if (mir%instructions(1)%literal /= 17_int32) return
+        if (.not. mir%instructions(2)%storage_present) return
+        if (.not. mir%instructions(3)%storage_present) return
+        if (trim(mir%instructions(2)%storage_key) /= 'x') return
+        if (trim(mir%instructions(3)%storage_key) /= 'x') return
+        if (mir%instructions(4)%storage_present) return
+        if (mir%instructions(5)%storage_present) return
+        if (mir%instructions(1)%result_id /= 1_int32) return
+        if (mir%instructions(2)%result_id /= 1_int32) return
+        if (mir%instructions(3)%result_id /= 0_int32) return
+        if (mir%instructions(4)%result_id /= 0_int32) return
+        if (mir%instructions(5)%result_id /= 0_int32) return
+        valid = .true.
+    end function valid_print_variable
 
     subroutine encode_operation(target, records, operation, values, word, status, diagnostic)
         type(target_ir_t), intent(in) :: target

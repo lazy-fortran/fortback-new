@@ -296,6 +296,7 @@ source-rule function p frontend-ast-v1/program character add return
 source-rule function p frontend-ast-v1/program logical add return
 source-rule function p frontend-ast-v2/stop-stmt integer-stop-code,integer-stop-code const return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value const output return
+source-rule function p frontend-ast-v2/print-stmt integer,integer,integer-loaded,integer-print-value,integer-print-value const store load output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output return

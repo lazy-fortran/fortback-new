@@ -1322,6 +1322,10 @@ contains
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
+                if (instruction_count == 5_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
                 if (instruction_count == 7_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
@@ -3890,21 +3894,41 @@ contains
                     case (0_int32)
                         if (opcode /= mir_v0_opcode_const) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-print-value', result_id, result_kind, result_type)) then
+                            'integer', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer-print-value', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
                     case (1_int32)
-                        if (opcode /= mir_v0_opcode_output) return
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-print-value', result_id, result_kind, result_type)) then
+                        if (opcode == mir_v0_opcode_output) then
+                            if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer-print-value', result_id, result_kind, result_type)) then
+                            else
+                                return
+                            end if
+                        else if (opcode == mir_v0_opcode_store) then
+                            if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer', result_id, result_kind, result_type)) then
+                            else
+                                return
+                            end if
                         else
                             return
                         end if
                     case (2_int32)
-                        if (opcode /= mir_v0_opcode_const) return
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-print-value', result_id, result_kind, result_type)) then
+                        if (opcode == mir_v0_opcode_const) then
+                            if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer-print-value', result_id, result_kind, result_type)) then
+                            else
+                                return
+                            end if
+                        else if (opcode == mir_v0_opcode_load) then
+                            if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer-loaded', result_id, result_kind, result_type)) then
+                            else
+                                return
+                            end if
                         else
                             return
                         end if
@@ -4759,7 +4783,8 @@ contains
                 case default
                     if (literal_present) return
                 end select
-                if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. instruction_count /= 7_int32 .and. literal /= 7_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. instruction_count /= 7_int32 .and. instruction_count /= 5_int32 .and. literal /= 7_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. instruction_count == 5_int32 .and. literal /= 7_int32 .and. literal /= 17_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 2_int32 .and. instruction_count /= 7_int32 .and. literal /= 8_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 4_int32 .and. instruction_count /= 7_int32 .and. literal /= 9_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 6_int32 .and. literal /= 10_int32) return
