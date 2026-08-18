@@ -1,0 +1,17 @@
+# mnemonic kind format
+add 1 R
+sub 2 R
+addi 3 I
+and 4 R
+or 5 R
+xor 6 R
+sll 7 R
+ori 8 I
+andi 9 I
+sra 10 R
+slli 11 I
+srli 12 I
+srai 13 I
+slti 14 I
+sltiu 15 I
+xori 16 I

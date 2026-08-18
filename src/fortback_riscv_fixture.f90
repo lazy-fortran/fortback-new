@@ -1,26 +1,17 @@
 module fortback_riscv_fixture
     use iso_fortran_env, only: int32, int64
+    use fortback_riscv_opcode_table, only: riscv_add, riscv_addi, riscv_and, riscv_andi, &
+        riscv_kind_for_mnemonic, riscv_or, riscv_ori, riscv_sll, &
+        riscv_slli, riscv_srai, riscv_srli, riscv_sra, riscv_slti, riscv_sltiu, riscv_sub, &
+        riscv_xor, riscv_xori
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: target_ir_t
     implicit none
     private
 
-    integer(int32), parameter, public :: riscv_add = 1_int32
-    integer(int32), parameter, public :: riscv_sub = 2_int32
-    integer(int32), parameter, public :: riscv_addi = 3_int32
-    integer(int32), parameter, public :: riscv_and = 4_int32
-    integer(int32), parameter, public :: riscv_or = 5_int32
-    integer(int32), parameter, public :: riscv_xor = 6_int32
-    integer(int32), parameter, public :: riscv_sll = 7_int32
-    integer(int32), parameter, public :: riscv_ori = 8_int32
-    integer(int32), parameter, public :: riscv_andi = 9_int32
-    integer(int32), parameter, public :: riscv_sra = 10_int32
-    integer(int32), parameter, public :: riscv_slli = 11_int32
-    integer(int32), parameter, public :: riscv_srli = 12_int32
-    integer(int32), parameter, public :: riscv_srai = 13_int32
-    integer(int32), parameter, public :: riscv_slti = 14_int32
-    integer(int32), parameter, public :: riscv_sltiu = 15_int32
-    integer(int32), parameter, public :: riscv_xori = 16_int32
+    public :: riscv_add, riscv_addi, riscv_and, riscv_andi, riscv_or, riscv_ori, riscv_sll
+    public :: riscv_slli, riscv_srai, riscv_srli, riscv_sra, riscv_slti, riscv_sltiu, riscv_sub
+    public :: riscv_xor, riscv_xori
 
     integer(int32), parameter, public :: riscv_ok = 0_int32
     integer(int32), parameter, public :: riscv_invalid_target = 1_int32
@@ -134,30 +125,15 @@ contains
             status = riscv_unsupported
             return
         end if
+        instruction%kind = riscv_kind_for_mnemonic(records(index)%mnemonic)
         if (records(index)%format == 'R') then
-            if (trim(records(index)%mnemonic) == 'add') instruction%kind = riscv_add
-            if (trim(records(index)%mnemonic) == 'sub') instruction%kind = riscv_sub
-            if (trim(records(index)%mnemonic) == 'and') instruction%kind = riscv_and
-            if (trim(records(index)%mnemonic) == 'or') instruction%kind = riscv_or
-            if (trim(records(index)%mnemonic) == 'xor') instruction%kind = riscv_xor
-            if (trim(records(index)%mnemonic) == 'sll') instruction%kind = riscv_sll
-            if (trim(records(index)%mnemonic) == 'sra') instruction%kind = riscv_sra
             instruction%rs2 = int(iand(ishft(word, -20), 31_int64), int32)
         else
-            if (trim(records(index)%mnemonic) == 'addi') instruction%kind = riscv_addi
-            if (trim(records(index)%mnemonic) == 'ori') instruction%kind = riscv_ori
-            if (trim(records(index)%mnemonic) == 'andi') instruction%kind = riscv_andi
-            if (trim(records(index)%mnemonic) == 'slti') instruction%kind = riscv_slti
-            if (trim(records(index)%mnemonic) == 'sltiu') instruction%kind = riscv_sltiu
-            if (trim(records(index)%mnemonic) == 'xori') instruction%kind = riscv_xori
-            if (trim(records(index)%mnemonic) == 'slli') then
-                instruction%kind = riscv_slli
+            if (instruction%kind == riscv_slli) then
                 immediate = iand(ishft(word, -20), 63_int64)
-            else if (trim(records(index)%mnemonic) == 'srli') then
-                instruction%kind = riscv_srli
+            else if (instruction%kind == riscv_srli) then
                 immediate = iand(ishft(word, -20), 63_int64)
-            else if (trim(records(index)%mnemonic) == 'srai') then
-                instruction%kind = riscv_srai
+            else if (instruction%kind == riscv_srai) then
                 immediate = iand(ishft(word, -20), 63_int64)
             else
                 immediate = iand(ishft(word, -20), 4095_int64)
@@ -174,22 +150,7 @@ contains
 
         find_record = 0
         do i = 1, size(records)
-            if ((kind == riscv_add .and. trim(records(i)%mnemonic) == 'add') .or. &
-                (kind == riscv_sub .and. trim(records(i)%mnemonic) == 'sub') .or. &
-                (kind == riscv_and .and. trim(records(i)%mnemonic) == 'and') .or. &
-                (kind == riscv_or .and. trim(records(i)%mnemonic) == 'or') .or. &
-                (kind == riscv_xor .and. trim(records(i)%mnemonic) == 'xor') .or. &
-                (kind == riscv_sll .and. trim(records(i)%mnemonic) == 'sll') .or. &
-                (kind == riscv_sra .and. trim(records(i)%mnemonic) == 'sra') .or. &
-                (kind == riscv_slli .and. trim(records(i)%mnemonic) == 'slli') .or. &
-                (kind == riscv_srli .and. trim(records(i)%mnemonic) == 'srli') .or. &
-                (kind == riscv_srai .and. trim(records(i)%mnemonic) == 'srai') .or. &
-                (kind == riscv_addi .and. trim(records(i)%mnemonic) == 'addi') .or. &
-                (kind == riscv_ori .and. trim(records(i)%mnemonic) == 'ori') .or. &
-                (kind == riscv_andi .and. trim(records(i)%mnemonic) == 'andi') .or. &
-                (kind == riscv_slti .and. trim(records(i)%mnemonic) == 'slti') .or. &
-                (kind == riscv_sltiu .and. trim(records(i)%mnemonic) == 'sltiu') .or. &
-                (kind == riscv_xori .and. trim(records(i)%mnemonic) == 'xori')) then
+            if (kind == riscv_kind_for_mnemonic(records(i)%mnemonic)) then
                 find_record = i
                 return
             end if
