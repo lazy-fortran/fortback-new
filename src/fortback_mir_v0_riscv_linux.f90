@@ -2,14 +2,15 @@ module fortback_mir_v0_riscv_linux
     use iso_fortran_env, only: int8, int32, int64
     use fortback_elf64, only: elf64_machine_riscv, elf64_target_t, &
         write_elf64_executable
-    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_value, &
+    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_const, mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
         mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
         mir_v0_riscv_linux_ecall_operands
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_accepts, mir_v0_bridge_policy_function_supported, &
-        mir_v0_bridge_policy_instruction_count_for, mir_v0_bridge_policy_machine_operation_for, &
+        mir_v0_bridge_policy_instruction_count_matches, &
+        mir_v0_bridge_policy_machine_operation_for, &
         mir_v0_bridge_policy_opcode_supported
     use fortback_riscv_codec, only: riscv_encode_record
     use fortback_riscv_source, only: import_riscv_opcodes, riscv_opcode_record_t, &
@@ -48,6 +49,8 @@ module fortback_mir_v0_riscv_linux
         integer(int32) :: result_kind = 0_int32
         character(len=token_length) :: result_type = ''
         character(len=token_length) :: source_rule = ''
+        logical :: literal_present = .false.
+        integer(int32) :: literal = 0_int32
     end type bridge_instruction_t
 
     type :: parsed_mir_t
@@ -99,6 +102,9 @@ contains
 
         operation = mir_v0_bridge_policy_machine_operation_for(mir%instructions(1)%opcode)
         values = [10_int64, 0_int64, 0_int64]
+        if (mir%instructions(1)%opcode == mir_v0_opcode_const) then
+            values(3) = int(mir%instructions(1)%literal, int64)
+        end if
         call encode_operation(target, records, trim(operation), values, words(1), status, diagnostic)
         if (status /= mir_v0_bridge_ok) return
         values = [17_int64, 0_int64, 93_int64]
@@ -230,8 +236,8 @@ contains
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
-        if (mir%instruction_count /= mir_v0_bridge_policy_instruction_count_for( &
-            mir%name, mir%instructions(1)%source_rule)) then
+        if (.not. mir_v0_bridge_policy_instruction_count_matches(mir%name, &
+            mir%instructions(1)%source_rule, mir%instruction_count)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
@@ -243,10 +249,12 @@ contains
             end if
         end do
         do index = 1, mir%instruction_count
-            if (.not. mir_v0_bridge_policy_accepts(mir%name, int(index - 1, int32), &
-                mir%instructions(index)%opcode, mir%instructions(index)%result_id, &
+            if (.not. mir_v0_bridge_policy_accepts(mir%name, mir%instruction_count, &
+                int(index - 1, int32), mir%instructions(index)%opcode, &
+                mir%instructions(index)%result_id, &
                 mir%instructions(index)%result_kind, mir%instructions(index)%result_type, &
-                mir%instructions(index)%source_rule)) then
+                mir%instructions(index)%source_rule, mir%instructions(index)%literal_present, &
+                mir%instructions(index)%literal)) then
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end if
@@ -453,6 +461,11 @@ contains
         ok = read_atom(token, token_count, position, 'source-rule', &
             instruction%source_rule, diagnostic)
         if (.not. ok) return
+        if (instruction%opcode == mir_v0_opcode_const) then
+            ok = read_integer(token, token_count, position, 'literal', instruction%literal, diagnostic)
+            if (.not. ok) return
+            instruction%literal_present = .true.
+        end if
         ok = expect(token, token_count, position, '(', diagnostic)
         if (.not. ok) return
         ok = expect(token, token_count, position, 'result', diagnostic)

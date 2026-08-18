@@ -11,7 +11,8 @@ OUTPUT = ROOT / "src" / "fortback_mir_v0_riscv_linux_bridge_policy.f90"
 
 
 def read_policy():
-    policy = {"instruction-count": None, "instructions": [], "result-shapes": [], "source-rules": []}
+    policy = {"instruction-count": None, "instructions": [], "result-shapes": [],
+              "source-rules": [], "literals": []}
     shape_names = set()
     for line_number, line in enumerate(INPUT.read_text().splitlines(), 1):
         fields = line.split()
@@ -28,6 +29,8 @@ def read_policy():
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
             shape_names.add(fields[1])
             policy["result-shapes"].append(tuple(fields[1:]))
+        elif fields[0] == "literal" and len(fields) == 5 and fields[1] == "opcode" and fields[3] == "value":
+            policy["literals"].append((fields[2], int(fields[4])))
         elif fields[0] == "source-rule" and len(fields) >= 6 and fields[1] == "function":
             shapes = tuple(fields[4].split(","))
             if any(shape not in shape_names for shape in shapes):
@@ -92,6 +95,7 @@ def render(policy):
         "    public :: mir_v0_bridge_policy_function_supported",
         "    public :: mir_v0_bridge_policy_opcode_supported",
         "    public :: mir_v0_bridge_policy_instruction_count_for",
+        "    public :: mir_v0_bridge_policy_instruction_count_matches",
         "    public :: mir_v0_bridge_policy_machine_operation_for",
         "",
         "contains",
@@ -170,45 +174,77 @@ def render(policy):
         "        end select",
         "    end function mir_v0_bridge_policy_instruction_count_for",
         "",
-        "    pure logical function mir_v0_bridge_policy_accepts(function_name, &",
-        "            instruction_index, opcode, result_id, result_kind, result_type, &",
-        "            source_rule)",
-        "        character(len=*), intent(in) :: function_name, result_type, source_rule",
-        "        integer(int32), intent(in) :: instruction_index, opcode, result_id, result_kind",
+        "    pure logical function mir_v0_bridge_policy_instruction_count_matches( &",
+        "            function_name, source_rule, instruction_count)",
+        "        character(len=*), intent(in) :: function_name, source_rule",
+        "        integer(int32), intent(in) :: instruction_count",
         "",
-        "        mir_v0_bridge_policy_accepts = .false.",
-        "        if (instruction_index < 0_int32 .or. instruction_index >= &",
-        "            mir_v0_bridge_policy_instruction_count) return",
+        "        mir_v0_bridge_policy_instruction_count_matches = .false.",
         "        select case (trim(function_name))",
     ]
     for function_name, source_rules in source_rules_by_function.items():
         lines += [f"        case ('{function_name}')", "            select case (trim(source_rule))"]
         for source_rule, routes in source_rules.items():
             lines += [f"            case ('{source_rule}')"]
-            lines += ["                select case (instruction_index)"]
-            for index, opcode in enumerate(routes[0][1]):
-                opcodes_at_index = []
-                for route in routes:
-                    if route[1][index] not in opcodes_at_index:
-                        opcodes_at_index.append(route[1][index])
-                opcode_checks = " .and. ".join(
-                    f"opcode /= {opcode_constant(route_opcode)}"
-                    for route_opcode in opcodes_at_index)
-                lines += [f"                case ({index}_int32)",
-                          f"                    if ({opcode_checks}) return",
-                          "                    if (mir_v0_bridge_policy_result_shape_matches( &"]
-                unique_shapes = []
-                for shapes, _ in routes:
-                    if shapes[index] not in unique_shapes:
-                        unique_shapes.append(shapes[index])
-                for route_index, shape_name in enumerate(unique_shapes):
-                    if route_index == 0:
-                        lines += [f"                        '{shape_name}', result_id, result_kind, result_type)) then"]
-                    else:
-                        lines += ["                    else if (mir_v0_bridge_policy_result_shape_matches( &",
-                                  f"                            '{shape_name}', result_id, result_kind, result_type)) then"]
-                lines += ["                    else", "                        return", "                    end if"]
-            lines += ["                case default", "                    return", "                end select"]
+            for _, opcodes in routes:
+                lines += [f"                if (instruction_count == {len(opcodes)}_int32) then",
+                          "                    mir_v0_bridge_policy_instruction_count_matches = .true.",
+                          "                    return", "                end if"]
+        lines += ["            end select"]
+    lines += [
+        "        end select",
+        "    end function mir_v0_bridge_policy_instruction_count_matches",
+        "",
+        "    pure logical function mir_v0_bridge_policy_accepts(function_name, &",
+        "            instruction_count, instruction_index, opcode, result_id, result_kind, &",
+        "            result_type, source_rule, literal_present, literal)",
+        "        character(len=*), intent(in) :: function_name, result_type, source_rule",
+        "        logical, intent(in) :: literal_present",
+        "        integer(int32), intent(in) :: instruction_count, instruction_index, opcode, &",
+        "            result_id, result_kind, literal",
+        "",
+        "        mir_v0_bridge_policy_accepts = .false.",
+        "        if (instruction_index < 0_int32 .or. instruction_index >= instruction_count) return",
+        "        select case (trim(function_name))",
+    ]
+    for function_name, source_rules in source_rules_by_function.items():
+        lines += [f"        case ('{function_name}')", "            select case (trim(source_rule))"]
+        for source_rule, routes in source_rules.items():
+            lines += [f"            case ('{source_rule}')"]
+            lines += ["                if (.not. mir_v0_bridge_policy_instruction_count_matches( &",
+                      "                    function_name, source_rule, instruction_count)) return",
+                      "                select case (instruction_count)"]
+            for route_length in sorted({len(opcodes) for _, opcodes in routes}):
+                matching_routes = [(shapes, opcodes) for shapes, opcodes in routes
+                                   if len(opcodes) == route_length]
+                lines += [f"                case ({route_length}_int32)",
+                          "                    select case (instruction_index)"]
+                for index in range(route_length):
+                    opcodes_at_index = {opcodes[index] for _, opcodes in matching_routes}
+                    opcode_check = " .and. ".join(
+                        f"opcode /= {opcode_constant(opcode)}"
+                        for opcode in sorted(opcodes_at_index))
+                    shapes_at_index = []
+                    for shapes, _ in matching_routes:
+                        if shapes[index] not in shapes_at_index:
+                            shapes_at_index.append(shapes[index])
+                    lines += [f"                    case ({index}_int32)",
+                              f"                        if ({opcode_check}) return"]
+                    shape_checks = []
+                    for shape in shapes_at_index:
+                        shape_checks.append("mir_v0_bridge_policy_result_shape_matches( &")
+                        lines += ["                        if (mir_v0_bridge_policy_result_shape_matches( &",
+                                  f"                            '{shape}', result_id, result_kind, result_type)) then",
+                                  "                        else"]
+                    lines += ["                            return"]
+                    lines += ["                        end if"] * len(shapes_at_index)
+                lines += ["                    case default", "                        return", "                    end select"]
+            lines += ["                case default", "                    return", "                end select",
+                      "                select case (opcode)"]
+            for opcode, value in policy["literals"]:
+                lines += [f"                case ({opcode_constant(opcode)})",
+                          f"                    if (.not. literal_present .or. literal /= {value}_int32) return"]
+            lines += ["                case default", "                    if (literal_present) return", "                end select"]
         lines += ["            case default", "                return", "            end select"]
     lines += ["        case default", "            return", "        end select", "        mir_v0_bridge_policy_accepts = .true.", "    end function mir_v0_bridge_policy_accepts", "", "end module fortback_mir_v0_riscv_linux_bridge_policy", ""]
     return chr(10).join(lines)
