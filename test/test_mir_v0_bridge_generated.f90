@@ -14,6 +14,7 @@ program test_mir_v0_bridge_generated
     character(len=2048) :: input, ast_input
     character(len=256) :: diagnostic
     integer(int32) :: status
+    integer :: item_count
 
     call assert_true(mir_v0_source_rule_value('frontend-v0/program') /= 0_int32, &
         'legacy frontend source rule is missing from generated metadata')
@@ -43,13 +44,18 @@ program test_mir_v0_bridge_generated
         'frontend-ast-v2/stop-stmt'), 2_int32, 'STOP route count changed')
     call assert_true(mir_v0_bridge_policy_instruction_count_matches('p', &
         'frontend-ast-v2/print-stmt', 7_int32), 'three-item PRINT route count changed')
+    do item_count = 11, 20
+        call assert_true(mir_v0_bridge_policy_instruction_count_matches('main', &
+            'frontend-ast-v2/print-stmt', 2_int32*item_count + 7_int32), &
+            'bounded stored-variable PRINT route count missing')
+    end do
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
         'generated complex value kind changed')
     call assert_equal(mir_v0_value_kind_value('logical'), 3_int32, &
         'generated logical value kind changed')
     call assert_equal(mir_v0_value_kind_value('character'), 6_int32, &
         'generated character value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 60_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 69_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
