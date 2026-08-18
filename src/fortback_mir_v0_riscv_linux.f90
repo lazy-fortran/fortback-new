@@ -1077,9 +1077,12 @@ contains
         if (mir%instructions(6)%result_id /= 4_int32) return
         if (mir%instructions(7)%result_id /= 6_int32) return
         if (mir%instructions(8)%result_id /= 6_int32) return
-        if (mir%instructions(9)%result_id /= 8_int32) return
-        if (mir%instructions(10)%result_id /= 8_int32) return
-        if (mir%instructions(11)%result_id /= 8_int32) return
+        if (mir%instructions(9)%result_id /= 7_int32 .and. &
+            mir%instructions(9)%result_id /= 8_int32) return
+        if (mir%instructions(10)%result_id /= 7_int32 .and. &
+            mir%instructions(10)%result_id /= 8_int32) return
+        if (mir%instructions(11)%result_id /= 7_int32 .and. &
+            mir%instructions(11)%result_id /= 8_int32) return
         valid = .true.
     end function valid_print_variable_two_item
 
