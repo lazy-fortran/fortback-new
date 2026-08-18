@@ -52,6 +52,25 @@ program test_mir_v0_print_variable
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic expression source mutation was accepted')
 
+    input = print_variable_generic_multiply_input()
+    call run_print_generic_multiply(input, path, output_path)
+    wrong_literal = replace_text(input, '(literal 2)', '(literal 3)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic multiplication literal mutation was accepted')
+    wrong_literal = replace_text(input, '(opcode mul)', '(opcode add)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic multiplication opcode mutation was accepted')
+    wrong_literal = replace_text(input, '(storage-key x)', '(storage-key y)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic multiplication storage mutation was accepted')
+    wrong_literal = replace_text(input, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic multiplication source mutation was accepted')
+
     input = print_variable_power_expression_input()
     call run_print_variable_power(input, path, output_path, 56)
 
@@ -229,6 +248,43 @@ contains
         close (unit, status='delete', iostat=io_status)
         call assert_int(io_status, 0, 'generic expression output cleanup failed')
     end subroutine run_print_generic_expression
+
+    subroutine run_print_generic_multiply(input, path, output_path)
+        character(len=*), intent(in) :: input, path, output_path
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8) :: output(6)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'generic multiplication MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'generic multiplication ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic multiplication chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic multiplication qemu command failed')
+        call assert_int(exit_status, 0, 'generic multiplication artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'generic multiplication output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'generic multiplication output length changed')
+        call assert_byte(output(1), 54, 'generic multiplication missed 6')
+        call assert_byte(output(2), 10, 'generic multiplication missed first newline')
+        call assert_byte(output(3), 55, 'generic multiplication missed 7')
+        call assert_byte(output(4), 10, 'generic multiplication missed second newline')
+        call assert_byte(output(5), 51, 'generic multiplication missed 3')
+        call assert_byte(output(6), 10, 'generic multiplication missed third newline')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'generic multiplication wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'generic multiplication output cleanup failed')
+    end subroutine run_print_generic_multiply
 
     subroutine run_print_variable_power(input, path, output_path, expected_byte)
         character(len=*), intent(in) :: input, path, output_path
@@ -448,6 +504,35 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 4) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_generic_expression_input
+
+    function print_variable_generic_multiply_input() result(value)
+        character(len=65536) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 11) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 3) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) '// &
+            '(type i32))) (instruction (id 1) (opcode store) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 2) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
+            '(type i32))) (instruction (id 3) (opcode const) (literal 2) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 3) (kind integer) '// &
+            '(type i32))) (instruction (id 4) (opcode mul) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 5) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 6) (opcode const) (literal 7) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 7) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 8) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 9) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 10) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32)))))'
+    end function print_variable_generic_multiply_input
 
     function print_variable_multiply_expression_input() result(value)
         character(len=65536) :: value
