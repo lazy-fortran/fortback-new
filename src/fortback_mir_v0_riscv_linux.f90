@@ -1041,7 +1041,17 @@ contains
             words(word_index), status, diagnostic)
         if (status /= mir_v0_bridge_ok) return
         word_index = word_index + 1_int32
-        do index = 1, mir%instruction_count - 1, 2
+        call encode_operation(target, records, 'addi', &
+            [10_int64, 0_int64, int(mir%instructions(1)%literal, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+            [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        do index = 3, mir%instruction_count - 2, 2
             if (mir%instructions(index)%opcode == mir_v0_opcode_const) then
                 call encode_operation(target, records, 'addi', &
                     [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)], &
@@ -1057,7 +1067,7 @@ contains
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            call encode_operation(target, records, 'sb', [5_int64, 2_int64, 0_int64], &
+            call encode_operation(target, records, 'sb', [5_int64, 2_int64, 8_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
@@ -1065,7 +1075,7 @@ contains
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            call encode_operation(target, records, 'sb', [5_int64, 2_int64, 1_int64], &
+            call encode_operation(target, records, 'sb', [5_int64, 2_int64, 9_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
@@ -1073,7 +1083,7 @@ contains
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], &
+            call encode_operation(target, records, 'addi', [11_int64, 2_int64, 8_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
@@ -1475,19 +1485,21 @@ contains
         logical :: has_load
 
         candidate = .false.
-        if (trim(mir%name) /= 'p') return
-        if (mir%instruction_count < 3_int32) return
-        if (mod(mir%instruction_count - 1_int32, 2_int32) /= 0_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+        if (trim(mir%name) /= 'main') return
+        if (mir%instruction_count < 7_int32) return
+        if (mod(mir%instruction_count - 3_int32, 2_int32) /= 0_int32) return
+        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
+        if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
         has_load = .false.
-        do index = 1, mir%instruction_count
-            if (trim(mir%instructions(index)%source_rule) /= &
-                'frontend-ast-v2/print-stmt') return
-            if (mod(index, 2) == 1 .and. &
-                mir%instructions(index)%opcode == mir_v0_opcode_load) then
+        do index = 3, mir%instruction_count - 1
+            if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt' .and. &
+                index < mir%instruction_count) return
+            if (mod(index - 3, 2) == 0 .and. mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 has_load = .true.
             end if
         end do
+        if (trim(mir%instructions(mir%instruction_count)%source_rule) /= &
+            'frontend-ast-v2/print-stmt') return
         candidate = has_load
     end function is_generic_print_list_route
 
@@ -1498,11 +1510,20 @@ contains
 
         valid = .false.
         if (.not. is_generic_print_list_route(mir)) return
+        if (mir%instructions(1)%opcode /= mir_v0_opcode_const) return
+        if (mir%instructions(2)%opcode /= mir_v0_opcode_store) return
+        if (.not. mir%instructions(1)%literal_present) return
+        if (mir%instructions(1)%storage_present) return
+        if (mir%instructions(1)%result_kind /= mir_v0_value_kind_integer) return
+        if (trim(mir%instructions(1)%result_type) /= 'i32') return
+        if (.not. mir%instructions(2)%storage_present) return
+        if (trim(mir%instructions(2)%storage_key) /= 'x') return
+        if (mir%instructions(2)%literal_present) return
         if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
         if (mir%instructions(mir%instruction_count)%result_kind /= &
             mir_v0_value_kind_integer) return
         if (trim(mir%instructions(mir%instruction_count)%result_type) /= 'i32') return
-        do index = 1, mir%instruction_count - 1, 2
+        do index = 3, mir%instruction_count - 2, 2
             value_instruction = mir%instructions(index)
             output_instruction = mir%instructions(index + 1)
             if (value_instruction%opcode /= mir_v0_opcode_const .and. &
