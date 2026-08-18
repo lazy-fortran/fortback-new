@@ -230,14 +230,12 @@ def render(policy):
                             shapes_at_index.append(shapes[index])
                     lines += [f"                    case ({index}_int32)",
                               f"                        if ({opcode_check}) return"]
-                    shape_checks = []
-                    for shape in shapes_at_index:
-                        shape_checks.append("mir_v0_bridge_policy_result_shape_matches( &")
-                        lines += ["                        if (mir_v0_bridge_policy_result_shape_matches( &",
-                                  f"                            '{shape}', result_id, result_kind, result_type)) then",
-                                  "                        else"]
-                    lines += ["                            return"]
-                    lines += ["                        end if"] * len(shapes_at_index)
+                    for shape_index, shape in enumerate(shapes_at_index):
+                        prefix = "if" if shape_index == 0 else "else if"
+                        continuation_indent = "                            " if shape_index == 0 else "                                "
+                        lines += [f"                        {prefix} (mir_v0_bridge_policy_result_shape_matches( &",
+                                  f"{continuation_indent}'{shape}', result_id, result_kind, result_type)) then"]
+                    lines += ["                        else", "                            return", "                        end if"]
                 lines += ["                    case default", "                        return", "                    end select"]
             lines += ["                case default", "                    return", "                end select",
                       "                select case (opcode)"]

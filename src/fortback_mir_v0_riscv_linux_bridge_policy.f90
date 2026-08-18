@@ -329,55 +329,35 @@ contains
                         if (opcode /= mir_v0_opcode_add) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'real', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'double', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'complex', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'character', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'logical', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'real', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'double', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'complex', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'character', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'logical', result_id, result_kind, result_type)) then
                         else
                             return
-                        end if
-                        end if
-                        end if
-                        end if
-                        end if
                         end if
                     case (1_int32)
                         if (opcode /= mir_v0_opcode_return) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'real', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'double', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'complex', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'character', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'logical', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'real', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'double', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'complex', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'character', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'logical', result_id, result_kind, result_type)) then
                         else
                             return
-                        end if
-                        end if
-                        end if
-                        end if
-                        end if
                         end if
                     case default
                         return
@@ -546,55 +526,35 @@ contains
                         if (opcode /= mir_v0_opcode_add) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'real', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'double', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'complex', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'character', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'logical', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'real', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'double', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'complex', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'character', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'logical', result_id, result_kind, result_type)) then
                         else
                             return
-                        end if
-                        end if
-                        end if
-                        end if
-                        end if
                         end if
                     case (1_int32)
                         if (opcode /= mir_v0_opcode_return) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'real', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'double', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'complex', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'character', result_id, result_kind, result_type)) then
-                        else
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'logical', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'real', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'double', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'complex', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'character', result_id, result_kind, result_type)) then
+                        else if (mir_v0_bridge_policy_result_shape_matches( &
+                                'logical', result_id, result_kind, result_type)) then
                         else
                             return
-                        end if
-                        end if
-                        end if
-                        end if
-                        end if
                         end if
                     case default
                         return
