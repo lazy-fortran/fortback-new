@@ -1,0 +1,15 @@
+# category name value
+opcode add 1
+opcode sub 2
+opcode mul 3
+opcode div 4
+opcode load 5
+opcode store 6
+opcode compare 7
+opcode branch 8
+opcode call 9
+opcode return 10
+value_kind integer 1
+value_kind real 2
+value_kind logical 3
+value_kind address 4

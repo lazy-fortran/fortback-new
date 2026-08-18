@@ -2,6 +2,9 @@ module fortback_mir_v0_riscv_linux
     use iso_fortran_env, only: int8, int32, int64
     use fortback_elf64, only: elf64_machine_riscv, elf64_target_t, &
         write_elf64_executable
+    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
+        mir_v0_opcode_return, mir_v0_opcode_value, mir_v0_value_kind_integer, &
+        mir_v0_value_kind_value
     use fortback_riscv_codec, only: riscv_encode_record
     use fortback_riscv_source, only: import_riscv_opcodes, riscv_opcode_record_t, &
         riscv_source_ok
@@ -28,9 +31,6 @@ module fortback_mir_v0_riscv_linux
     public :: write_mir_v0_riscv_linux
     public :: riscv_linux_artifact_provenance_valid
 
-    integer(int32), parameter :: opcode_add = 1_int32
-    integer(int32), parameter :: opcode_return = 10_int32
-    integer(int32), parameter :: value_kind_integer = 1_int32
     integer, parameter :: token_capacity = 128
     integer, parameter :: token_length = 256
     integer, parameter :: instruction_capacity = 16
@@ -211,21 +211,21 @@ contains
             return
         end if
         do index = 1, mir%instruction_count
-            if (mir%instructions(index)%opcode /= opcode_add .and. &
-                mir%instructions(index)%opcode /= opcode_return) then
+            if (mir%instructions(index)%opcode /= mir_v0_opcode_add .and. &
+                mir%instructions(index)%opcode /= mir_v0_opcode_return) then
                 status = mir_v0_bridge_unsupported
                 call set_diagnostic(diagnostic, 'mir-v0: opcode is unsupported')
                 return
             end if
         end do
-        if (mir%instructions(1)%opcode /= opcode_add .or. &
-            mir%instructions(2)%opcode /= opcode_return) then
+        if (mir%instructions(1)%opcode /= mir_v0_opcode_add .or. &
+            mir%instructions(2)%opcode /= mir_v0_opcode_return) then
             call set_diagnostic(diagnostic, 'mir-v0: instruction shape is out of scope')
             return
         end if
         do index = 1, mir%instruction_count
             if (mir%instructions(index)%result_id /= 1_int32 .or. &
-                mir%instructions(index)%result_kind /= value_kind_integer .or. &
+                mir%instructions(index)%result_kind /= mir_v0_value_kind_integer .or. &
                 trim(mir%instructions(index)%result_type) /= 'i32' .or. &
                 trim(mir%instructions(index)%source_rule) /= 'frontend-v0/program') then
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
@@ -425,7 +425,7 @@ contains
         instruction%id = int(id, int32)
         ok = read_atom(token, token_count, position, 'opcode', opcode_name, diagnostic)
         if (.not. ok) return
-        instruction%opcode = opcode_value(opcode_name)
+        instruction%opcode = mir_v0_opcode_value(opcode_name)
         if (instruction%opcode == 0_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: opcode is outside mir-v0')
             ok = .false.
@@ -442,7 +442,7 @@ contains
         if (.not. ok) return
         ok = read_atom(token, token_count, position, 'kind', kind_name, diagnostic)
         if (.not. ok) return
-        instruction%result_kind = kind_value(kind_name)
+        instruction%result_kind = mir_v0_value_kind_value(kind_name)
         if (instruction%result_kind == 0_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: value kind is outside mir-v0')
             ok = .false.
@@ -454,36 +454,6 @@ contains
         if (.not. ok) return
         ok = expect(token, token_count, position, ')', diagnostic)
     end function read_instruction
-
-    integer(int32) function opcode_value(name)
-        character(len=*), intent(in) :: name
-
-        select case (trim(name))
-        case ('add'); opcode_value = 1_int32
-        case ('sub'); opcode_value = 2_int32
-        case ('mul'); opcode_value = 3_int32
-        case ('div'); opcode_value = 4_int32
-        case ('load'); opcode_value = 5_int32
-        case ('store'); opcode_value = 6_int32
-        case ('compare'); opcode_value = 7_int32
-        case ('branch'); opcode_value = 8_int32
-        case ('call'); opcode_value = 9_int32
-        case ('return'); opcode_value = 10_int32
-        case default; opcode_value = 0_int32
-        end select
-    end function opcode_value
-
-    integer(int32) function kind_value(name)
-        character(len=*), intent(in) :: name
-
-        select case (trim(name))
-        case ('integer'); kind_value = 1_int32
-        case ('real'); kind_value = 2_int32
-        case ('logical'); kind_value = 3_int32
-        case ('address'); kind_value = 4_int32
-        case default; kind_value = 0_int32
-        end select
-    end function kind_value
 
     subroutine set_diagnostic(diagnostic, value)
         character(len=*), intent(out) :: diagnostic

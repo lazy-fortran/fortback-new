@@ -134,6 +134,11 @@ source-dir = "test"
 main = "test_mir_v0_riscv_linux.f90"
 
 [[test]]
+name = "test_mir_v0_bridge_generated"
+source-dir = "test"
+main = "test_mir_v0_bridge_generated.f90"
+
+[[test]]
 name = "test_dispatch_l2_observable_trace"
 source-dir = "test"
 main = "test_dispatch_l2_observable_trace.f90"
