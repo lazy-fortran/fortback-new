@@ -101,6 +101,29 @@ route-operation source-rule frontend-ast-v1/storage-sequence-5 index 15 operatio
 route-operation source-rule frontend-ast-v1/storage-sequence-5 index 16 operation add
 route-operation source-rule frontend-ast-v1/storage-sequence-5 index 17 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence-5 index 18 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 0 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 1 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 2 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 3 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 4 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 5 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 6 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 7 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 8 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 9 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 10 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 11 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 12 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 13 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 14 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 15 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 16 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 17 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 18 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 19 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 20 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 21 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-6 index 22 operation addi
 literal-range opcode const min 0 max 2047
 result-shape integer 1 integer i32
 result-shape integer-loaded 0 integer i32
@@ -125,6 +148,10 @@ result-shape integer-sequence-5-loaded 14 integer i32
 result-shape integer-sequence-5-literal-right 15 integer i32
 result-shape integer-sequence-5-expression 16 integer i32
 result-shape integer-sequence-5-expression-result 16 integer i32
+result-shape integer-sequence-6-loaded 18 integer i32
+result-shape integer-sequence-6-literal-right 19 integer i32
+result-shape integer-sequence-6-expression 20 integer i32
+result-shape integer-sequence-6-expression-result 20 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
@@ -155,6 +182,7 @@ source-rule function main frontend-ast-v2/execution-part-5 integer-literal-left,
 source-rule function main frontend-ast-v1/storage-sequence-3 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-3-expression-result const store load const add store load const add store return
 source-rule function main frontend-ast-v1/storage-sequence-4 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-4-loaded,integer-sequence-4-literal-right,integer-sequence-4-expression,integer-sequence-4-expression-result,integer-sequence-4-expression-result const store load const add store load const add store load const add store return
 source-rule function main frontend-ast-v1/storage-sequence-5 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-4-loaded,integer-sequence-4-literal-right,integer-sequence-4-expression,integer-sequence-4-expression-result,integer-sequence-5-loaded,integer-sequence-5-literal-right,integer-sequence-5-expression,integer-sequence-5-expression-result,integer-sequence-5-expression-result const store load const add store load const add store load const add store load const add store return
+source-rule function main frontend-ast-v1/storage-sequence-6 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-4-loaded,integer-sequence-4-literal-right,integer-sequence-4-expression,integer-sequence-4-expression-result,integer-sequence-5-loaded,integer-sequence-5-literal-right,integer-sequence-5-expression,integer-sequence-5-expression-result,integer-sequence-6-loaded,integer-sequence-6-literal-right,integer-sequence-6-expression,integer-sequence-6-expression-result,integer-sequence-6-expression-result const store load const add store load const add store load const add store load const add store load const add store return
 source-rule function p frontend-ast-v1/program integer add return
 source-rule function p frontend-ast-v1/program real add return
 source-rule function p frontend-ast-v1/program double add return

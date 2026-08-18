@@ -64,6 +64,9 @@ program test_mir_v0_storage_sequence
         'frontend-ast-v2/execution-part', 14_int32)), 'ld', 'v2 five-step load route changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
         'frontend-ast-v2/execution-part', 18_int32)), 'addi', 'v2 five-step return route changed')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v1/storage-sequence-6'), 23_int32, 'six-step route count changed')
+    call assert_sequence_six_route('frontend-ast-v1/storage-sequence-6')
 
     input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v1/storage-sequence')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -196,6 +199,23 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'v2 five-step storage qemu command failed')
     call assert_equal(exit_status, 11, 'v2 five-step storage sequence did not return 11')
 
+    input = sequence_six_input('x', 'x', 20, .false.)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'six-step storage sequence was rejected')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'six-step storage ELF write failed')
+    call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'six-step frame encoding changed')
+    call assert_word(artifact%bytes, 185, [35, 48, 161, 0], 'six-step first store encoding changed')
+    call assert_word(artifact%bytes, 253, [3, 53, 1, 0], 'six-step fifth load encoding changed')
+    call assert_word(artifact%bytes, 265, [35, 48, 161, 0], 'six-step final store encoding changed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'six-step storage chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'six-step storage qemu command failed')
+    call assert_equal(exit_status, 12, 'six-step storage sequence did not return 12')
+
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 8, .true.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong order was accepted')
@@ -237,6 +257,15 @@ program test_mir_v0_storage_sequence
     call compile_mir_v0_riscv_linux(sequence_five_input('x', 'x', 15, .false.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'five-step wrong result was accepted')
+    call compile_mir_v0_riscv_linux(sequence_six_input('x', 'x', 20, .true.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'six-step wrong order was accepted')
+    call compile_mir_v0_riscv_linux(sequence_six_input('y', 'x', 20, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'six-step wrong storage key was accepted')
+    call compile_mir_v0_riscv_linux(sequence_six_input('x', 'x', 19, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'six-step wrong result was accepted')
     write (*, '(a)') 'MIR-v0 storage sequence routes: ok'
 
 contains
@@ -253,6 +282,24 @@ contains
                 'execution-part route operation changed')
         end do
     end subroutine assert_sequence_route
+
+    subroutine assert_sequence_six_route(source_rule)
+        character(len=*), intent(in) :: source_rule
+        character(len=16), parameter :: expected(23) = [character(len=16) :: &
+            'addi', 'sd', 'ld', 'addi', 'add', 'sd', 'ld', 'addi', 'add', 'sd', &
+            'ld', 'addi', 'add', 'sd', 'ld', 'addi', 'add', 'sd', 'ld', 'addi', &
+            'add', 'sd', 'addi']
+        integer :: index
+
+        do index = 0, 22
+            call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+                source_rule, int(index, int32))), trim(expected(index + 1)), &
+                'six-step route operation changed')
+        end do
+        call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+            'frontend-ast-v1/storage-sequence-5', 22_int32)), '', &
+            'six-step route index collided with five-step route')
+    end subroutine assert_sequence_six_route
 
     function sequence_input(load_key, store_key, return_id, wrong_order, source_rule) result(value)
         character(len=*), intent(in) :: load_key, store_key
@@ -444,6 +491,59 @@ contains
             '(kind integer) (type i32)))))'
 
     end function sequence_five_input
+
+    function sequence_six_input(load_key, store_key, return_id, wrong_order) result(value)
+        character(len=*), intent(in) :: load_key, store_key
+        integer, intent(in) :: return_id
+        logical, intent(in) :: wrong_order
+        character(len=24576) :: value
+        character(len=16) :: operation_opcode
+
+        operation_opcode = 'add'
+        if (wrong_order) operation_opcode = 'store'
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 23) (instructions '// &
+            sequence_six_instruction(load_key, store_key, 0, 'const', '7', 'integer-literal-left', '0')// &
+            sequence_six_instruction(load_key, store_key, 1, 'store', '', 'integer-sequence-store-literal', '1')// &
+            sequence_six_instruction(load_key, store_key, 2, 'load', '', 'integer-sequence-loaded', '2')// &
+            sequence_six_instruction(load_key, store_key, 3, 'const', '1', 'integer-sequence-literal-right', '3')// &
+            sequence_six_instruction(load_key, store_key, 4, operation_opcode, '', 'integer-sequence-expression', '4')// &
+            sequence_six_instruction(load_key, store_key, 5, 'store', '', 'integer-sequence-expression-result', '4')// &
+            sequence_six_instruction(load_key, store_key, 6, 'load', '', 'integer-sequence-3-loaded', '6')// &
+            sequence_six_instruction(load_key, store_key, 7, 'const', '1', 'integer-sequence-3-literal-right', '7')// &
+            sequence_six_instruction(load_key, store_key, 8, 'add', '', 'integer-sequence-3-expression', '8')// &
+            sequence_six_instruction(load_key, store_key, 9, 'store', '', 'integer-sequence-3-expression-result', '8')// &
+            sequence_six_instruction(load_key, store_key, 10, 'load', '', 'integer-sequence-4-loaded', '10')// &
+            sequence_six_instruction(load_key, store_key, 11, 'const', '1', 'integer-sequence-4-literal-right', '11')// &
+            sequence_six_instruction(load_key, store_key, 12, 'add', '', 'integer-sequence-4-expression', '12')// &
+            sequence_six_instruction(load_key, store_key, 13, 'store', '', 'integer-sequence-4-expression-result', '12')// &
+            sequence_six_instruction(load_key, store_key, 14, 'load', '', 'integer-sequence-5-loaded', '14')// &
+            sequence_six_instruction(load_key, store_key, 15, 'const', '1', 'integer-sequence-5-literal-right', '15')// &
+            sequence_six_instruction(load_key, store_key, 16, 'add', '', 'integer-sequence-5-expression', '16')// &
+            sequence_six_instruction(load_key, store_key, 17, 'store', '', 'integer-sequence-5-expression-result', '16')// &
+            sequence_six_instruction(load_key, store_key, 18, 'load', '', 'integer-sequence-6-loaded', '18')// &
+            sequence_six_instruction(load_key, store_key, 19, 'const', '1', 'integer-sequence-6-literal-right', '19')// &
+            sequence_six_instruction(load_key, store_key, 20, 'add', '', 'integer-sequence-6-expression', '20')// &
+            sequence_six_instruction(load_key, store_key, 21, 'store', '', 'integer-sequence-6-expression-result', '20')// &
+            '(instruction (id 22) (opcode return) (source-rule frontend-ast-v1/storage-sequence-6) '// &
+            '(result (id '//int_text(return_id)//') (kind integer) (type i32)))))'
+    end function sequence_six_input
+
+    function sequence_six_instruction(load_key, store_key, index, opcode, literal, shape, result_id) &
+            result(text)
+        character(len=*), intent(in) :: load_key, store_key, opcode, literal, shape, result_id
+        integer, intent(in) :: index
+        character(len=512) :: text
+
+        text = '(instruction (id '//int_text(index)//') (opcode '//trim(opcode)//') '
+        if (len_trim(literal) > 0) text = trim(text)//'(literal '//trim(literal)//') '
+        if (index == 1 .or. index == 5 .or. index == 9 .or. index == 13 .or. index == 17 .or. index == 21) then
+            text = trim(text)//'(storage-key '//trim(store_key)//') '
+        else if (index == 2 .or. index == 6 .or. index == 10 .or. index == 14 .or. index == 18) then
+            text = trim(text)//'(storage-key '//trim(load_key)//') '
+        end if
+        text = trim(text)//'(source-rule frontend-ast-v1/storage-sequence-6) '// &
+            '(result (id '//trim(result_id)//') (kind integer) (type i32))) '
+    end function sequence_six_instruction
 
     function sequence_five_input_v2(load_key, store_key, return_id, wrong_order) result(value)
         character(len=*), intent(in) :: load_key, store_key

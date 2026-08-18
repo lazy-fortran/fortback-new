@@ -26,6 +26,8 @@ program test_mir_v0_bridge_generated
         'expression source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v2/execution-part') /= 0_int32, &
         'execution-part source rule is missing from generated metadata')
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v1/storage-sequence-6') /= 0_int32, &
+        'six-step storage source rule is missing from generated metadata')
     call assert_equal(mir_v0_bridge_policy_instruction_count, 8_int32, &
         'generated bridge instruction policy changed')
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
@@ -38,7 +40,7 @@ program test_mir_v0_bridge_generated
         'generated logical value kind changed')
     call assert_equal(mir_v0_value_kind_value('character'), 6_int32, &
         'generated character value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 28_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 32_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
