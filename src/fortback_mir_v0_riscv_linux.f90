@@ -177,7 +177,8 @@ contains
                     [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(9), &
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 56_int64], words(10), &
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, &
+                    merge(57_int64, 56_int64, mir%instructions(1)%literal == 3_int32)], words(10), &
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 call encode_operation(target, records, 'sb', [5_int64, 2_int64, 0_int64], words(11), &
@@ -942,18 +943,24 @@ contains
         if (trim(mir%instructions(6)%storage_key) /= 'x') return
         if (trim(mir%instructions(7)%storage_key) /= 'x') return
         if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
-            if (mir%instructions(1)%literal /= 2_int32) return
+            if (mir%instructions(1)%literal == 2_int32) then
+                if (mir%instructions(4)%literal /= 3_int32) return
+            else if (mir%instructions(1)%literal == 3_int32) then
+                if (mir%instructions(4)%literal /= 2_int32) return
+            else
+                return
+            end if
         else if (mir%instructions(5)%opcode == mir_v0_opcode_div) then
             if (mir%instructions(1)%literal /= 24_int32) return
         else
             if (mir%instructions(1)%literal /= 23_int32) return
         end if
-        if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
-            if (mir%instructions(4)%literal /= 3_int32) return
-        else if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
-            if (mir%instructions(4)%literal /= 1_int32) return
-        else
-            if (mir%instructions(4)%literal /= 2_int32) return
+        if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
+            if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
+                if (mir%instructions(4)%literal /= 1_int32) return
+            else
+                if (mir%instructions(4)%literal /= 2_int32) return
+            end if
         end if
         if (mir%instructions(8)%storage_present) return
         if (mir%instructions(9)%storage_present) return

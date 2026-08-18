@@ -33,7 +33,10 @@ program test_mir_v0_print_variable
     call run_print_variable(input, path, output_path, 49, 50)
 
     input = print_variable_power_expression_input()
-    call run_print_variable_power(input, path, output_path)
+    call run_print_variable_power(input, path, output_path, 56)
+
+    input = print_variable_power_value_expression_input()
+    call run_print_variable_power(input, path, output_path, 57)
 
     input = print_variable_input('x', 'x', .false., 17)
     wrong_storage = print_variable_input('x', 'x', .true., 17)
@@ -84,6 +87,18 @@ program test_mir_v0_print_variable
     wrong_literal = replace_text(wrong_literal, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'WRITE neighbor was accepted')
+    wrong_literal = print_variable_power_value_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(name main)', '(name other)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'second power wrong function name was accepted')
+    wrong_literal = print_variable_power_value_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(opcode pow)', '(opcode mul)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'second power wrong operator was accepted')
+    wrong_literal = print_variable_power_value_expression_input()
+    wrong_literal = replace_text(wrong_literal, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'second power WRITE neighbor was accepted')
     write (*, '(a)') 'MIR-v0 stored-variable PRINT qemu checks: ok'
 
 contains
@@ -121,8 +136,9 @@ contains
         call assert_int(io_status, 0, 'stored-variable PRINT output cleanup failed')
     end subroutine run_print_variable
 
-    subroutine run_print_variable_power(input, path, output_path)
+    subroutine run_print_variable_power(input, path, output_path, expected_byte)
         character(len=*), intent(in) :: input, path, output_path
+        integer, intent(in) :: expected_byte
         type(riscv_linux_artifact_t) :: artifact
         character(len=256) :: diagnostic
         integer(int8) :: output(2)
@@ -145,7 +161,7 @@ contains
         call assert_int(io_status, 0, 'power PRINT output was not written')
         read (unit, iostat=io_status) output
         call assert_int(io_status, 0, 'power PRINT output length changed')
-        call assert_byte(output(1), 56, 'power PRINT missed value byte')
+        call assert_byte(output(1), expected_byte, 'power PRINT missed value byte')
         call assert_byte(output(2), 10, 'power PRINT missed newline')
         read (unit, iostat=io_status) output(1)
         call assert_true(io_status /= 0, 'power PRINT wrote extra bytes')
@@ -238,6 +254,15 @@ contains
         value = replace_text(value, '(literal 1)', '(literal 3)')
         value = replace_text(value, '(opcode add)', '(opcode pow)')
     end function print_variable_power_expression_input
+
+    function print_variable_power_value_expression_input() result(value)
+        character(len=8192) :: value
+
+        value = print_variable_power_expression_input()
+        value = replace_text(value, '(literal 2)', '(literal 99)')
+        value = replace_text(value, '(literal 3)', '(literal 2)')
+        value = replace_text(value, '(literal 99)', '(literal 3)')
+    end function print_variable_power_value_expression_input
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new
