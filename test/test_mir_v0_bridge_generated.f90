@@ -37,14 +37,14 @@ program test_mir_v0_bridge_generated
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
         'frontend-ast-v1/expression'), 3_int32, 'expression route count changed')
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('p', &
-        'frontend-ast-v2/stop-stmt'), 1_int32, 'STOP route count changed')
+        'frontend-ast-v2/stop-stmt'), 2_int32, 'STOP route count changed')
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
         'generated complex value kind changed')
     call assert_equal(mir_v0_value_kind_value('logical'), 3_int32, &
         'generated logical value kind changed')
     call assert_equal(mir_v0_value_kind_value('character'), 6_int32, &
         'generated character value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 48_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 49_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &

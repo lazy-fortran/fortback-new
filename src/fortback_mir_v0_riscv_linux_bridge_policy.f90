@@ -16,7 +16,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 8_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 48_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 49_int32
     character(len=16), parameter, public :: mir_v0_bridge_policy_storage_key = 'x'
     integer(int32), parameter, public :: mir_v0_bridge_policy_storage_offset = 0_int32
     integer(int32), parameter, public :: mir_v0_bridge_policy_frame_size = 16_int32
@@ -69,6 +69,11 @@ contains
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
         case ('integer-literal-left')
+            if (result_id /= 0_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-stop-code')
             if (result_id /= 0_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
@@ -998,7 +1003,7 @@ contains
             case ('frontend-ast-v1/program')
                 mir_v0_bridge_policy_instruction_count_for = 2_int32
             case ('frontend-ast-v2/stop-stmt')
-                mir_v0_bridge_policy_instruction_count_for = 1_int32
+                mir_v0_bridge_policy_instruction_count_for = 2_int32
             end select
         end select
     end function mir_v0_bridge_policy_instruction_count_for
@@ -1181,7 +1186,7 @@ contains
                     return
                 end if
             case ('frontend-ast-v2/stop-stmt')
-                if (instruction_count == 1_int32) then
+                if (instruction_count == 2_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
@@ -3656,12 +3661,19 @@ contains
                 if (.not. mir_v0_bridge_policy_instruction_count_matches( &
                     function_name, source_rule, instruction_count)) return
                 select case (instruction_count)
-                case (1_int32)
+                case (2_int32)
                     select case (instruction_index)
                     case (0_int32)
                         if (opcode /= mir_v0_opcode_const) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer', result_id, result_kind, result_type)) then
+                            'integer-stop-code', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (1_int32)
+                        if (opcode /= mir_v0_opcode_return) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-stop-code', result_id, result_kind, result_type)) then
                         else
                             return
                         end if

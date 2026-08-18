@@ -59,9 +59,11 @@ program test_mir_v0_riscv_linux
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'artifact cleanup failed')
 
-    stop_input = '(mir-function (name p) (entry-block 0) (instruction-count 1) '// &
+    stop_input = '(mir-function (name p) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
-        '(source-rule frontend-ast-v2/stop-stmt) (result (id 1) (kind integer) '// &
+        '(source-rule frontend-ast-v2/stop-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v2/stop-stmt) (result (id 0) (kind integer) '// &
         '(type i32)))))'
     call compile_mir_v0_riscv_linux(stop_input, second, status, diagnostic)
     call assert_status(status, mir_v0_bridge_ok, 'STOP 7 MIR was rejected')
