@@ -32,6 +32,9 @@ program test_mir_v0_print_variable
     input = print_variable_divide_expression_input()
     call run_print_variable(input, path, output_path, 49, 50)
 
+    input = print_variable_power_expression_input()
+    call run_print_variable_power(input, path, output_path)
+
     input = print_variable_input('x', 'x', .false., 17)
     wrong_storage = print_variable_input('x', 'x', .true., 17)
     call compile_mir_v0_riscv_linux(wrong_storage, artifact, status, diagnostic)
@@ -69,6 +72,18 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'wrong arithmetic operator neighbor was accepted')
+    wrong_literal = print_variable_power_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(name main)', '(name other)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong function name was accepted')
+    wrong_literal = print_variable_power_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(opcode power)', '(opcode mul)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong power operator was accepted')
+    wrong_literal = print_variable_power_expression_input()
+    wrong_literal = replace_text(wrong_literal, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'WRITE neighbor was accepted')
     write (*, '(a)') 'MIR-v0 stored-variable PRINT qemu checks: ok'
 
 contains
@@ -105,6 +120,38 @@ contains
         close (unit, status='delete', iostat=io_status)
         call assert_int(io_status, 0, 'stored-variable PRINT output cleanup failed')
     end subroutine run_print_variable
+
+    subroutine run_print_variable_power(input, path, output_path)
+        character(len=*), intent(in) :: input, path, output_path
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8) :: output(2)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'power PRINT MIR was rejected')
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'power PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'power PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'power PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'power PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'power PRINT output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'power PRINT output length changed')
+        call assert_byte(output(1), 56, 'power PRINT missed value byte')
+        call assert_byte(output(2), 10, 'power PRINT missed newline')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'power PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'power PRINT output cleanup failed')
+    end subroutine run_print_variable_power
 
     function print_variable_input(store_key, load_key, omit_storage, literal) result(value)
         character(len=*), intent(in) :: store_key, load_key
@@ -182,6 +229,15 @@ contains
         value = replace_text(value, '(literal 1)', '(literal 2)')
         value = replace_text(value, '(opcode add)', '(opcode div)')
     end function print_variable_divide_expression_input
+
+    function print_variable_power_expression_input() result(value)
+        character(len=8192) :: value
+
+        value = print_variable_expression_input()
+        value = replace_text(value, '(literal 23)', '(literal 2)')
+        value = replace_text(value, '(literal 1)', '(literal 3)')
+        value = replace_text(value, '(opcode add)', '(opcode power)')
+    end function print_variable_power_expression_input
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new

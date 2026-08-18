@@ -11,6 +11,7 @@ opcode call 9
 opcode return 10
 opcode const 11
 opcode output 12
+opcode power 13
 value_kind integer 1
 value_kind real 2
 value_kind logical 3
