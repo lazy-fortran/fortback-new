@@ -71,6 +71,29 @@ program test_mir_v0_print_variable
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic multiplication source mutation was accepted')
 
+    input = print_variable_generic_divide_input()
+    call run_print_generic_divide(input, path, output_path)
+    wrong_literal = replace_text(input, '(literal 2)', '(literal 3)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic division literal mutation was accepted')
+    wrong_literal = replace_text(input, '(opcode div)', '(opcode add)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic division opcode mutation was accepted')
+    wrong_literal = replace_text(input, '(storage-key x)', '(storage-key y)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic division storage mutation was accepted')
+    wrong_literal = replace_text(input, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic division source mutation was accepted')
+    wrong_literal = replace_text(input, '(opcode div)', '(opcode output)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic division instruction-order mutation was accepted')
+
     input = print_variable_power_expression_input()
     call run_print_variable_power(input, path, output_path, 56)
 
@@ -285,6 +308,43 @@ contains
         close (unit, status='delete', iostat=io_status)
         call assert_int(io_status, 0, 'generic multiplication output cleanup failed')
     end subroutine run_print_generic_multiply
+
+    subroutine run_print_generic_divide(input, path, output_path)
+        character(len=*), intent(in) :: input, path, output_path
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8) :: output(6)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'generic division MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'generic division ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic division chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic division qemu command failed')
+        call assert_int(exit_status, 0, 'generic division artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'generic division output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'generic division output length changed')
+        call assert_byte(output(1), 49, 'generic division missed 1')
+        call assert_byte(output(2), 10, 'generic division missed first newline')
+        call assert_byte(output(3), 55, 'generic division missed 7')
+        call assert_byte(output(4), 10, 'generic division missed second newline')
+        call assert_byte(output(5), 51, 'generic division missed 3')
+        call assert_byte(output(6), 10, 'generic division missed third newline')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'generic division wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'generic division output cleanup failed')
+    end subroutine run_print_generic_divide
 
     subroutine run_print_variable_power(input, path, output_path, expected_byte)
         character(len=*), intent(in) :: input, path, output_path
@@ -533,6 +593,13 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_generic_multiply_input
+
+    function print_variable_generic_divide_input() result(value)
+        character(len=65536) :: value
+
+        value = print_variable_generic_multiply_input()
+        value = replace_text(value, '(opcode mul)', '(opcode div)')
+    end function print_variable_generic_divide_input
 
     function print_variable_multiply_expression_input() result(value)
         character(len=65536) :: value
