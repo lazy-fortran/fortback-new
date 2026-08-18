@@ -12,7 +12,8 @@ OUTPUT = ROOT / "src" / "fortback_mir_v0_riscv_linux_bridge_policy.f90"
 
 def read_policy():
     policy = {"storage-policy": None, "instruction-count": None, "instructions": [],
-              "result-shapes": [], "source-rules": [], "literal-ranges": []}
+              "result-shapes": [], "source-rules": [], "literal-ranges": [],
+              "frame-operation": None, "exit-status-operation": None, "route-operations": []}
     shape_names = set()
     for line_number, line in enumerate(INPUT.read_text().splitlines(), 1):
         fields = line.split()
@@ -32,6 +33,14 @@ def read_policy():
             policy["instruction-count"] = int(fields[2])
         elif fields[0] == "instruction" and len(fields) == 5 and fields[1] == "opcode":
             policy["instructions"].append((int(fields[2]), fields[3], fields[4]))
+        elif fields[0] == "frame-operation" and len(fields) == 2:
+            policy["frame-operation"] = fields[1]
+        elif fields[0] == "exit-status-operation" and len(fields) == 2:
+            policy["exit-status-operation"] = fields[1]
+        elif (fields[0] == "route-operation" and len(fields) == 7 and
+              fields[1] == "source-rule" and fields[3] == "index" and
+              fields[5] == "operation"):
+            policy["route-operations"].append((fields[2], int(fields[4]), fields[6]))
         elif fields[0] == "result-shape" and len(fields) == 5:
             if fields[1] in shape_names:
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
@@ -72,6 +81,8 @@ def read_policy():
         raise SystemExit(f"{INPUT}: at least one source-rule row is required")
     if policy["storage-policy"] is None:
         raise SystemExit(f"{INPUT}: storage policy is required")
+    if policy["frame-operation"] is None or policy["exit-status-operation"] is None:
+        raise SystemExit(f"{INPUT}: frame and exit-status operations are required")
     return policy
 
 
@@ -85,6 +96,9 @@ def render(policy):
     for function_name, source_rule, shape_names, opcodes in policy["source-rules"]:
         source_rules_by_function.setdefault(function_name, {}).setdefault(source_rule, []).append(
             (shape_names, opcodes))
+    route_operations = {}
+    for source_rule, index, operation in policy["route-operations"]:
+        route_operations.setdefault(source_rule, {})[index] = operation
 
     supported_opcodes = []
     for _, opcode, _ in policy["instructions"]:
@@ -122,6 +136,9 @@ def render(policy):
         "    public :: mir_v0_bridge_policy_instruction_count_for",
         "    public :: mir_v0_bridge_policy_instruction_count_matches",
         "    public :: mir_v0_bridge_policy_machine_operation_for",
+        "    public :: mir_v0_bridge_policy_frame_operation",
+        "    public :: mir_v0_bridge_policy_exit_status_operation",
+        "    public :: mir_v0_bridge_policy_route_operation_for",
         "    public :: mir_v0_bridge_policy_storage_matches",
         "",
         "contains",
@@ -190,6 +207,32 @@ def render(policy):
     lines += [
         "        end select",
         "    end function mir_v0_bridge_policy_machine_operation_for",
+        "",
+        "    pure function mir_v0_bridge_policy_frame_operation() result(operation)",
+        "        character(len=16) :: operation",
+        f"        operation = '{policy['frame-operation']}'",
+        "    end function mir_v0_bridge_policy_frame_operation",
+        "",
+        "    pure function mir_v0_bridge_policy_exit_status_operation() result(operation)",
+        "        character(len=16) :: operation",
+        f"        operation = '{policy['exit-status-operation']}'",
+        "    end function mir_v0_bridge_policy_exit_status_operation",
+        "",
+        "    pure function mir_v0_bridge_policy_route_operation_for(source_rule, index) result(operation)",
+        "        character(len=*), intent(in) :: source_rule",
+        "        integer(int32), intent(in) :: index",
+        "        character(len=16) :: operation",
+        "        operation = ''",
+        "        select case (trim(source_rule))",
+    ]
+    for source_rule, operations in route_operations.items():
+        lines += [f"        case ('{source_rule}')", "            select case (index)"]
+        for index, operation in sorted(operations.items()):
+            lines += [f"            case ({index}_int32)", f"                operation = '{operation}'"]
+        lines += ["            end select"]
+    lines += [
+        "        end select",
+        "    end function mir_v0_bridge_policy_route_operation_for",
         "",
         "    pure integer(int32) function mir_v0_bridge_policy_instruction_count_for( &",
         "            function_name, source_rule)",

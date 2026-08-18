@@ -169,6 +169,11 @@ source-dir = "test"
 main = "test_mir_v0_storage_x.f90"
 
 [[test]]
+name = "test_mir_v0_storage_sequence"
+source-dir = "test"
+main = "test_mir_v0_storage_sequence.f90"
+
+[[test]]
 name = "test_dispatch_l2_observable_trace"
 source-dir = "test"
 main = "test_dispatch_l2_observable_trace.f90"

@@ -9,6 +9,15 @@ instruction opcode 4 store addi
 instruction opcode 5 return return
 instruction opcode 6 const addi
 instruction opcode 7 load addi
+frame-operation addi
+exit-status-operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence index 0 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence index 1 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence index 2 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence index 3 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence index 4 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence index 5 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence index 6 operation addi
 literal-range opcode const min 0 max 2047
 result-shape integer 1 integer i32
 result-shape integer-loaded 0 integer i32
@@ -39,6 +48,7 @@ source-rule function main frontend-ast-v1/expression integer-literal-left,intege
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer mul store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer div store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer sub store return
+source-rule function main frontend-ast-v1/storage-sequence integer-literal-left,integer-literal-left,integer-loaded,integer-literal-right,integer-expression,integer-expression-result,integer-expression-result const store load const add store return
 source-rule function p frontend-ast-v1/program integer add return
 source-rule function p frontend-ast-v1/program real add return
 source-rule function p frontend-ast-v1/program double add return

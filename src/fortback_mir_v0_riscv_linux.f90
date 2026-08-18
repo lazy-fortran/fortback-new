@@ -12,6 +12,9 @@ module fortback_mir_v0_riscv_linux
         mir_v0_bridge_policy_accepts, mir_v0_bridge_policy_function_supported, &
         mir_v0_bridge_policy_instruction_count_matches, &
         mir_v0_bridge_policy_machine_operation_for, &
+        mir_v0_bridge_policy_frame_operation, &
+        mir_v0_bridge_policy_exit_status_operation, &
+        mir_v0_bridge_policy_route_operation_for, &
         mir_v0_bridge_policy_opcode_supported, mir_v0_bridge_policy_storage_matches, &
         mir_v0_bridge_policy_storage_offset, mir_v0_bridge_policy_frame_size, &
         mir_v0_bridge_policy_storage_initialization, mir_v0_bridge_policy_load_operation, &
@@ -76,11 +79,12 @@ contains
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
         type(riscv_opcode_record_t) :: records(8)
-        integer(int64) :: words(8), values(3)
+        integer(int64) :: words(11), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
         character(len=512) :: opcode_text
-        logical :: storage_route
+        integer(int32) :: emitted_count
+        logical :: storage_route, storage_sequence_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -112,14 +116,48 @@ contains
 
         storage_route = mir%instruction_count == 5_int32 .and. &
             (mir%instructions(1)%storage_present .or. mir%instructions(4)%storage_present)
-        if (storage_route) then
-            call encode_operation(target, records, 'addi', [2_int64, 2_int64, &
-                -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
+        storage_sequence_route = mir%instruction_count == 7_int32
+        if (storage_sequence_route) then
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
+                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            do index = 1, 7
+                operation = mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(index)%source_rule, int(index - 1, int32))
+                select case (index)
+                case (1)
+                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                case (2)
+                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
+                case (3)
+                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
+                case (4)
+                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                case (5)
+                    values = [10_int64, 10_int64, 11_int64]
+                case (6)
+                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
+                case (7)
+                    values = [17_int64, 0_int64, 93_int64]
+                end select
+                call encode_operation(target, records, trim(operation), values, words(index + 1), &
+                    status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+            end do
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(9), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = 9_int32
+        else if (storage_route) then
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
+                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
             call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
                 [0_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(2), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
+            emitted_count = 8_int32
             call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
                 [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(3), &
                 status, diagnostic)
@@ -130,12 +168,14 @@ contains
             call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
                 [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(6), &
                 status, diagnostic)
-            call encode_operation(target, records, 'addi', [17_int64, 0_int64, 93_int64], words(7), &
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
+                [17_int64, 0_int64, 93_int64], words(7), &
                 status, diagnostic)
             call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
                 mir_v0_riscv_linux_ecall_operands, words(8), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
         else if (mir%instruction_count == 5_int32) then
+            emitted_count = 5_int32
             do index = 1, 4
                 operation = mir_v0_bridge_policy_machine_operation_for( &
                     mir%instructions(index)%opcode)
@@ -159,6 +199,7 @@ contains
                 if (status /= mir_v0_bridge_ok) return
             end do
         else
+            emitted_count = 3_int32
             operation = mir_v0_bridge_policy_machine_operation_for(mir%instructions(1)%opcode)
             if (mir%instructions(1)%opcode == mir_v0_opcode_add) operation = 'addi'
             values = [10_int64, 0_int64, 0_int64]
@@ -168,17 +209,17 @@ contains
             call encode_operation(target, records, trim(operation), values, words(1), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             values = [17_int64, 0_int64, 93_int64]
-            call encode_operation(target, records, 'addi', values, words(2), status, diagnostic)
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
+                values, words(2), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
         end if
-        if (.not. storage_route) then
+        if (.not. storage_route .and. .not. storage_sequence_route) then
             values = mir_v0_riscv_linux_ecall_operands
             call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, values, &
-                words(merge(5, 3, mir%instruction_count == 5_int32)), status, diagnostic)
+                words(emitted_count), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
         end if
-        call write_elf64_executable(metadata, target_source, words(:merge(8, merge(5, 3, &
-            mir%instruction_count == 5_int32), storage_route)), artifact%bytes, &
+        call write_elf64_executable(metadata, target_source, words(:emitted_count), artifact%bytes, &
             source_status)
         if (source_status /= 0_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: executable artifact construction failed')
