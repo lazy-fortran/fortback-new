@@ -9,7 +9,7 @@ program test_mir_v0_bridge_generated
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
-    character(len=2048) :: input
+    character(len=2048) :: input, ast_input
     character(len=256) :: diagnostic
     integer(int32) :: status
 
@@ -49,6 +49,15 @@ program test_mir_v0_bridge_generated
     call assert_byte(artifact%bytes, 186, 0, 'ecall encoding changed')
     call assert_byte(artifact%bytes, 187, 0, 'ecall encoding changed')
     call assert_byte(artifact%bytes, 188, 0, 'ecall encoding changed')
+
+    ast_input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+        '(instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
+        '(type i32))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(ast_input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'AST-v1 main bridge input rejected')
     write (*, '(a)') 'MIR-v0 generated bridge regression: ok'
 
 contains

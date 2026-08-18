@@ -66,9 +66,18 @@ contains
         end select
         select case (trim(function_name))
         case ('main')
-            if (trim(source_rule) /= 'frontend-v0/program') return
+            select case (trim(source_rule))
+            case ('frontend-v0/program')
+            case ('frontend-ast-v1/program')
+            case default
+                return
+            end select
         case ('p')
-            if (trim(source_rule) /= 'frontend-ast-v1/program') return
+            select case (trim(source_rule))
+            case ('frontend-ast-v1/program')
+            case default
+                return
+            end select
         case default
             return
         end select

@@ -6,4 +6,5 @@ result id 1
 result kind integer
 result type i32
 source-rule function main frontend-v0/program
+source-rule function main frontend-ast-v1/program
 source-rule function p frontend-ast-v1/program
