@@ -1490,12 +1490,14 @@ contains
         if (mir%instructions(7)%result_id /= 6_int32) return
         if (mir%instructions(8)%result_id /= 6_int32) return
         if (mir%instructions(9)%result_id /= 7_int32) return
-        if (mir%instructions(10)%result_id /= 8_int32) return
+        if (mir%instructions(10)%result_id /= 7_int32) return
         if (mir%instructions(11)%result_id /= 8_int32) return
-        if (mir%instructions(12)%result_id /= 9_int32) return
-        do index = 13, 17
-            if (mir%instructions(index)%result_id /= 9_int32) return
-        end do
+        if (mir%instructions(12)%result_id /= 8_int32) return
+        if (mir%instructions(13)%result_id /= 9_int32) return
+        if (mir%instructions(14)%result_id /= 9_int32) return
+        if (mir%instructions(15)%result_id /= 10_int32) return
+        if (mir%instructions(16)%result_id /= 10_int32) return
+        if (mir%instructions(17)%result_id /= 10_int32) return
         valid = .true.
     end function valid_print_variable_five_item
 
