@@ -5,14 +5,15 @@ program test_mir_v0_print_r1212
         riscv_linux_artifact_provenance_valid, write_mir_v0_riscv_linux
     implicit none
 
-    character(len=4096) :: input, input_two, input_three
+    character(len=4096) :: input, input_two, input_three, input_four
     character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
     character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
     character(len=4096) :: wrong_three_literal, wrong_three_shape, wrong_three_opcode
+    character(len=4096) :: wrong_four_literal, wrong_four_shape, wrong_four_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
-    integer(int8) :: output(2), output_two(4), output_three(6)
+    integer(int8) :: output(2), output_two(4), output_three(6), output_four(9)
     type(riscv_linux_artifact_t) :: artifact
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -147,6 +148,76 @@ program test_mir_v0_print_r1212
     call assert_true(io_status /= 0, 'three-item PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'three-item PRINT output cleanup failed')
+
+    input_four = '(mir-function (name p) (entry-block 0) (instruction-count 9) '// &
+        '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 1) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 2) (opcode const) (literal 8) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 3) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 4) (opcode const) (literal 9) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 5) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 6) (opcode const) (literal 10) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 7) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 8) (opcode return) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(input_four, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'four-item PRINT MIR was rejected')
+    call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
+        'four-item PRINT artifact provenance was lost')
+    call write_mir_v0_riscv_linux(input_four, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'four-item PRINT ELF write failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'four-item PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'four-item PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'four-item PRINT output was not written')
+    read (unit, iostat=io_status) output_four
+    call assert_int(io_status, 0, 'four-item PRINT output length or bytes changed')
+    call assert_byte(output_four(1), 55, 'four-item PRINT did not write ASCII 7')
+    call assert_byte(output_four(2), 10, 'four-item PRINT missed newline after 7')
+    call assert_byte(output_four(3), 56, 'four-item PRINT did not write ASCII 8')
+    call assert_byte(output_four(4), 10, 'four-item PRINT missed newline after 8')
+    call assert_byte(output_four(5), 57, 'four-item PRINT did not write ASCII 9')
+    call assert_byte(output_four(6), 10, 'four-item PRINT missed newline after 9')
+    call assert_byte(output_four(7), 49, 'four-item PRINT did not write ASCII 1 of 10')
+    call assert_byte(output_four(8), 48, 'four-item PRINT did not write ASCII 0 of 10')
+    call assert_byte(output_four(9), 10, 'four-item PRINT missed newline after 10')
+    read (unit, iostat=io_status) output_four(1)
+    call assert_true(io_status /= 0, 'four-item PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'four-item PRINT output cleanup failed')
+
+    wrong_four_literal = input_four
+    wrong_four_literal(index(wrong_four_literal, 'literal 10'): &
+        index(wrong_four_literal, 'literal 10') + 9) = 'literal 11'
+    call compile_mir_v0_riscv_linux(wrong_four_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'four-item PRINT literal mutation was accepted')
+
+    wrong_four_shape = input_four
+    wrong_four_shape(index(wrong_four_shape, 'type i32', back=.true.): &
+        index(wrong_four_shape, 'type i32', back=.true.) + 7) = 'type real'
+    call compile_mir_v0_riscv_linux(wrong_four_shape, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'four-item PRINT result-shape mutation was accepted')
+
+    wrong_four_opcode = input_four
+    wrong_four_opcode(index(wrong_four_opcode, 'opcode output', back=.true.): &
+        index(wrong_four_opcode, 'opcode output', back=.true.) + 12) = 'opcode return '
+    call compile_mir_v0_riscv_linux(wrong_four_opcode, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'four-item PRINT opcode mutation was accepted')
 
     wrong_three_literal = input_three
     wrong_three_literal(index(wrong_three_literal, 'literal 9'): &

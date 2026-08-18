@@ -435,6 +435,18 @@ contains
                 operation = 'sb'
             case (11_int32)
                 operation = 'sb'
+            case (12_int32)
+                operation = 'addi'
+            case (13_int32)
+                operation = 'sb'
+            case (14_int32)
+                operation = 'addi'
+            case (15_int32)
+                operation = 'sb'
+            case (16_int32)
+                operation = 'addi'
+            case (17_int32)
+                operation = 'sb'
             end select
         case ('frontend-ast-v2/execution-part')
             select case (index)
@@ -1239,6 +1251,10 @@ contains
                     return
                 end if
                 if (instruction_count == 7_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 9_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
@@ -3867,6 +3883,74 @@ contains
                     case default
                         return
                     end select
+                case (9_int32)
+                    select case (instruction_index)
+                    case (0_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (1_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (2_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (3_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (4_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (5_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (6_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (7_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (8_int32)
+                        if (opcode /= mir_v0_opcode_return) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case default
+                        return
+                    end select
                 case default
                     return
                 end select
@@ -3880,6 +3964,7 @@ contains
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. literal /= 7_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 2_int32 .and. literal /= 8_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 4_int32 .and. literal /= 9_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 6_int32 .and. literal /= 10_int32) return
             case default
                 return
             end select
