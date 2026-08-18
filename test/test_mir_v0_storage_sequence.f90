@@ -239,6 +239,30 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'v2 six-step storage qemu command failed')
     call assert_equal(exit_status, 12, 'v2 six-step storage sequence did not return 12')
 
+    do route_index = 7, 10
+        input = sequence_generated_input(route_index, 4 * route_index - 4, .false., 'x')
+        call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+            'frontend-ast-v1/storage-sequence-'//int_text(route_index)), &
+            int(4 * route_index - 1, int32), 'generated route count changed')
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_equal(status, mir_v0_bridge_ok, 'generated storage sequence was rejected')
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_equal(status, mir_v0_bridge_ok, 'generated storage ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_equal(command_status, 0, 'generated storage chmod failed')
+        call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_equal(command_status, 0, 'generated storage qemu command failed')
+        call assert_equal(exit_status, route_index + 6, 'generated route returned wrong status')
+    end do
+    call compile_mir_v0_riscv_linux(sequence_generated_input(10, 36, .true., 'x'), &
+        artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'generated wrong order was accepted')
+    call compile_mir_v0_riscv_linux(sequence_generated_input(10, 36, .false., 'y'), &
+        artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'generated wrong storage key was accepted')
+
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 8, .true.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong order was accepted')
@@ -570,6 +594,73 @@ contains
         value = replace_text(value, 'frontend-ast-v1/storage-sequence-6', &
             'frontend-ast-v2/execution-part-6')
     end function sequence_six_input_v2
+
+    function sequence_generated_input(sequence_count, return_id, wrong_order, storage_key) result(value)
+        integer, intent(in) :: sequence_count, return_id
+        logical, intent(in) :: wrong_order
+        character(len=*), intent(in) :: storage_key
+        character(len=32768) :: value
+        character(len=64) :: source_rule, shape
+        character(len=16) :: opcode, key
+        integer :: index, step, remainder, total
+
+        source_rule = 'frontend-ast-v1/storage-sequence-'//int_text(sequence_count)
+        total = 4 * sequence_count - 1
+        value = '(mir-function (name main) (entry-block 0) (instruction-count '// &
+            trim(int_text(total))//') (instructions '
+        do index = 0, total - 1
+            opcode = 'const'
+            shape = 'integer-literal-left'
+            key = ''
+            if (index == 1) then
+                opcode = 'store'
+                shape = 'integer-sequence-store-literal'
+                key = storage_key
+            else if (index >= 2 .and. index < total - 1) then
+                step = 2 + (index - 2) / 4
+                remainder = mod(index - 2, 4)
+                if (remainder == 0) then
+                    opcode = 'load'
+                    shape = 'integer-sequence-loaded'
+                    if (step > 2) shape = 'integer-sequence-'//int_text(step)//'-loaded'
+                    key = storage_key
+                else if (remainder == 1) then
+                    opcode = 'const'
+                    shape = 'integer-sequence-literal-right'
+                    if (step > 2) shape = 'integer-sequence-'//int_text(step)//'-literal-right'
+                else if (remainder == 2) then
+                    opcode = 'add'
+                    shape = 'integer-sequence-expression'
+                    if (step > 2) shape = 'integer-sequence-'//int_text(step)//'-expression'
+                    if (wrong_order .and. step == 2) opcode = 'store'
+                else
+                    opcode = 'store'
+                    shape = 'integer-sequence-expression-result'
+                    if (step > 2) shape = 'integer-sequence-'//int_text(step)//'-expression-result'
+                    key = storage_key
+                end if
+            else if (index == total - 1) then
+                opcode = 'return'
+                shape = 'integer-sequence-'//int_text(sequence_count)//'-expression-result'
+            end if
+            value = trim(value)//' (instruction (id '//trim(int_text(index))// &
+                ') (opcode '//trim(opcode)//') '
+            if (index == 0) value = trim(value)//' (literal 7) '
+            if (index >= 2 .and. index < total - 1 .and. mod(index - 2, 4) == 1) &
+                value = trim(value)//' (literal 1) '
+            if (len_trim(key) > 0) value = trim(value)//' (storage-key '//trim(key)//') '
+            value = trim(value)//' (source-rule '//trim(source_rule)//') (result (id'
+            if (index == total - 1) then
+                value = trim(value)//' '//trim(int_text(return_id))
+            else if (index >= 5 .and. mod(index - 2, 4) == 3) then
+                value = trim(value)//' '//trim(int_text(index - 1))
+            else
+                value = trim(value)//' '//trim(int_text(index))
+            end if
+            value = trim(value)//') (kind integer) (type i32))) '
+        end do
+        value = trim(value)//'))'
+    end function sequence_generated_input
 
     function sequence_six_instruction(load_key, store_key, index, opcode, literal, shape, result_id) &
             result(text)

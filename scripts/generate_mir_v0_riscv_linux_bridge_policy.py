@@ -41,6 +41,16 @@ def read_policy():
               fields[1] == "source-rule" and fields[3] == "index" and
               fields[5] == "operation"):
             policy["route-operations"].append((fields[2], int(fields[4]), fields[6]))
+        elif (fields[0] == "route-pattern" and len(fields) == 7 and
+              fields[1] == "source-rule" and fields[3] == "count" and
+              fields[5] == "pattern" and fields[6] == "storage-sequence"):
+            count = int(fields[4])
+            operations = [(0, "addi"), (1, "sd")]
+            for index in range(2, count - 1):
+                operations.append(((index), ("ld", "addi", "add", "sd")[(index - 2) % 4]))
+            operations.append((count - 1, "addi"))
+            policy["route-operations"].extend(
+                (fields[2], index, operation) for index, operation in operations)
         elif fields[0] == "result-shape" and len(fields) == 5:
             if fields[1] in shape_names:
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
@@ -64,6 +74,18 @@ def read_policy():
             if len(opcodes) != len(policy["instructions"]):
                 if not opcodes:
                     opcodes = tuple(opcode for _, opcode, _ in policy["instructions"])
+            if fields[3].startswith("frontend-ast-v1/storage-sequence-"):
+                sequence_number = int(fields[3].rsplit("-", 1)[1])
+                if sequence_number >= 7:
+                    shapes = ["integer-literal-left", "integer-sequence-store-literal"]
+                    for step in range(2, sequence_number + 1):
+                        suffix = "" if step == 2 else f"-{step}"
+                        shapes.extend((f"integer-sequence{suffix}-loaded",
+                                       f"integer-sequence{suffix}-literal-right",
+                                       f"integer-sequence{suffix}-expression",
+                                       f"integer-sequence{suffix}-expression-result"))
+                    shapes.append(shapes[-1])
+                    shapes = tuple(shapes)
             if len(shapes) not in (1, len(opcodes)):
                 raise SystemExit(f"{INPUT}:{line_number}: result shape route length mismatch")
             if len(shapes) == 1:
