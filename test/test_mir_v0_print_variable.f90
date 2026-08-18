@@ -6,7 +6,7 @@ program test_mir_v0_print_variable
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
-    character(len=8192) :: input, wrong_storage, wrong_output, wrong_literal
+    character(len=8192) :: input, two_item_input, wrong_storage, wrong_output, wrong_literal
     character(len=256) :: diagnostic
     integer(int8) :: output(3)
     integer(int32) :: status
@@ -37,6 +37,23 @@ program test_mir_v0_print_variable
 
     input = print_variable_power_value_expression_input()
     call run_print_variable_power(input, path, output_path, 57)
+
+    two_item_input = print_variable_power_two_item_input()
+    call run_print_variable_two_item(two_item_input, path, output_path)
+
+    wrong_literal = replace_text(two_item_input, '(storage-key x)', '(storage-key y)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong second storage was accepted')
+    wrong_literal = replace_text(two_item_input, '(opcode output) (source-rule frontend-ast-v2/print-stmt)', &
+        '(opcode return) (source-rule frontend-ast-v2/print-stmt)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'one-output neighbor was accepted')
+    wrong_literal = replace_text(two_item_input, '(opcode pow)', '(opcode mul)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong second operator was accepted')
+    wrong_literal = replace_text(two_item_input, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'two-output WRITE neighbor was accepted')
 
     input = print_variable_input('x', 'x', .false., 17)
     wrong_storage = print_variable_input('x', 'x', .true., 17)
@@ -169,6 +186,40 @@ contains
         call assert_int(io_status, 0, 'power PRINT output cleanup failed')
     end subroutine run_print_variable_power
 
+    subroutine run_print_variable_two_item(input, path, output_path)
+        character(len=*), intent(in) :: input, path, output_path
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8) :: output(4)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'two-item power PRINT MIR was rejected')
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'two-item power PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'two-item power PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'two-item power PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'two-item power PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'two-item power PRINT output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'two-item power PRINT output length changed')
+        call assert_byte(output(1), 57, 'two-item power PRINT missed first 9')
+        call assert_byte(output(2), 10, 'two-item power PRINT missed first newline')
+        call assert_byte(output(3), 57, 'two-item power PRINT missed second 9')
+        call assert_byte(output(4), 10, 'two-item power PRINT missed second newline')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'two-item power PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'two-item power PRINT output cleanup failed')
+    end subroutine run_print_variable_two_item
+
     function print_variable_input(store_key, load_key, omit_storage, literal) result(value)
         character(len=*), intent(in) :: store_key, load_key
         logical, intent(in) :: omit_storage
@@ -263,6 +314,35 @@ contains
         value = replace_text(value, '(literal 3)', '(literal 2)')
         value = replace_text(value, '(literal 99)', '(literal 3)')
     end function print_variable_power_value_expression_input
+
+    function print_variable_power_two_item_input() result(value)
+        character(len=8192) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 11) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 3) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) '// &
+            '(type i32))) (instruction (id 1) (opcode store) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 2) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 2) (kind integer) '// &
+            '(type i32))) (instruction (id 3) (opcode const) (literal 2) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 3) (kind integer) '// &
+            '(type i32))) (instruction (id 4) (opcode pow) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 5) (opcode store) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 6) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 7) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 8) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 9) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 10) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32)))))'
+    end function print_variable_power_two_item_input
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new
