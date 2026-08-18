@@ -1033,7 +1033,7 @@ contains
         integer(int32), intent(out) :: emitted_count
         integer(int32), intent(out) :: status
         character(len=*), intent(out) :: diagnostic
-        integer :: index
+        integer :: index, item_end
         integer(int32) :: word_index
 
         word_index = 1_int32
@@ -1051,18 +1051,48 @@ contains
             words(word_index), status, diagnostic)
         if (status /= mir_v0_bridge_ok) return
         word_index = word_index + 1_int32
-        do index = 3, mir%instruction_count - 2, 2
-            if (mir%instructions(index)%opcode == mir_v0_opcode_const) then
-                call encode_operation(target, records, 'addi', &
-                    [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)], &
-                    words(word_index), status, diagnostic)
-            else
+        index = 3
+        do while (index <= mir%instruction_count - 2)
+            item_end = index + 1
+            if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
+                if (index + 3 <= mir%instruction_count - 1) then
+                    if (mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add .and. &
+                        mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
+                        item_end = index + 3
+                    end if
+                end if
+            end if
+            if (item_end == index + 3) then
                 call encode_operation(target, records, 'ld', &
                     [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
                     words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [11_int64, 0_int64, 1_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                item_end = index + 3
+            else
+                if (mir%instructions(index)%opcode == mir_v0_opcode_const) then
+                    call encode_operation(target, records, 'addi', &
+                        [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)], &
+                        words(word_index), status, diagnostic)
+                else
+                    call encode_operation(target, records, 'ld', &
+                        [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+                        words(word_index), status, diagnostic)
+                end if
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
             end if
-            if (status /= mir_v0_bridge_ok) return
-            word_index = word_index + 1_int32
+            if (item_end > mir%instruction_count - 1) return
+            if (mir%instructions(item_end)%opcode /= mir_v0_opcode_output) return
             call encode_operation(target, records, 'addi', [5_int64, 10_int64, 48_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
@@ -1099,6 +1129,7 @@ contains
                 mir_v0_riscv_linux_ecall_operands, words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
+            index = item_end + 1
         end do
         call encode_operation(target, records, 'addi', [10_int64, 0_int64, 0_int64], &
             words(word_index), status, diagnostic)
@@ -1481,32 +1512,47 @@ contains
 
     logical function is_generic_print_list_route(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
-        integer :: index
+        integer :: index, item_end
         logical :: has_load
 
         candidate = .false.
         if (trim(mir%name) /= 'main') return
         if (mir%instruction_count < 7_int32) return
-        if (mod(mir%instruction_count - 3_int32, 2_int32) /= 0_int32) return
         if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
         if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
         has_load = .false.
-        do index = 3, mir%instruction_count - 1
-            if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt' .and. &
-                index < mir%instruction_count) return
-            if (mod(index - 3, 2) == 0 .and. mir%instructions(index)%opcode == mir_v0_opcode_load) then
+        index = 3
+        do while (index <= mir%instruction_count - 2)
+            if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+            if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 has_load = .true.
             end if
+            item_end = index + 1
+            if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
+                if (index + 3 < mir%instruction_count) then
+                    if (mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add .and. &
+                        mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
+                        item_end = index + 3
+                    end if
+                end if
+            end if
+            if (item_end >= mir%instruction_count) return
+            if (trim(mir%instructions(item_end)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+            if (mir%instructions(item_end)%opcode /= mir_v0_opcode_output) return
+            index = item_end + 1
         end do
         if (trim(mir%instructions(mir%instruction_count)%source_rule) /= &
             'frontend-ast-v2/print-stmt') return
+        if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
         candidate = has_load
     end function is_generic_print_list_route
 
     logical function valid_generic_print_list(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
-        integer :: index
+        integer :: index, item_end
         type(bridge_instruction_t) :: value_instruction, output_instruction
+        type(bridge_instruction_t) :: operand_instruction, operation_instruction
 
         valid = .false.
         if (.not. is_generic_print_list_route(mir)) return
@@ -1523,11 +1569,41 @@ contains
         if (mir%instructions(mir%instruction_count)%result_kind /= &
             mir_v0_value_kind_integer) return
         if (trim(mir%instructions(mir%instruction_count)%result_type) /= 'i32') return
-        do index = 3, mir%instruction_count - 2, 2
+        index = 3
+        do while (index <= mir%instruction_count - 2)
             value_instruction = mir%instructions(index)
-            output_instruction = mir%instructions(index + 1)
-            if (value_instruction%opcode /= mir_v0_opcode_const .and. &
-                value_instruction%opcode /= mir_v0_opcode_load) return
+            if (value_instruction%opcode == mir_v0_opcode_load) then
+                if (index + 3 <= mir%instruction_count - 2) then
+                    operand_instruction = mir%instructions(index + 1)
+                    operation_instruction = mir%instructions(index + 2)
+                    output_instruction = mir%instructions(index + 3)
+                    if (operand_instruction%opcode == mir_v0_opcode_const .and. &
+                        operation_instruction%opcode == mir_v0_opcode_add .and. &
+                        output_instruction%opcode == mir_v0_opcode_output) then
+                        if (.not. value_instruction%storage_present) return
+                        if (trim(value_instruction%storage_key) /= 'x') return
+                        if (value_instruction%literal_present) return
+                        if (.not. operand_instruction%literal_present) return
+                        if (operand_instruction%literal /= 1_int32) return
+                        if (operand_instruction%storage_present) return
+                        if (operation_instruction%literal_present) return
+                        if (operation_instruction%storage_present) return
+                        item_end = index + 3
+                    else
+                        output_instruction = mir%instructions(index + 1)
+                        item_end = index + 1
+                    end if
+                else
+                    output_instruction = mir%instructions(index + 1)
+                    item_end = index + 1
+                end if
+            else
+                if (value_instruction%opcode /= mir_v0_opcode_const) then
+                    return
+                end if
+                output_instruction = mir%instructions(index + 1)
+                item_end = index + 1
+            end if
             if (output_instruction%opcode /= mir_v0_opcode_output) return
             if (value_instruction%result_kind /= mir_v0_value_kind_integer) return
             if (output_instruction%result_kind /= mir_v0_value_kind_integer) return
@@ -1536,12 +1612,19 @@ contains
             if (value_instruction%opcode == mir_v0_opcode_const) then
                 if (.not. value_instruction%literal_present) return
                 if (value_instruction%storage_present) return
-            else
+            else if (value_instruction%opcode == mir_v0_opcode_load) then
                 if (.not. value_instruction%storage_present) return
                 if (trim(value_instruction%storage_key) /= 'x') return
                 if (value_instruction%literal_present) return
             end if
             if (output_instruction%storage_present) return
+            if (item_end == index + 3) then
+                if (operand_instruction%result_kind /= mir_v0_value_kind_integer) return
+                if (operation_instruction%result_kind /= mir_v0_value_kind_integer) return
+                if (trim(operand_instruction%result_type) /= 'i32') return
+                if (trim(operation_instruction%result_type) /= 'i32') return
+            end if
+            index = item_end + 1
         end do
         valid = .true.
     end function valid_generic_print_list
