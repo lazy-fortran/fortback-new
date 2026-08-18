@@ -46,6 +46,14 @@ program test_riscv_i_format
     call riscv_encode_i_format(target, records(1), 10_int32, 10_int32, 2048_int32, word, status)
     call assert_equal_int(status, riscv_invalid_operand, &
         'generated 12-bit out-of-range immediate accepted')
+    call riscv_encode_i_format(target, records(1), 31_int32, 31_int32, -2048_int32, word, status)
+    call assert_equal_int(status, riscv_ok, 'generated register field upper bounds rejected')
+    call assert_equal64(word, int(z'800FCF93', int64), 'generated register fields shifted incorrectly')
+    call riscv_decode_i_format(target, word, records, record_index, rd, rs1, immediate, status)
+    call assert_equal_int(status, riscv_ok, 'generated register field boundary decode rejected')
+    call assert_equal_int(rd, 31_int32, 'generated rd upper bound decode changed')
+    call assert_equal_int(rs1, 31_int32, 'generated rs1 upper bound decode changed')
+    call assert_equal_int(immediate, -2048_int32, 'generated immediate lower bound decode changed')
 
     call riscv_encode_i_format(target, records(2), 10_int32, 10_int32, 63_int32, word, status)
     call assert_equal_int(status, riscv_ok, 'SLLI-shaped record rejected')

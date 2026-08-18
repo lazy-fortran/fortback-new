@@ -2,17 +2,21 @@ module fortback_riscv_i_format
     use iso_fortran_env, only: int32, int64
     use fortback_riscv_fixture, only: riscv_invalid_operand, riscv_invalid_target, &
         riscv_malformed, riscv_ok, riscv_unsupported
-    use fortback_riscv_opcode_table, only: riscv_immediate_width_for_mnemonic
+    use fortback_riscv_opcode_table, only: riscv_immediate_lsb_for_mnemonic, &
+        riscv_immediate_width_for_mnemonic, riscv_rd_lsb_for_mnemonic, &
+        riscv_rd_width_for_mnemonic, riscv_rs1_lsb_for_mnemonic, &
+        riscv_rs1_width_for_mnemonic
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: source_ref_valid, target_ir_t, target_ir_valid
     implicit none
     private
 
     integer(int64), parameter :: word_max = int(z'FFFFFFFF', int64)
-    integer(int64), parameter :: rd_mask = ishft(31_int64, 7)
-    integer(int64), parameter :: rs1_mask = ishft(31_int64, 15)
-    integer(int64), parameter :: immediate_mask = ishft(4095_int64, 20)
-    integer(int64), parameter :: operand_mask = ior(rd_mask, rs1_mask)
+    integer(int32), parameter :: default_rd_lsb = 7_int32
+    integer(int32), parameter :: default_rd_width = 5_int32
+    integer(int32), parameter :: default_rs1_lsb = 15_int32
+    integer(int32), parameter :: default_rs1_width = 5_int32
+    integer(int32), parameter :: default_immediate_lsb = 20_int32
 
     public :: riscv_encode_i_format
     public :: riscv_decode_i_format
@@ -25,7 +29,7 @@ contains
         integer(int32), intent(in) :: rd, rs1, immediate
         integer(int64), intent(out) :: word
         integer(int32), intent(out) :: status
-        integer(int32) :: immediate_width
+        integer(int32) :: immediate_width, rd_lsb, rd_width, rs1_lsb, rs1_width, immediate_lsb
         integer(int64) :: immediate_value_mask
 
         word = 0_int64
@@ -33,12 +37,13 @@ contains
         if (status /= riscv_ok) return
         status = validate_record(record)
         if (status /= riscv_ok) return
-        immediate_width = record_immediate_width(record)
-        if (rd < 0_int32 .or. rd > 31_int32) then
+        call record_fields(record, rd_lsb, rd_width, rs1_lsb, rs1_width, immediate_lsb, &
+            immediate_width)
+        if (rd < 0_int32 .or. int(rd, int64) >= ishft(1_int64, rd_width)) then
             status = riscv_invalid_operand
             return
         end if
-        if (rs1 < 0_int32 .or. rs1 > 31_int32) then
+        if (rs1 < 0_int32 .or. int(rs1, int64) >= ishft(1_int64, rs1_width)) then
             status = riscv_invalid_operand
             return
         end if
@@ -56,10 +61,10 @@ contains
         end if
 
         word = record%match
-        word = ior(word, ishft(int(rd, int64), 7))
-        word = ior(word, ishft(int(rs1, int64), 15))
+        word = ior(word, ishft(int(rd, int64), rd_lsb))
+        word = ior(word, ishft(int(rs1, int64), rs1_lsb))
         immediate_value_mask = ishft(1_int64, immediate_width) - 1_int64
-        word = ior(word, ishft(iand(int(immediate, int64), immediate_value_mask), 20))
+        word = ior(word, ishft(iand(int(immediate, int64), immediate_value_mask), immediate_lsb))
     end subroutine riscv_encode_i_format
 
     subroutine riscv_decode_i_format(target, word, records, record_index, rd, rs1, immediate, &
@@ -73,6 +78,7 @@ contains
         integer(int64) :: immediate_value_mask
         integer(int32) :: record_status
         integer(int32) :: immediate_width
+        integer(int32) :: rd_lsb, rd_width, rs1_lsb, rs1_width, immediate_lsb
         integer :: i
 
         record_index = 0_int32
@@ -98,12 +104,13 @@ contains
                 return
             end if
             if (iand(word, records(i)%mask) /= records(i)%match) cycle
-            immediate_width = record_immediate_width(records(i))
+            call record_fields(records(i), rd_lsb, rd_width, rs1_lsb, rs1_width, immediate_lsb, &
+                immediate_width)
             immediate_value_mask = ishft(1_int64, immediate_width) - 1_int64
             record_index = int(i, int32)
-            rd = int(iand(ishft(word, -7), 31_int64), int32)
-            rs1 = int(iand(ishft(word, -15), 31_int64), int32)
-            raw_immediate = iand(ishft(word, -20), immediate_value_mask)
+            rd = int(iand(ishft(word, -rd_lsb), ishft(1_int64, rd_width) - 1_int64), int32)
+            rs1 = int(iand(ishft(word, -rs1_lsb), ishft(1_int64, rs1_width) - 1_int64), int32)
+            raw_immediate = iand(ishft(word, -immediate_lsb), immediate_value_mask)
             if (immediate_width == 12_int32) then
                 if (raw_immediate >= 2048_int64) raw_immediate = raw_immediate - 4096_int64
             end if
@@ -138,7 +145,7 @@ contains
         if (record%match < 0_int64 .or. record%match > word_max) return
         if (record%mask == 0_int64) return
         if (iand(record%match, not(record%mask)) /= 0_int64) return
-        if (iand(record%mask, operand_mask) /= 0_int64) return
+        if (iand(record%mask, record_operand_mask(record)) /= 0_int64) return
         if (record_immediate_width(record) == 0_int32) return
         validate_record = riscv_ok
     end function validate_record
@@ -146,9 +153,10 @@ contains
     pure integer(int32) function record_immediate_width(record)
         type(riscv_opcode_record_t), intent(in) :: record
         integer(int64) :: variable_mask, expected_mask
-        integer(int32) :: width, generated_width
+        integer(int32) :: width, generated_width, immediate_lsb
 
-        variable_mask = iand(immediate_mask, not(record%mask))
+        immediate_lsb = record_immediate_lsb(record)
+        variable_mask = iand(ishft(4095_int64, immediate_lsb), not(record%mask))
         generated_width = riscv_immediate_width_for_mnemonic(record%mnemonic)
         if (generated_width > 0_int32) then
             width = generated_width
@@ -159,9 +167,66 @@ contains
                 width = width + 1_int32
             end do
         end if
-        expected_mask = ishft(ishft(1_int64, width) - 1_int64, 20)
+        expected_mask = ishft(ishft(1_int64, width) - 1_int64, immediate_lsb)
         if (variable_mask /= expected_mask) width = 0_int32
         record_immediate_width = width
     end function record_immediate_width
+
+    pure subroutine record_fields(record, rd_lsb, rd_width, rs1_lsb, rs1_width, immediate_lsb, &
+            immediate_width)
+        type(riscv_opcode_record_t), intent(in) :: record
+        integer(int32), intent(out) :: rd_lsb, rd_width, rs1_lsb, rs1_width, immediate_lsb
+        integer(int32), intent(out) :: immediate_width
+
+        rd_lsb = record_rd_lsb(record)
+        rd_width = record_rd_width(record)
+        rs1_lsb = record_rs1_lsb(record)
+        rs1_width = record_rs1_width(record)
+        immediate_lsb = record_immediate_lsb(record)
+        immediate_width = record_immediate_width(record)
+    end subroutine record_fields
+
+    pure integer(int32) function record_rd_lsb(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_rd_lsb = riscv_rd_lsb_for_mnemonic(record%mnemonic)
+        if (record_rd_lsb == 0_int32) record_rd_lsb = default_rd_lsb
+    end function record_rd_lsb
+
+    pure integer(int32) function record_rd_width(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_rd_width = riscv_rd_width_for_mnemonic(record%mnemonic)
+        if (record_rd_width == 0_int32) record_rd_width = default_rd_width
+    end function record_rd_width
+
+    pure integer(int32) function record_rs1_lsb(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_rs1_lsb = riscv_rs1_lsb_for_mnemonic(record%mnemonic)
+        if (record_rs1_lsb == 0_int32) record_rs1_lsb = default_rs1_lsb
+    end function record_rs1_lsb
+
+    pure integer(int32) function record_rs1_width(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_rs1_width = riscv_rs1_width_for_mnemonic(record%mnemonic)
+        if (record_rs1_width == 0_int32) record_rs1_width = default_rs1_width
+    end function record_rs1_width
+
+    pure integer(int32) function record_immediate_lsb(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_immediate_lsb = riscv_immediate_lsb_for_mnemonic(record%mnemonic)
+        if (record_immediate_lsb == 0_int32) record_immediate_lsb = default_immediate_lsb
+    end function record_immediate_lsb
+
+    pure integer(int64) function record_operand_mask(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_operand_mask = ior(ishft(ishft(1_int64, record_rd_width(record)) - 1_int64, &
+            record_rd_lsb(record)), ishft(ishft(1_int64, record_rs1_width(record)) - 1_int64, &
+            record_rs1_lsb(record)))
+    end function record_operand_mask
 
 end module fortback_riscv_i_format

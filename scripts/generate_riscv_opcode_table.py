@@ -16,11 +16,19 @@ def read_rows():
         fields = line.split()
         if not fields or fields[0].startswith("#"):
             continue
-        if len(fields) != 4 or not fields[1].isdigit() or fields[2] not in {"R", "I"}:
+        if len(fields) != 9 or not fields[1].isdigit() or fields[2] not in {"R", "I"}:
             raise SystemExit(f"{INPUT}:{line_number}: malformed row")
-        if not fields[3].isdigit() or int(fields[3]) < 0 or int(fields[3]) > 12:
-            raise SystemExit(f"{INPUT}:{line_number}: malformed immediate width")
-        rows.append((fields[0], int(fields[1]), fields[2], int(fields[3])))
+        values = fields[3:]
+        if any(not value.isdigit() for value in values):
+            raise SystemExit(f"{INPUT}:{line_number}: malformed I-format field metadata")
+        metadata = tuple(int(value) for value in values)
+        if any(value < 0 or value > 31 for value in metadata[:5]) or metadata[5] > 12:
+            raise SystemExit(f"{INPUT}:{line_number}: malformed I-format field metadata")
+        if fields[2] == "I" and any(value == 0 for value in metadata):
+            raise SystemExit(f"{INPUT}:{line_number}: incomplete I-format field metadata")
+        if fields[2] == "R" and any(value != 0 for value in metadata):
+            raise SystemExit(f"{INPUT}:{line_number}: R-format field metadata must be zero")
+        rows.append((fields[0], int(fields[1]), fields[2], metadata))
     if [row[1] for row in rows] != list(range(1, len(rows) + 1)):
         raise SystemExit(f"{INPUT}: kinds must be consecutive starting at 1")
     return rows
@@ -42,6 +50,11 @@ def render(rows):
         "    public :: riscv_kind_for_mnemonic",
         "    public :: riscv_mnemonic_for_kind",
         "    public :: riscv_immediate_width_for_mnemonic",
+        "    public :: riscv_rd_lsb_for_mnemonic",
+        "    public :: riscv_rd_width_for_mnemonic",
+        "    public :: riscv_rs1_lsb_for_mnemonic",
+        "    public :: riscv_rs1_width_for_mnemonic",
+        "    public :: riscv_immediate_lsb_for_mnemonic",
         "",
         "contains",
         "",
@@ -78,7 +91,8 @@ def render(rows):
         "        riscv_immediate_width_for_mnemonic = 0_int32",
         "        select case (trim(mnemonic))",
     ]
-    for mnemonic, _, _, immediate_width in rows:
+    for mnemonic, _, _, metadata in rows:
+        immediate_width = metadata[5]
         lines.append(f"        case ('{mnemonic}')")
         lines.append(
             f"            riscv_immediate_width_for_mnemonic = {immediate_width}_int32")
@@ -86,6 +100,27 @@ def render(rows):
         "        end select",
         "    end function riscv_immediate_width_for_mnemonic",
         "",
+    ]
+    for field_name, field_index in (("rd_lsb", 0), ("rd_width", 1),
+                                    ("rs1_lsb", 2), ("rs1_width", 3),
+                                    ("immediate_lsb", 4)):
+        function_name = f"riscv_{field_name}_for_mnemonic"
+        lines += [
+            f"    pure integer(int32) function {function_name}(mnemonic)",
+            "        character(len=*), intent(in) :: mnemonic",
+            "",
+            f"        {function_name} = 0_int32",
+            "        select case (trim(mnemonic))",
+        ]
+        for mnemonic, _, _, metadata in rows:
+            lines.append(f"        case ('{mnemonic}')")
+            lines.append(f"            {function_name} = {metadata[field_index]}_int32")
+        lines += [
+            "        end select",
+            f"    end function {function_name}",
+            "",
+        ]
+    lines += [
         "end module fortback_riscv_opcode_table",
         "",
     ]
