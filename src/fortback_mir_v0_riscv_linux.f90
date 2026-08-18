@@ -552,6 +552,17 @@ contains
             if (.not. ok) return
             instruction%literal_present = .true.
         else
+            if (position + 1 <= token_count) then
+                if (trim(token(position)) == '(' .and. &
+                    (trim(token(position + 1)) == 'storage-key' .or. &
+                    trim(token(position + 1)) == 'storage')) then
+                    storage_label = trim(token(position + 1))
+                    ok = read_atom(token, token_count, position, storage_label, instruction%storage_key, &
+                        diagnostic)
+                    if (.not. ok) return
+                    instruction%storage_present = .true.
+                end if
+            end if
             ok = read_atom(token, token_count, position, 'source-rule', &
                 instruction%source_rule, diagnostic)
             if (.not. ok) return
