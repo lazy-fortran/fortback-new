@@ -4759,9 +4759,9 @@ contains
                 case default
                     if (literal_present) return
                 end select
-                if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. literal /= 7_int32) return
-                if (opcode == mir_v0_opcode_const .and. instruction_index == 2_int32 .and. literal /= 8_int32) return
-                if (opcode == mir_v0_opcode_const .and. instruction_index == 4_int32 .and. literal /= 9_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. instruction_count /= 7_int32 .and. literal /= 7_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 2_int32 .and. instruction_count /= 7_int32 .and. literal /= 8_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 4_int32 .and. instruction_count /= 7_int32 .and. literal /= 9_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 6_int32 .and. literal /= 10_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 8_int32 .and. literal /= 11_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 10_int32 .and. literal /= 12_int32) return
@@ -4769,6 +4769,18 @@ contains
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 14_int32 .and. literal /= 14_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 16_int32 .and. literal /= 15_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 18_int32 .and. literal /= 16_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_count == 7_int32) then
+                    select case (instruction_index)
+                    case (0_int32)
+                        if (literal /= 7_int32 .and. literal /= 17_int32) return
+                    case (2_int32)
+                        if (literal /= 8_int32 .and. literal /= 18_int32) return
+                    case (4_int32)
+                        if (literal /= 9_int32 .and. literal /= 19_int32) return
+                    case default
+                        return
+                    end select
+                end if
             case default
                 return
             end select

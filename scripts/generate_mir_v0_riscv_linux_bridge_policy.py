@@ -13,7 +13,7 @@ OUTPUT = ROOT / "src" / "fortback_mir_v0_riscv_linux_bridge_policy.f90"
 def read_policy():
     policy = {"storage-policy": None, "instruction-count": None, "instructions": [],
               "result-shapes": [], "source-rules": [], "literal-ranges": [],
-              "source-literals": [],
+              "source-literals": [], "source-literal-sequences": [],
               "frame-operation": None, "exit-status-operation": None, "route-operations": []}
     shape_names = set()
     for line_number, line in enumerate(INPUT.read_text().splitlines(), 1):
@@ -81,6 +81,14 @@ def read_policy():
                 raise SystemExit(f"{INPUT}:{line_number}: malformed source literal")
             policy["source-literals"].append(
                 (fields[2], fields[4], fields[6], instruction_index, literal))
+        elif (fields[0] == "source-literal-sequence" and len(fields) == 7 and
+              fields[1] == "function" and fields[3] == "source-rule" and
+              fields[5] == "values"):
+            values = tuple(int(value) for value in fields[6].split(','))
+            if not values:
+                raise SystemExit(f"{INPUT}:{line_number}: empty source literal sequence")
+            policy["source-literal-sequences"].append(
+                (fields[2], fields[4], values))
         elif fields[0] == "source-rule" and len(fields) >= 6 and fields[1] == "function":
             shapes = tuple(fields[4].split(","))
             if any(shape not in shape_names for shape in shapes):
@@ -138,6 +146,9 @@ def render(policy):
     for function_name, source_rule, opcode, instruction_index, literal in policy["source-literals"]:
         source_literals.setdefault(function_name, {}).setdefault(source_rule, []).append(
             (opcode, instruction_index, literal))
+    source_literal_sequences = {}
+    for function_name, source_rule, values in policy["source-literal-sequences"]:
+        source_literal_sequences.setdefault(function_name, {}).setdefault(source_rule, []).append(values)
 
     supported_opcodes = []
     for _, opcode, _ in policy["instructions"]:
@@ -376,7 +387,27 @@ def render(policy):
                           f"                    if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return"]
             lines += ["                case default", "                    if (literal_present) return", "                end select"]
             for opcode, instruction_index, literal in source_literals.get(function_name, {}).get(source_rule, []):
-                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. literal /= {literal}_int32) return"]
+                count_guard = ''
+                if (function_name == 'p' and source_rule == 'frontend-ast-v2/print-stmt' and
+                        instruction_index in (0, 2, 4)):
+                    count_guard = ' .and. instruction_count /= 7_int32'
+                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32{count_guard} .and. literal /= {literal}_int32) return"]
+            seen_sequence_lengths = set()
+            for values in source_literal_sequences.get(function_name, {}).get(source_rule, []):
+                if len(values) in seen_sequence_lengths:
+                    continue
+                seen_sequence_lengths.add(len(values))
+                lines += ["                if (opcode == mir_v0_opcode_const .and. instruction_count == " +
+                          f"{2 * len(values) + 1}_int32) then",
+                          "                    select case (instruction_index)"]
+                for index, value in enumerate(values):
+                    alternatives = [str(sequence[index]) for sequence in
+                                    source_literal_sequences[function_name][source_rule]
+                                    if len(sequence) == len(values)]
+                    lines += [f"                    case ({2 * index}_int32)",
+                              f"                        if ({' .and. '.join(f'literal /= {alternative}_int32' for alternative in alternatives)}) return"]
+                lines += ["                    case default", "                        return",
+                          "                    end select", "                end if"]
         lines += ["            case default", "                return", "            end select"]
     lines += ["        case default", "            return", "        end select", "        mir_v0_bridge_policy_accepts = .true.", "    end function mir_v0_bridge_policy_accepts", "", "end module fortback_mir_v0_riscv_linux_bridge_policy", ""]
     return chr(10).join(lines)

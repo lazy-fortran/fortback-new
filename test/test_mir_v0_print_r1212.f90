@@ -5,7 +5,7 @@ program test_mir_v0_print_r1212
         riscv_linux_artifact_provenance_valid, write_mir_v0_riscv_linux
     implicit none
 
-    character(len=4096) :: input, input_two, input_three, input_four, input_five, input_six
+    character(len=4096) :: input, input_two, input_three, input_novel, input_four, input_five, input_six
     character(len=4096) :: input_seven, input_eight, input_nine, input_ten
     character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
     character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
@@ -20,7 +20,7 @@ program test_mir_v0_print_r1212
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
-    integer(int8) :: output(2), output_two(4), output_three(6), output_four(9), output_five(12)
+    integer(int8) :: output(2), output_two(4), output_three(6), output_novel(9), output_four(9), output_five(12)
     integer(int8) :: output_six(15), output_seven(18), output_eight(21), output_nine(24)
     integer(int8) :: output_ten(27)
     type(riscv_linux_artifact_t) :: artifact
@@ -157,6 +157,49 @@ program test_mir_v0_print_r1212
     call assert_true(io_status /= 0, 'three-item PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'three-item PRINT output cleanup failed')
+
+    input_novel = '(mir-function (name p) (entry-block 0) (instruction-count 7) '// &
+        '(instructions (instruction (id 0) (opcode const) (literal 17) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 1) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 2) (opcode const) (literal 18) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 3) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 4) (opcode const) (literal 19) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 5) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 6) (opcode return) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(input_novel, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'novel PRINT MIR was rejected')
+    call write_mir_v0_riscv_linux(input_novel, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'novel PRINT ELF write failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'novel PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'novel PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'novel PRINT output was not written')
+    read (unit, iostat=io_status) output_novel
+    call assert_int(io_status, 0, 'novel PRINT output length or bytes changed')
+    call assert_byte(output_novel(1), 49, 'novel PRINT did not write ASCII 1 of 17')
+    call assert_byte(output_novel(2), 55, 'novel PRINT did not write ASCII 7 of 17')
+    call assert_byte(output_novel(3), 10, 'novel PRINT missed newline after 17')
+    call assert_byte(output_novel(4), 49, 'novel PRINT did not write ASCII 1 of 18')
+    call assert_byte(output_novel(5), 56, 'novel PRINT did not write ASCII 8 of 18')
+    call assert_byte(output_novel(6), 10, 'novel PRINT missed newline after 18')
+    call assert_byte(output_novel(7), 49, 'novel PRINT did not write ASCII 1 of 19')
+    call assert_byte(output_novel(8), 57, 'novel PRINT did not write ASCII 9 of 19')
+    call assert_byte(output_novel(9), 10, 'novel PRINT missed newline after 19')
+    read (unit, iostat=io_status) output_novel(1)
+    call assert_true(io_status /= 0, 'novel PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'novel PRINT output cleanup failed')
 
     input_four = '(mir-function (name p) (entry-block 0) (instruction-count 9) '// &
         '(instructions (instruction (id 0) (opcode const) (literal 7) '// &

@@ -306,6 +306,8 @@ source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-pr
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output const output const output const output return
 source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7
+source-literal-sequence function p source-rule frontend-ast-v2/print-stmt values 7,8,9
+source-literal-sequence function p source-rule frontend-ast-v2/print-stmt values 17,18,19
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 0 value 7
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 2 value 8
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 4 value 9
