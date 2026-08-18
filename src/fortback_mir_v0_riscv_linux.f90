@@ -1624,7 +1624,7 @@ contains
         if (mir%instructions(16)%result_id /= 10_int32) return
         if (mir%instructions(17)%result_id /= 11_int32) return
         if (mir%instructions(18)%result_id /= 11_int32) return
-        if (mir%instructions(19)%result_id /= 12_int32) return
+        if (mir%instructions(19)%result_id /= 11_int32) return
         valid = .true.
     end function valid_print_variable_six_item
 

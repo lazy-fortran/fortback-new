@@ -18,7 +18,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 10_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 56_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 55_int32
     character(len=16), parameter, public :: mir_v0_bridge_policy_storage_key = 'x'
     integer(int32), parameter, public :: mir_v0_bridge_policy_storage_offset = 0_int32
     integer(int32), parameter, public :: mir_v0_bridge_policy_frame_size = 16_int32
@@ -107,11 +107,6 @@ contains
             mir_v0_bridge_policy_result_shape_matches = .true.
         case ('integer-variable-print-value-actual-11')
             if (result_id /= 11_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-12')
-            if (result_id /= 12_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
@@ -2651,7 +2646,7 @@ contains
                     case (18_int32)
                         if (opcode /= mir_v0_opcode_return) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-variable-print-value-actual-12', result_id, result_kind, result_type)) then
+                            'integer-variable-print-value-actual-11', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
                                 'integer-sequence-5-expression-result', result_id, result_kind, result_type)) then
                         else
@@ -3352,7 +3347,7 @@ contains
                     case (18_int32)
                         if (opcode /= mir_v0_opcode_return) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-variable-print-value-actual-12', result_id, result_kind, result_type)) then
+                            'integer-variable-print-value-actual-11', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
