@@ -20,7 +20,7 @@ program test_mir_v0_bridge_generated
         'unknown frontend source rule resolved in generated metadata')
     call assert_equal(mir_v0_bridge_policy_instruction_count, 2_int32, &
         'generated bridge instruction policy changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 2_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 3_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &

@@ -7,7 +7,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 2_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 2_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 3_int32
 
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
@@ -31,6 +31,11 @@ contains
             if (result_id /= 1_int32) return
             if (result_kind /= mir_v0_value_kind_real) return
             if (trim(result_type) /= 'f32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('double')
+            if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_real) return
+            if (trim(result_type) /= 'f64') return
             mir_v0_bridge_policy_result_shape_matches = .true.
         case default
             return
@@ -94,6 +99,8 @@ contains
                     'integer', result_id, result_kind, result_type)) then
                 else if (mir_v0_bridge_policy_result_shape_matches( &
                         'real', result_id, result_kind, result_type)) then
+                else if (mir_v0_bridge_policy_result_shape_matches( &
+                        'double', result_id, result_kind, result_type)) then
                 else
                     return
                 end if
@@ -107,6 +114,8 @@ contains
                     'integer', result_id, result_kind, result_type)) then
                 else if (mir_v0_bridge_policy_result_shape_matches( &
                         'real', result_id, result_kind, result_type)) then
+                else if (mir_v0_bridge_policy_result_shape_matches( &
+                        'double', result_id, result_kind, result_type)) then
                 else
                     return
                 end if

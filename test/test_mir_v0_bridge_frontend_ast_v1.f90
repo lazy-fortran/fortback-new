@@ -5,8 +5,8 @@ program test_mir_v0_bridge_frontend_ast_v1
         write_mir_v0_riscv_linux
     implicit none
 
-    type(riscv_linux_artifact_t) :: ast_v1_artifact, legacy_artifact, real_artifact
-    character(len=4096) :: ast_v1_input, legacy_input, real_input
+    type(riscv_linux_artifact_t) :: ast_v1_artifact, legacy_artifact, real_artifact, double_artifact
+    character(len=4096) :: ast_v1_input, legacy_input, real_input, double_input
     character(len=4096) :: wrong_type, wrong_kind
     character(len=256) :: diagnostic
     character(len=256) :: path, command
@@ -31,6 +31,12 @@ program test_mir_v0_bridge_frontend_ast_v1
         '(type f32))) (instruction (id 1) (opcode return) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind real) '// &
         '(type f32)))))'
+    double_input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+        '(instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind real) '// &
+        '(type f64))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind real) '// &
+        '(type f64)))))'
 
     call compile_mir_v0_riscv_linux(ast_v1_input, ast_v1_artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'frontend AST-v1 MIR witness rejected')
@@ -68,19 +74,44 @@ program test_mir_v0_bridge_frontend_ast_v1
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'REAL bridge ELF cleanup failed')
 
-    wrong_type = real_input
-    wrong_type(index(wrong_type, 'type f32'):index(wrong_type, 'type f32') + 7) = &
-        'type f64'
-    call compile_mir_v0_riscv_linux(wrong_type, real_artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong REAL type was accepted')
+    call compile_mir_v0_riscv_linux(double_input, double_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'DOUBLE PRECISION bridge input rejected')
+    call assert_true(size(double_artifact%bytes) == size(legacy_artifact%bytes), &
+        'DOUBLE PRECISION bridge ELF size changed')
+    call assert_true(all(double_artifact%bytes == legacy_artifact%bytes), &
+        'DOUBLE PRECISION bridge ELF bytes changed')
+    path = '/tmp/fortback-mir-v0-double-riscv-linux-test.elf'
+    call write_mir_v0_riscv_linux(double_input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'DOUBLE PRECISION bridge ELF write failed')
+    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'DOUBLE PRECISION bridge ELF chmod command failed')
+    call assert_int(exit_status, 0, 'DOUBLE PRECISION bridge ELF chmod failed')
+    command = 'qemu-riscv64 '//trim(path)
+    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'DOUBLE PRECISION bridge qemu could not run artifact')
+    call assert_int(exit_status, 0, 'DOUBLE PRECISION bridge artifact did not return zero')
+    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
+    call assert_int(io_status, 0, 'DOUBLE PRECISION bridge ELF was not written')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'DOUBLE PRECISION bridge ELF cleanup failed')
+
+    wrong_type = double_input
+    wrong_type(index(wrong_type, 'type f64'):index(wrong_type, 'type f64') + 7) = &
+        'type f16'
+    wrong_type(index(wrong_type, 'type f64', back=.true.): &
+        index(wrong_type, 'type f64', back=.true.) + 7) = 'type f16'
+    call compile_mir_v0_riscv_linux(wrong_type, double_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong DOUBLE PRECISION type was accepted')
     wrong_kind = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind logical) '// &
-        '(type f32))) (instruction (id 1) (opcode return) '// &
+        '(type f64))) (instruction (id 1) (opcode return) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind logical) '// &
-        '(type f32)))))'
-    call compile_mir_v0_riscv_linux(wrong_kind, real_artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong REAL kind was accepted')
+        '(type f64)))))'
+    call compile_mir_v0_riscv_linux(wrong_kind, double_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong DOUBLE PRECISION kind was accepted')
     write (*, '(a)') 'MIR-v0 frontend AST-v1 bridge behavioral checks: ok'
 
 contains
