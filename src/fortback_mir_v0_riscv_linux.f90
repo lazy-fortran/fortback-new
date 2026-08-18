@@ -2,10 +2,11 @@ module fortback_mir_v0_riscv_linux
     use iso_fortran_env, only: int8, int32, int64
     use fortback_elf64, only: elf64_machine_riscv, elf64_target_t, &
         write_elf64_executable
-    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
-        mir_v0_opcode_return, mir_v0_opcode_value, mir_v0_value_kind_integer, &
-        mir_v0_value_kind_value, mir_v0_source_rule_frontend_ast_v1_program, &
-        mir_v0_source_rule_value
+    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_value, &
+        mir_v0_value_kind_value
+    use fortback_mir_v0_riscv_linux_bridge_policy, only: &
+        mir_v0_bridge_policy_accepts, mir_v0_bridge_policy_function_supported, &
+        mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_opcode_supported
     use fortback_riscv_codec, only: riscv_encode_record
     use fortback_riscv_source, only: import_riscv_opcodes, riscv_opcode_record_t, &
         riscv_source_ok
@@ -202,50 +203,28 @@ contains
         integer(int32), intent(out) :: status
         character(len=*), intent(out) :: diagnostic
         integer :: index
-        integer(int32) :: source_rule
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
         call set_diagnostic(diagnostic, '')
-        if ((trim(mir%name) /= 'main' .and. trim(mir%name) /= 'p') .or. &
+        if (.not. mir_v0_bridge_policy_function_supported(mir%name) .or. &
             mir%entry_block /= 0_int32 .or. &
-            mir%instruction_count /= 2_int32) then
+            mir%instruction_count /= mir_v0_bridge_policy_instruction_count) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
         do index = 1, mir%instruction_count
-            if (mir%instructions(index)%opcode /= mir_v0_opcode_add .and. &
-                mir%instructions(index)%opcode /= mir_v0_opcode_return) then
+            if (.not. mir_v0_bridge_policy_opcode_supported(mir%instructions(index)%opcode)) then
                 status = mir_v0_bridge_unsupported
                 call set_diagnostic(diagnostic, 'mir-v0: opcode is unsupported')
                 return
             end if
         end do
-        if (mir%instructions(1)%opcode /= mir_v0_opcode_add .or. &
-            mir%instructions(2)%opcode /= mir_v0_opcode_return) then
-            call set_diagnostic(diagnostic, 'mir-v0: instruction shape is out of scope')
-            return
-        end if
         do index = 1, mir%instruction_count
-            if (mir%instructions(index)%result_id /= 1_int32) then
-                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
-                return
-            end if
-            if (mir%instructions(index)%result_kind /= mir_v0_value_kind_integer) then
-                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
-                return
-            end if
-            if (trim(mir%instructions(index)%result_type) /= 'i32') then
-                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
-                return
-            end if
-            source_rule = mir_v0_source_rule_value(mir%instructions(index)%source_rule)
-            if (source_rule == 0_int32) then
-                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
-                return
-            end if
-            if (trim(mir%name) == 'p' .and. &
-                source_rule /= mir_v0_source_rule_frontend_ast_v1_program) then
+            if (.not. mir_v0_bridge_policy_accepts(mir%name, int(index - 1, int32), &
+                mir%instructions(index)%opcode, mir%instructions(index)%result_id, &
+                mir%instructions(index)%result_kind, mir%instructions(index)%result_type, &
+                mir%instructions(index)%source_rule)) then
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end if

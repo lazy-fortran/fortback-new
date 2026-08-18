@@ -11,6 +11,10 @@ program test_mir_v0_riscv_linux
     character(len=4096) :: malformed
     character(len=4096) :: unsupported
     character(len=4096) :: out_of_scope
+    character(len=4096) :: malformed_opcode
+    character(len=4096) :: wrong_type
+    character(len=4096) :: wrong_source_rule
+    character(len=4096) :: wrong_instruction_count
     character(len=256) :: diagnostic
     character(len=256) :: path, command
     integer(int32) :: status
@@ -66,6 +70,35 @@ program test_mir_v0_riscv_linux
     call assert_status(status, mir_v0_bridge_unsupported, 'unsupported MIR was accepted')
     call assert_equal(trim(diagnostic), 'mir-v0: opcode is unsupported', &
         'unsupported diagnostic changed')
+
+    malformed_opcode = input
+    malformed_opcode(index(malformed_opcode, 'opcode add'): &
+        index(malformed_opcode, 'opcode add') + 9) = 'opcode bogus'
+    call compile_mir_v0_riscv_linux(malformed_opcode, second, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_malformed, 'malformed opcode was accepted')
+    call assert_equal(trim(diagnostic), 'mir-v0: opcode is outside mir-v0', &
+        'malformed opcode diagnostic changed')
+
+    wrong_type = input
+    wrong_type(index(wrong_type, 'type i32'):index(wrong_type, 'type i32') + 7) = &
+        'type real'
+    call compile_mir_v0_riscv_linux(wrong_type, second, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'real result type was accepted')
+
+    wrong_source_rule = input
+    wrong_source_rule(index(wrong_source_rule, 'frontend-v0/program'): &
+        index(wrong_source_rule, 'frontend-v0/program') + 18) = 'unknown/program'
+    call compile_mir_v0_riscv_linux(wrong_source_rule, second, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'unsupported source rule was accepted')
+
+    wrong_instruction_count = '(mir-function (name main) (entry-block 0) '// &
+        '(instruction-count 1) (instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-v0/program) (result (id 1) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(wrong_instruction_count, second, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'unsupported instruction count was accepted')
 
     out_of_scope = input
     out_of_scope(index(out_of_scope, 'name main'):index(out_of_scope, 'name main') + 8) = &

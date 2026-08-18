@@ -1,0 +1,9 @@
+# field key value
+instruction-count value 2
+instruction opcode 0 add
+instruction opcode 1 return
+result id 1
+result kind integer
+result type i32
+source-rule function main frontend-v0/program
+source-rule function p frontend-ast-v1/program

@@ -3,6 +3,9 @@ program test_mir_v0_bridge_generated
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
         mir_v0_bridge_ok, riscv_linux_artifact_t
     use fortback_mir_v0_bridge_metadata, only: mir_v0_source_rule_value
+    use fortback_mir_v0_riscv_linux_bridge_policy, only: &
+        mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_id, &
+        mir_v0_bridge_policy_result_kind, mir_v0_bridge_policy_result_type
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
@@ -16,6 +19,14 @@ program test_mir_v0_bridge_generated
         'AST-v1 frontend source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('unknown/program') == 0_int32, &
         'unknown frontend source rule resolved in generated metadata')
+    call assert_equal(mir_v0_bridge_policy_instruction_count, 2_int32, &
+        'generated bridge instruction policy changed')
+    call assert_equal(mir_v0_bridge_policy_result_id, 1_int32, &
+        'generated bridge result policy changed')
+    call assert_equal(mir_v0_bridge_policy_result_kind, 1_int32, &
+        'generated bridge kind policy changed')
+    call assert_true(mir_v0_bridge_policy_result_type == 'i32', &
+        'generated bridge type policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &
