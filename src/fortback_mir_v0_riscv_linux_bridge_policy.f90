@@ -10,7 +10,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
         mir_v0_opcode_const, &
         mir_v0_opcode_load, &
         mir_v0_opcode_output, &
-        mir_v0_opcode_power, &
+        mir_v0_opcode_pow, &
         mir_v0_value_kind_complex, &
         mir_v0_value_kind_integer, mir_v0_value_kind_logical, &
         mir_v0_value_kind_real, mir_v0_value_kind_character
@@ -345,7 +345,7 @@ contains
             mir_v0_bridge_policy_opcode_supported = .true.
         case (mir_v0_opcode_output)
             mir_v0_bridge_policy_opcode_supported = .true.
-        case (mir_v0_opcode_power)
+        case (mir_v0_opcode_pow)
             mir_v0_bridge_policy_opcode_supported = .true.
         case default
             mir_v0_bridge_policy_opcode_supported = .false.
@@ -376,7 +376,7 @@ contains
             operation = 'addi'
         case (mir_v0_opcode_output)
             operation = 'output'
-        case (mir_v0_opcode_power)
+        case (mir_v0_opcode_pow)
             operation = 'mul'
         end select
     end function mir_v0_bridge_policy_machine_operation_for
@@ -1636,7 +1636,7 @@ contains
                             return
                         end if
                     case (2_int32)
-                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_power .and. opcode /= mir_v0_opcode_sub) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_pow .and. opcode /= mir_v0_opcode_sub) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-expression-result', result_id, result_kind, result_type)) then
                         else
@@ -1866,7 +1866,7 @@ contains
                             return
                         end if
                     case (4_int32)
-                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_power .and. opcode /= mir_v0_opcode_sub) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_pow .and. opcode /= mir_v0_opcode_sub) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-sequence-expression', result_id, result_kind, result_type)) then
                         else
@@ -2127,7 +2127,7 @@ contains
                             return
                         end if
                     case (4_int32)
-                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_power .and. opcode /= mir_v0_opcode_sub) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_pow .and. opcode /= mir_v0_opcode_sub) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-sequence-expression', result_id, result_kind, result_type)) then
                         else

@@ -16,7 +16,7 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_opcode_return = 10_int32
     integer(int32), parameter, public :: mir_v0_opcode_const = 11_int32
     integer(int32), parameter, public :: mir_v0_opcode_output = 12_int32
-    integer(int32), parameter, public :: mir_v0_opcode_power = 13_int32
+    integer(int32), parameter, public :: mir_v0_opcode_pow = 13_int32
     integer(int32), parameter, public :: mir_v0_value_kind_integer = 1_int32
     integer(int32), parameter, public :: mir_v0_value_kind_real = 2_int32
     integer(int32), parameter, public :: mir_v0_value_kind_logical = 3_int32
@@ -72,8 +72,8 @@ contains
             mir_v0_opcode_value = mir_v0_opcode_const
         case ('output')
             mir_v0_opcode_value = mir_v0_opcode_output
-        case ('power')
-            mir_v0_opcode_value = mir_v0_opcode_power
+        case ('pow')
+            mir_v0_opcode_value = mir_v0_opcode_pow
         end select
     end function mir_v0_opcode_value
 

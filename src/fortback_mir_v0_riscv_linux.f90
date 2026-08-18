@@ -4,7 +4,7 @@ module fortback_mir_v0_riscv_linux
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, mir_v0_opcode_const, &
         mir_v0_opcode_load, mir_v0_opcode_output, mir_v0_opcode_return, mir_v0_opcode_store, &
-        mir_v0_opcode_mul, mir_v0_opcode_div, mir_v0_opcode_sub, mir_v0_opcode_power, &
+        mir_v0_opcode_mul, mir_v0_opcode_div, mir_v0_opcode_sub, mir_v0_opcode_pow, &
         mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
@@ -162,7 +162,7 @@ contains
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             operation = mir_v0_bridge_policy_machine_operation_for(mir%instructions(5)%opcode)
-            if (mir%instructions(5)%opcode == mir_v0_opcode_power) then
+            if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
                 call encode_operation(target, records, 'mul', [11_int64, 10_int64, 10_int64], words(6), &
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
@@ -904,7 +904,7 @@ contains
             mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_div .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_sub .or. &
-            mir%instructions(5)%opcode == mir_v0_opcode_power) .and. &
+            mir%instructions(5)%opcode == mir_v0_opcode_pow) .and. &
             mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
             mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
@@ -941,14 +941,14 @@ contains
         if (trim(mir%instructions(3)%storage_key) /= 'x') return
         if (trim(mir%instructions(6)%storage_key) /= 'x') return
         if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (mir%instructions(5)%opcode == mir_v0_opcode_power) then
+        if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
             if (mir%instructions(1)%literal /= 2_int32) return
         else if (mir%instructions(5)%opcode == mir_v0_opcode_div) then
             if (mir%instructions(1)%literal /= 24_int32) return
         else
             if (mir%instructions(1)%literal /= 23_int32) return
         end if
-        if (mir%instructions(5)%opcode == mir_v0_opcode_power) then
+        if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
             if (mir%instructions(4)%literal /= 3_int32) return
         else if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
             if (mir%instructions(4)%literal /= 1_int32) return

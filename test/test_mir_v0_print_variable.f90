@@ -77,7 +77,7 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong function name was accepted')
     wrong_literal = print_variable_power_expression_input()
-    wrong_literal = replace_text(wrong_literal, '(opcode power)', '(opcode mul)')
+    wrong_literal = replace_text(wrong_literal, '(opcode pow)', '(opcode mul)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong power operator was accepted')
     wrong_literal = print_variable_power_expression_input()
@@ -236,7 +236,7 @@ contains
         value = print_variable_expression_input()
         value = replace_text(value, '(literal 23)', '(literal 2)')
         value = replace_text(value, '(literal 1)', '(literal 3)')
-        value = replace_text(value, '(opcode add)', '(opcode power)')
+        value = replace_text(value, '(opcode add)', '(opcode pow)')
     end function print_variable_power_expression_input
 
     function replace_text(value, old, new) result(replaced)
