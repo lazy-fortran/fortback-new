@@ -67,11 +67,20 @@ def read_policy():
             if any(existing_opcode == opcode for existing_opcode, _, _ in policy["literal-ranges"]):
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate literal range")
             policy["literal-ranges"].append((opcode, minimum, maximum))
-        elif (fields[0] == "source-literal" and len(fields) == 9 and
+        elif (fields[0] == "source-literal" and len(fields) in (9, 11) and
               fields[1] == "function" and fields[3] == "source-rule" and
-              fields[5] == "opcode" and fields[7] == "value"):
+              fields[5] == "opcode"):
+            if len(fields) == 9 and fields[7] == "value":
+                instruction_index = 0
+                literal = int(fields[8])
+            elif (len(fields) == 11 and fields[7] == "index" and
+                  fields[9] == "value"):
+                instruction_index = int(fields[8])
+                literal = int(fields[10])
+            else:
+                raise SystemExit(f"{INPUT}:{line_number}: malformed source literal")
             policy["source-literals"].append(
-                (fields[2], fields[4], fields[6], int(fields[8])))
+                (fields[2], fields[4], fields[6], instruction_index, literal))
         elif fields[0] == "source-rule" and len(fields) >= 6 and fields[1] == "function":
             shapes = tuple(fields[4].split(","))
             if any(shape not in shape_names for shape in shapes):
@@ -126,9 +135,9 @@ def render(policy):
     for source_rule, index, operation in policy["route-operations"]:
         route_operations.setdefault(source_rule, {})[index] = operation
     source_literals = {}
-    for function_name, source_rule, opcode, literal in policy["source-literals"]:
+    for function_name, source_rule, opcode, instruction_index, literal in policy["source-literals"]:
         source_literals.setdefault(function_name, {}).setdefault(source_rule, []).append(
-            (opcode, literal))
+            (opcode, instruction_index, literal))
 
     supported_opcodes = []
     for _, opcode, _ in policy["instructions"]:
@@ -366,8 +375,8 @@ def render(policy):
                           "                    if (.not. literal_present) return",
                           f"                    if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return"]
             lines += ["                case default", "                    if (literal_present) return", "                end select"]
-            for opcode, literal in source_literals.get(function_name, {}).get(source_rule, []):
-                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. literal /= {literal}_int32) return"]
+            for opcode, instruction_index, literal in source_literals.get(function_name, {}).get(source_rule, []):
+                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. literal /= {literal}_int32) return"]
         lines += ["            case default", "                return", "            end select"]
     lines += ["        case default", "            return", "        end select", "        mir_v0_bridge_policy_accepts = .true.", "    end function mir_v0_bridge_policy_accepts", "", "end module fortback_mir_v0_riscv_linux_bridge_policy", ""]
     return chr(10).join(lines)
