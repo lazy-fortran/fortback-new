@@ -5,6 +5,7 @@ program test_mir_v0_storage_sequence
         write_mir_v0_riscv_linux
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_frame_size, mir_v0_bridge_policy_load_operation, &
+        mir_v0_bridge_policy_instruction_count_for, &
         mir_v0_bridge_policy_route_operation_for, mir_v0_bridge_policy_storage_offset, &
         mir_v0_bridge_policy_store_operation
     implicit none
@@ -18,6 +19,8 @@ program test_mir_v0_storage_sequence
 
     call assert_equal(mir_v0_bridge_policy_frame_size, 16_int32, 'frame policy changed')
     call assert_equal(mir_v0_bridge_policy_storage_offset, 0_int32, 'slot policy changed')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v2/execution-part'), 7_int32, 'execution-part route count changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_load_operation), 'ld', 'load policy changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_store_operation), 'sd', 'store policy changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
@@ -46,8 +49,9 @@ program test_mir_v0_storage_sequence
         'frontend-ast-v1/storage-sequence-3', 9_int32)), 'sd', 'three-step store route changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
         'frontend-ast-v1/storage-sequence-3', 10_int32)), 'addi', 'three-step return route changed')
+    call assert_sequence_route('frontend-ast-v2/execution-part')
 
-    input = sequence_input('x', 'x', 4, .false.)
+    input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v1/storage-sequence')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'storage sequence was rejected')
     call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'frame encoding changed')
@@ -65,13 +69,41 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'storage sequence qemu command failed')
     call assert_equal(exit_status, 8, 'storage sequence did not return 8')
 
-    call compile_mir_v0_riscv_linux(sequence_input('x', 'x', 2, .true.), artifact, &
+    input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v2/execution-part')
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'execution-part storage sequence was rejected')
+    call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'execution-part frame encoding changed')
+    call assert_word(artifact%bytes, 181, [19, 5, 112, 0], 'execution-part const 7 encoding changed')
+    call assert_word(artifact%bytes, 185, [35, 48, 161, 0], 'execution-part store encoding changed')
+    call assert_word(artifact%bytes, 189, [3, 53, 1, 0], 'execution-part load encoding changed')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'execution-part ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'execution-part chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'execution-part qemu command failed')
+    call assert_equal(exit_status, 8, 'execution-part route did not return 8')
+
+    call compile_mir_v0_riscv_linux(sequence_input('x', 'x', 8, .true., &
+        'frontend-ast-v2/execution-part'), artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'execution-part wrong order was accepted')
+    call compile_mir_v0_riscv_linux(sequence_input('y', 'x', 8, .false., &
+        'frontend-ast-v2/execution-part'), artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'execution-part wrong storage key was accepted')
+
+    call compile_mir_v0_riscv_linux(sequence_input('x', 'x', 2, .true., &
+        'frontend-ast-v1/storage-sequence'), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong order was accepted')
-    call compile_mir_v0_riscv_linux(sequence_input('y', 'y', 2, .false.), artifact, &
+    call compile_mir_v0_riscv_linux(sequence_input('y', 'y', 2, .false., &
+        'frontend-ast-v1/storage-sequence'), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong storage key was accepted')
-    call compile_mir_v0_riscv_linux(sequence_input('x', 'x', 1, .false.), artifact, &
+    call compile_mir_v0_riscv_linux(sequence_input('x', 'x', 1, .false., &
+        'frontend-ast-v1/storage-sequence'), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong result was accepted')
 
@@ -114,10 +146,24 @@ program test_mir_v0_storage_sequence
 
 contains
 
-    function sequence_input(load_key, store_key, return_id, wrong_order) result(value)
+    subroutine assert_sequence_route(source_rule)
+        character(len=*), intent(in) :: source_rule
+        character(len=16), parameter :: expected(7) = [character(len=16) :: &
+            'addi', 'sd', 'ld', 'addi', 'add', 'sd', 'addi']
+        integer :: index
+
+        do index = 0, 6
+            call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+                source_rule, int(index, int32))), trim(expected(index + 1)), &
+                'execution-part route operation changed')
+        end do
+    end subroutine assert_sequence_route
+
+    function sequence_input(load_key, store_key, return_id, wrong_order, source_rule) result(value)
         character(len=*), intent(in) :: load_key, store_key
         integer, intent(in) :: return_id
         logical, intent(in) :: wrong_order
+        character(len=*), intent(in) :: source_rule
         character(len=8192) :: value
         character(len=16) :: first_opcode, second_opcode, operation_opcode
 
@@ -129,21 +175,21 @@ contains
         end if
         value = '(mir-function (name main) (entry-block 0) (instruction-count 7) '// &
             '(instructions (instruction (id 0) (opcode '//trim(first_opcode)//') '// &
-            '(literal 7) (source-rule frontend-ast-v1/storage-sequence) '// &
+            '(literal 7) (source-rule '//trim(source_rule)//') '// &
             '(result (id 0) (kind integer) (type i32))) (instruction (id 1) '// &
             '(opcode '//trim(second_opcode)//') (storage-key '//trim(store_key)//') '// &
-            '(source-rule frontend-ast-v1/storage-sequence) (result (id 1) '// &
+            '(source-rule '//trim(source_rule)//') (result (id 1) '// &
             '(kind integer) (type i32))) (instruction (id 2) (opcode load) '// &
-            '(storage-key '//trim(load_key)//') (source-rule frontend-ast-v1/storage-sequence) '// &
+            '(storage-key '//trim(load_key)//') (source-rule '//trim(source_rule)//') '// &
             '(result (id 2) (kind integer) (type i32))) (instruction (id 3) '// &
-            '(opcode const) (literal 1) (source-rule frontend-ast-v1/storage-sequence) '// &
+            '(opcode const) (literal 1) (source-rule '//trim(source_rule)//') '// &
             '(result (id 3) (kind integer) (type i32))) (instruction (id 4) '// &
-            '(opcode '//trim(operation_opcode)//') (source-rule frontend-ast-v1/storage-sequence) '// &
+            '(opcode '//trim(operation_opcode)//') (source-rule '//trim(source_rule)//') '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 5) '// &
             '(opcode store) (storage-key '//trim(store_key)//') (source-rule '// &
-            'frontend-ast-v1/storage-sequence) (result (id 4) (kind integer) '// &
+            trim(source_rule)//') (result (id 4) (kind integer) '// &
             '(type i32))) (instruction (id 6) (opcode return) (source-rule '// &
-            'frontend-ast-v1/storage-sequence) (result (id '//int_text(return_id)//') '// &
+            trim(source_rule)//') (result (id '//int_text(return_id)//') '// &
             '(kind integer) (type i32)))))'
     end function sequence_input
 

@@ -24,6 +24,8 @@ program test_mir_v0_bridge_generated
         'assignment source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v1/expression') /= 0_int32, &
         'expression source rule is missing from generated metadata')
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v2/execution-part') /= 0_int32, &
+        'execution-part source rule is missing from generated metadata')
     call assert_equal(mir_v0_bridge_policy_instruction_count, 8_int32, &
         'generated bridge instruction policy changed')
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &

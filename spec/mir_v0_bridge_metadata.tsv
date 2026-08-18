@@ -20,3 +20,4 @@ source_rule frontend-v0/program 1
 source_rule frontend-ast-v1/program 2
 source_rule frontend-ast-v1/assignment 3
 source_rule frontend-ast-v1/expression 4
+source_rule frontend-ast-v2/execution-part 5
