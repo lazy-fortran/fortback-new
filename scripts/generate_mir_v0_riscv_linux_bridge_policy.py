@@ -59,7 +59,7 @@ def render(policy):
         "    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &",
         "        mir_v0_opcode_return, mir_v0_value_kind_complex, &",
         "        mir_v0_value_kind_integer, mir_v0_value_kind_logical, &",
-        "        mir_v0_value_kind_real",
+        "        mir_v0_value_kind_real, mir_v0_value_kind_character",
         "    implicit none",
         "    private",
         "",

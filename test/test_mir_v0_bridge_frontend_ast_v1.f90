@@ -6,10 +6,12 @@ program test_mir_v0_bridge_frontend_ast_v1
     implicit none
 
     type(riscv_linux_artifact_t) :: ast_v1_artifact, legacy_artifact, real_artifact, &
-        double_artifact, complex_artifact, logical_artifact
+        double_artifact, complex_artifact, character_artifact, logical_artifact
     character(len=4096) :: ast_v1_input, legacy_input, real_input, double_input, complex_input
-    character(len=4096) :: logical_input, wrong_type, wrong_kind, complex_wrong_type, &
-        complex_wrong_kind, logical_wrong_type, logical_wrong_kind, logical_wrong_source
+    character(len=4096) :: character_input, logical_input, wrong_type, wrong_kind, &
+        character_wrong_type, character_wrong_kind, character_wrong_source, &
+        complex_wrong_type, complex_wrong_kind, logical_wrong_type, logical_wrong_kind, &
+        logical_wrong_source
     character(len=256) :: diagnostic
     character(len=256) :: path, command
     integer(int32) :: status
@@ -45,6 +47,12 @@ program test_mir_v0_bridge_frontend_ast_v1
         '(type c32))) (instruction (id 1) (opcode return) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind complex) '// &
         '(type c32)))))'
+    character_input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+        '(instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind character) '// &
+        '(type character))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind character) '// &
+        '(type character)))))'
     logical_input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind logical) '// &
@@ -135,6 +143,31 @@ program test_mir_v0_bridge_frontend_ast_v1
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'COMPLEX bridge ELF cleanup failed')
 
+    call compile_mir_v0_riscv_linux(character_input, character_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'CHARACTER AST-v1 bridge input rejected')
+    call assert_true(size(character_artifact%bytes) == 400, &
+        'CHARACTER bridge ELF size changed')
+    call assert_true(all(character_artifact%bytes == legacy_artifact%bytes), &
+        'CHARACTER bridge ELF bytes changed')
+    call assert_byte(character_artifact%bytes, 177, 19, 'CHARACTER addi result encoding changed')
+    call assert_byte(character_artifact%bytes, 185, 115, 'CHARACTER ecall encoding changed')
+    path = '/tmp/fortback-mir-v0-character-riscv-linux-test.elf'
+    call write_mir_v0_riscv_linux(character_input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'CHARACTER bridge ELF write failed')
+    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'CHARACTER bridge ELF chmod command failed')
+    call assert_int(exit_status, 0, 'CHARACTER bridge ELF chmod failed')
+    command = 'qemu-riscv64 '//trim(path)
+    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'CHARACTER bridge qemu could not run artifact')
+    call assert_int(exit_status, 0, 'CHARACTER bridge artifact did not return zero')
+    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
+    call assert_int(io_status, 0, 'CHARACTER bridge ELF was not written')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'CHARACTER bridge ELF cleanup failed')
+
     call compile_mir_v0_riscv_linux(logical_input, logical_artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'LOGICAL AST-v1 bridge input rejected')
     call assert_true(size(logical_artifact%bytes) == 400, &
@@ -214,6 +247,30 @@ program test_mir_v0_bridge_frontend_ast_v1
     call compile_mir_v0_riscv_linux(logical_wrong_source, logical_artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, &
         'legacy LOGICAL source route was accepted')
+    character_wrong_type = character_input
+    character_wrong_type(index(character_wrong_type, 'type character'): &
+        index(character_wrong_type, 'type character') + 13) = 'type i32          '
+    character_wrong_type(index(character_wrong_type, 'type character', back=.true.): &
+        index(character_wrong_type, 'type character', back=.true.) + 13) = 'type i32          '
+    call compile_mir_v0_riscv_linux(character_wrong_type, character_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong CHARACTER type was accepted')
+    character_wrong_kind = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+        '(instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
+        '(type character))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
+        '(type character)))))'
+    call compile_mir_v0_riscv_linux(character_wrong_kind, character_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong CHARACTER kind was accepted')
+    character_wrong_source = character_input
+    character_wrong_source(index(character_wrong_source, 'frontend-ast-v1/program'): &
+        index(character_wrong_source, 'frontend-ast-v1/program') + 22) = 'frontend-v0/program   '
+    character_wrong_source(index(character_wrong_source, 'frontend-ast-v1/program', back=.true.): &
+        index(character_wrong_source, 'frontend-ast-v1/program', back=.true.) + 22) = &
+        'frontend-v0/program   '
+    call compile_mir_v0_riscv_linux(character_wrong_source, character_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'legacy CHARACTER source route was accepted')
     write (*, '(a)') 'MIR-v0 frontend AST-v1 bridge behavioral checks: ok'
 
 contains
