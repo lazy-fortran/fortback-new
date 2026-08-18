@@ -386,16 +386,23 @@ def render(policy):
                           "                    if (.not. literal_present) return",
                           f"                    if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return"]
             lines += ["                case default", "                    if (literal_present) return", "                end select"]
+            literal_alternatives = {}
             for opcode, instruction_index, literal in source_literals.get(function_name, {}).get(source_rule, []):
+                literal_alternatives.setdefault((opcode, instruction_index), []).append(literal)
+            for (opcode, instruction_index), literals in literal_alternatives.items():
                 count_guard = ''
+                if (function_name == 'main' and source_rule == 'frontend-ast-v2/execution-part' and
+                        instruction_index == 0):
+                    count_guard = ' .and. instruction_count == 5_int32'
                 if (function_name == 'p' and source_rule == 'frontend-ast-v2/print-stmt' and
                         instruction_index in (0, 2, 4)):
                     count_guard = ' .and. instruction_count /= 7_int32'
-                    if instruction_index == 0 and literal == 7:
-                        lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. instruction_count /= 7_int32 .and. instruction_count /= 5_int32 .and. literal /= {literal}_int32) return",
+                    if instruction_index == 0 and literals == [7]:
+                        lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. instruction_count /= 7_int32 .and. instruction_count /= 5_int32 .and. literal /= 7_int32) return",
                                   f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. instruction_count == 5_int32 .and. literal /= 7_int32 .and. literal /= 17_int32) return"]
                         continue
-                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32{count_guard} .and. literal /= {literal}_int32) return"]
+                alternatives = ' .and. '.join(f'literal /= {literal}_int32' for literal in literals)
+                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32{count_guard} .and. {alternatives}) return"]
             seen_sequence_lengths = set()
             for values in source_literal_sequences.get(function_name, {}).get(source_rule, []):
                 if len(values) in seen_sequence_lengths:

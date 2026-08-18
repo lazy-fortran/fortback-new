@@ -742,7 +742,6 @@ contains
         type(parsed_mir_t), intent(in) :: mir
 
         valid = .false.
-        if (mir%instructions(1)%literal /= 17_int32) return
         if (.not. mir%instructions(2)%storage_present) return
         if (.not. mir%instructions(3)%storage_present) return
         if (trim(mir%instructions(2)%storage_key) /= 'x') return
