@@ -1056,8 +1056,10 @@ contains
             item_end = index + 1
             if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 if (index + 3 <= mir%instruction_count - 1) then
-                    if (mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add .and. &
+                    if (((mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add) .or. &
+                        (mir%instructions(index + 1)%opcode == mir_v0_opcode_load .and. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add)) .and. &
                         mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
                         item_end = index + 3
                     end if
@@ -1069,8 +1071,14 @@ contains
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
-                call encode_operation(target, records, 'addi', [11_int64, 0_int64, 1_int64], &
-                    words(word_index), status, diagnostic)
+                if (mir%instructions(index + 1)%opcode == mir_v0_opcode_load) then
+                    call encode_operation(target, records, 'ld', &
+                        [11_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+                        words(word_index), status, diagnostic)
+                else
+                    call encode_operation(target, records, 'addi', [11_int64, 0_int64, 1_int64], &
+                        words(word_index), status, diagnostic)
+                end if
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
                 call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], &
@@ -1394,7 +1402,7 @@ contains
             status = mir_v0_bridge_ok
             return
         else if (.not. mir_v0_bridge_policy_instruction_count_matches(mir%name, &
-            mir%instructions(1)%source_rule, mir%instruction_count)) then
+                mir%instructions(1)%source_rule, mir%instruction_count)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
@@ -1530,8 +1538,10 @@ contains
             item_end = index + 1
             if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 if (index + 3 < mir%instruction_count) then
-                    if (mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add .and. &
+                    if (((mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add) .or. &
+                        (mir%instructions(index + 1)%opcode == mir_v0_opcode_load .and. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add)) .and. &
                         mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
                         item_end = index + 3
                     end if
@@ -1577,17 +1587,25 @@ contains
                     operand_instruction = mir%instructions(index + 1)
                     operation_instruction = mir%instructions(index + 2)
                     output_instruction = mir%instructions(index + 3)
-                    if (operand_instruction%opcode == mir_v0_opcode_const .and. &
-                        operation_instruction%opcode == mir_v0_opcode_add .and. &
+                    if (((operand_instruction%opcode == mir_v0_opcode_const .and. &
+                        operation_instruction%opcode == mir_v0_opcode_add) .or. &
+                        (operand_instruction%opcode == mir_v0_opcode_load .and. &
+                        operation_instruction%opcode == mir_v0_opcode_add)) .and. &
                         output_instruction%opcode == mir_v0_opcode_output) then
                         if (.not. value_instruction%storage_present) return
                         if (trim(value_instruction%storage_key) /= 'x') return
                         if (value_instruction%literal_present) return
-                        if (.not. operand_instruction%literal_present) return
-                        if (operand_instruction%literal /= 1_int32) return
-                        if (operand_instruction%storage_present) return
                         if (operation_instruction%literal_present) return
                         if (operation_instruction%storage_present) return
+                        if (operand_instruction%opcode == mir_v0_opcode_const) then
+                            if (.not. operand_instruction%literal_present) return
+                            if (operand_instruction%literal /= 1_int32) return
+                            if (operand_instruction%storage_present) return
+                        else
+                            if (.not. operand_instruction%storage_present) return
+                            if (trim(operand_instruction%storage_key) /= 'x') return
+                            if (operand_instruction%literal_present) return
+                        end if
                         item_end = index + 3
                     else
                         output_instruction = mir%instructions(index + 1)
