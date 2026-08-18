@@ -137,7 +137,7 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'three-step storage qemu command failed')
     call assert_equal(exit_status, 9, 'three-step storage sequence did not return 9')
 
-    input = sequence_four_input('x', 'x', 10, .false.)
+    input = sequence_four_input('x', 'x', 12, .false.)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'four-step storage sequence was rejected')
     call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'four-step frame encoding changed')
@@ -164,7 +164,7 @@ program test_mir_v0_storage_sequence
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong result was accepted')
 
-    input = sequence_four_input('x', 'x', 10, .false.)
+    input = sequence_four_input('x', 'x', 12, .false.)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'four-step storage sequence was rejected')
     call write_mir_v0_riscv_linux(input, path, status, diagnostic)
@@ -313,9 +313,9 @@ contains
             '(type i32))) (instruction (id 11) (opcode const) (literal 1) '// &
             '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 11) (kind integer) '// &
             '(type i32))) (instruction (id 12) (opcode add) (source-rule '// &
-            'frontend-ast-v1/storage-sequence-4) (result (id 10) (kind integer) '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id 12) (kind integer) '// &
             '(type i32))) (instruction (id 13) (opcode store) (storage-key '//trim(store_key)//') '// &
-            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 10) (kind integer) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 12) (kind integer) '// &
             '(type i32))) (instruction (id 14) (opcode return) (source-rule '// &
             'frontend-ast-v1/storage-sequence-4) (result (id '//int_text(return_id)//') '// &
             '(kind integer) (type i32)))))'

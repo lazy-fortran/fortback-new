@@ -139,12 +139,12 @@ contains
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
         case ('integer-sequence-4-expression')
-            if (result_id /= 10_int32) return
+            if (result_id /= 12_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
         case ('integer-sequence-4-expression-result')
-            if (result_id /= 10_int32) return
+            if (result_id /= 12_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.

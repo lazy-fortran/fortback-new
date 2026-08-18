@@ -69,8 +69,8 @@ result-shape integer-sequence-3-expression 8 integer i32
 result-shape integer-sequence-3-expression-result 8 integer i32
 result-shape integer-sequence-4-loaded 10 integer i32
 result-shape integer-sequence-4-literal-right 11 integer i32
-result-shape integer-sequence-4-expression 10 integer i32
-result-shape integer-sequence-4-expression-result 10 integer i32
+result-shape integer-sequence-4-expression 12 integer i32
+result-shape integer-sequence-4-expression-result 12 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
