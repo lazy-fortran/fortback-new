@@ -10,6 +10,7 @@ opcode branch 8
 opcode call 9
 opcode return 10
 opcode const 11
+opcode output 12
 value_kind integer 1
 value_kind real 2
 value_kind logical 3
@@ -28,3 +29,4 @@ source_rule frontend-ast-v1/storage-sequence-8 9
 source_rule frontend-ast-v1/storage-sequence-9 10
 source_rule frontend-ast-v1/storage-sequence-10 11
 source_rule frontend-ast-v2/stop-stmt 12
+source_rule frontend-ast-v2/print-stmt 13

@@ -26,11 +26,13 @@ program test_mir_v0_bridge_generated
         'expression source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v2/stop-stmt') /= 0_int32, &
         'STOP source rule is missing from generated metadata')
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v2/print-stmt') /= 0_int32, &
+        'PRINT source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v2/execution-part') /= 0_int32, &
         'execution-part source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v1/storage-sequence-6') /= 0_int32, &
         'six-step storage source rule is missing from generated metadata')
-    call assert_equal(mir_v0_bridge_policy_instruction_count, 8_int32, &
+    call assert_equal(mir_v0_bridge_policy_instruction_count, 9_int32, &
         'generated bridge instruction policy changed')
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
         'frontend-ast-v1/assignment'), 2_int32, 'assignment route count changed')

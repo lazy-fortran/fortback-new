@@ -1,6 +1,6 @@
 # field key value machine-operation
 storage-policy key x offset 0 frame-size 16 initialization 0 load-operation ld store-operation sd
-instruction-count value 8
+instruction-count value 9
 instruction opcode 0 add add
 instruction opcode 1 mul mul
 instruction opcode 2 div div
@@ -9,6 +9,7 @@ instruction opcode 4 store addi
 instruction opcode 5 return return
 instruction opcode 6 const addi
 instruction opcode 7 load addi
+instruction opcode 8 output output
 frame-operation addi
 exit-status-operation addi
 route-operation source-rule frontend-ast-v1/storage-sequence index 0 operation addi
@@ -244,6 +245,6 @@ source-rule function p frontend-ast-v1/program complex add return
 source-rule function p frontend-ast-v1/program character add return
 source-rule function p frontend-ast-v1/program logical add return
 source-rule function p frontend-ast-v2/stop-stmt integer-stop-code,integer-stop-code const return
-source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value const return
+source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value const output return
 source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const value 7

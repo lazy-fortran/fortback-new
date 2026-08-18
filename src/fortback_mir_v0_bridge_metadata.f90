@@ -15,6 +15,7 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_opcode_call = 9_int32
     integer(int32), parameter, public :: mir_v0_opcode_return = 10_int32
     integer(int32), parameter, public :: mir_v0_opcode_const = 11_int32
+    integer(int32), parameter, public :: mir_v0_opcode_output = 12_int32
     integer(int32), parameter, public :: mir_v0_value_kind_integer = 1_int32
     integer(int32), parameter, public :: mir_v0_value_kind_real = 2_int32
     integer(int32), parameter, public :: mir_v0_value_kind_logical = 3_int32
@@ -33,6 +34,7 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_storage_sequence_9 = 10_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_storage_sequence_10 = 11_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v2_stop_stmt = 12_int32
+    integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v2_print_stmt = 13_int32
 
     public :: mir_v0_opcode_value
     public :: mir_v0_value_kind_value
@@ -67,6 +69,8 @@ contains
             mir_v0_opcode_value = mir_v0_opcode_return
         case ('const')
             mir_v0_opcode_value = mir_v0_opcode_const
+        case ('output')
+            mir_v0_opcode_value = mir_v0_opcode_output
         end select
     end function mir_v0_opcode_value
 
@@ -119,6 +123,8 @@ contains
             mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v1_storage_sequence_10
         case ('frontend-ast-v2/stop-stmt')
             mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v2_stop_stmt
+        case ('frontend-ast-v2/print-stmt')
+            mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v2_print_stmt
         end select
     end function mir_v0_source_rule_value
 

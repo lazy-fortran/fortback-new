@@ -5,7 +5,7 @@ program test_mir_v0_print_r1212
         write_mir_v0_riscv_linux
     implicit none
 
-    character(len=4096) :: input, wrong_literal, wrong_shape
+    character(len=4096) :: input, wrong_literal, wrong_shape, wrong_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
@@ -14,10 +14,12 @@ program test_mir_v0_print_r1212
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
 
-    input = '(mir-function (name p) (entry-block 0) (instruction-count 2) '// &
+    input = '(mir-function (name p) (entry-block 0) (instruction-count 3) '// &
         '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
         '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
-        '(type i32))) (instruction (id 1) (opcode return) '// &
+        '(type i32))) (instruction (id 1) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 2) (opcode return) '// &
         '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
         '(type i32)))))'
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -55,6 +57,12 @@ program test_mir_v0_print_r1212
         'type real'
     call compile_mir_v0_riscv_linux(wrong_shape, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'PRINT type mutation was accepted')
+
+    wrong_opcode = input
+    wrong_opcode(index(wrong_opcode, 'opcode output'):index(wrong_opcode, 'opcode output') + 12) = &
+        'opcode return '
+    call compile_mir_v0_riscv_linux(wrong_opcode, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'PRINT output mutation was accepted')
     write (*, '(a)') 'MIR-v0 PRINT R1212 qemu checks: ok'
 
 contains
