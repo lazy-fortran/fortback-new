@@ -6,7 +6,8 @@ program test_mir_v0_print_variable
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
-    character(len=8192) :: input, two_item_input, three_item_input, wrong_storage, wrong_output, wrong_literal
+    character(len=8192) :: input, two_item_input, three_item_input, four_item_input
+    character(len=8192) :: wrong_storage, wrong_output, wrong_literal
     character(len=256) :: diagnostic
     integer(int8) :: output(3)
     integer(int32) :: status
@@ -43,6 +44,13 @@ program test_mir_v0_print_variable
 
     three_item_input = print_variable_power_three_item_input()
     call run_print_variable_three_item(three_item_input, path, output_path)
+
+    four_item_input = print_variable_power_four_item_input()
+    call run_print_variable_four_item(four_item_input, path, output_path)
+    wrong_literal = replace_text(four_item_input, '(opcode output) (source-rule frontend-ast-v2/print-stmt)', &
+        '(opcode return) (source-rule frontend-ast-v2/print-stmt)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'four-item malformed route was accepted')
 
     wrong_literal = replace_text(two_item_input, '(storage-key x)', '(storage-key y)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
@@ -259,6 +267,44 @@ contains
         call assert_int(io_status, 0, 'three-item power PRINT output cleanup failed')
     end subroutine run_print_variable_three_item
 
+    subroutine run_print_variable_four_item(input, path, output_path)
+        character(len=*), intent(in) :: input, path, output_path
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8) :: output(8)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'four-item power PRINT MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'four-item power PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'four-item power PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'four-item power PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'four-item power PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'four-item power PRINT output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'four-item power PRINT output length changed')
+        call assert_byte(output(1), 57, 'four-item power PRINT missed first 9')
+        call assert_byte(output(2), 10, 'four-item power PRINT missed first newline')
+        call assert_byte(output(3), 57, 'four-item power PRINT missed second 9')
+        call assert_byte(output(4), 10, 'four-item power PRINT missed second newline')
+        call assert_byte(output(5), 57, 'four-item power PRINT missed third 9')
+        call assert_byte(output(6), 10, 'four-item power PRINT missed third newline')
+        call assert_byte(output(7), 57, 'four-item power PRINT missed fourth 9')
+        call assert_byte(output(8), 10, 'four-item power PRINT missed fourth newline')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'four-item power PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'four-item power PRINT output cleanup failed')
+    end subroutine run_print_variable_four_item
+
     function print_variable_input(store_key, load_key, omit_storage, literal) result(value)
         character(len=*), intent(in) :: store_key, load_key
         logical, intent(in) :: omit_storage
@@ -395,6 +441,19 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
             '(type i32))) (instruction (id 12) (opcode return)')
     end function print_variable_power_three_item_input
+
+    function print_variable_power_four_item_input() result(value)
+        character(len=8192) :: value
+
+        value = print_variable_power_three_item_input()
+        value = replace_text(value, 'instruction-count 13', 'instruction-count 15')
+        value = replace_text(value, '(instruction (id 12) (opcode return)', &
+            '(instruction (id 12) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 13) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 14) (opcode return)')
+    end function print_variable_power_four_item_input
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new
