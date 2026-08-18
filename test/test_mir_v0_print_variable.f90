@@ -58,6 +58,9 @@ program test_mir_v0_print_variable
     call run_print_variable_many_items(print_variable_power_many_item_input(61), path, output_path, 61)
     call run_print_variable_many_items(print_variable_power_many_item_input(70), path, output_path, 70)
     call run_print_variable_many_items(print_variable_power_many_item_input(80), path, output_path, 80)
+    call run_print_variable_many_items(print_variable_power_many_item_input(81), path, output_path, 81)
+    call run_print_variable_many_items(print_variable_power_many_item_input(90), path, output_path, 90)
+    call run_print_variable_many_items(print_variable_power_many_item_input(100), path, output_path, 100)
     wrong_literal = replace_text(four_item_input, '(opcode output) (source-rule frontend-ast-v2/print-stmt)', &
         '(opcode return) (source-rule frontend-ast-v2/print-stmt)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)

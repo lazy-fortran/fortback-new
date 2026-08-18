@@ -49,7 +49,7 @@ module fortback_mir_v0_riscv_linux
 
     integer, parameter :: token_capacity = 8192
     integer, parameter :: token_length = 256
-    integer, parameter :: instruction_capacity = 168
+    integer, parameter :: instruction_capacity = 208
 
     type :: bridge_instruction_t
         integer(int32) :: id = 0_int32
@@ -151,7 +151,7 @@ contains
         print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
         print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
         print_variable_seven_to_eighty_item_route = &
-            is_print_variable_seven_to_eighty_item_candidate(mir)
+            is_print_variable_seven_to_hundred_item_candidate(mir)
         print_route = trim(mir%name) == 'p' .and. &
             trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
             .not. print_variable_route
@@ -1244,7 +1244,7 @@ contains
         print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
         print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
         print_variable_seven_to_eighty_item_route = &
-            is_print_variable_seven_to_eighty_item_candidate(mir)
+            is_print_variable_seven_to_hundred_item_candidate(mir)
         if (.not. mir_v0_bridge_policy_function_supported(mir%name)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
@@ -1499,13 +1499,13 @@ contains
             mir%instructions(19)%opcode == mir_v0_opcode_return
     end function is_print_variable_six_item_candidate
 
-    logical function is_print_variable_seven_to_eighty_item_candidate(mir) result(candidate)
+    logical function is_print_variable_seven_to_hundred_item_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
         integer :: index, item_count
 
         candidate = .false.
         if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count < 21_int32 .or. mir%instruction_count > 167_int32) return
+        if (mir%instruction_count < 21_int32 .or. mir%instruction_count > 207_int32) return
         if (mod(mir%instruction_count - 7_int32, 2_int32) /= 0_int32) return
         item_count = (mir%instruction_count - 7) / 2
         if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
@@ -1522,7 +1522,7 @@ contains
         end do
         if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
         candidate = .true.
-    end function is_print_variable_seven_to_eighty_item_candidate
+    end function is_print_variable_seven_to_hundred_item_candidate
 
     logical function is_print_variable_expression_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
