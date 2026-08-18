@@ -1,11 +1,11 @@
-# field key value
+# field key value machine-operation
 instruction-count value 6
-instruction opcode 0 add
-instruction opcode 1 mul
-instruction opcode 2 div
-instruction opcode 3 sub
-instruction opcode 4 store
-instruction opcode 5 return
+instruction opcode 0 add addi
+instruction opcode 1 mul mul
+instruction opcode 2 div div
+instruction opcode 3 sub sub
+instruction opcode 4 store addi
+instruction opcode 5 return return
 result-shape integer 1 integer i32
 result-shape integer-expression 2 integer i32
 result-shape real 1 real f32

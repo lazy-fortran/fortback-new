@@ -21,8 +21,8 @@ def read_policy():
             if policy["instruction-count"] is not None:
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate instruction count")
             policy["instruction-count"] = int(fields[2])
-        elif fields[0] == "instruction" and len(fields) == 4 and fields[1] == "opcode":
-            policy["instructions"].append((int(fields[2]), fields[3]))
+        elif fields[0] == "instruction" and len(fields) == 5 and fields[1] == "opcode":
+            policy["instructions"].append((int(fields[2]), fields[3], fields[4]))
         elif fields[0] == "result-shape" and len(fields) == 5:
             if fields[1] in shape_names:
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
@@ -65,7 +65,7 @@ def render(policy):
             (shape_names, opcodes))
 
     supported_opcodes = []
-    for _, opcode in policy["instructions"]:
+    for _, opcode, _ in policy["instructions"]:
         if opcode not in supported_opcodes:
             supported_opcodes.append(opcode)
     for _, _, _, opcodes in policy["source-rules"]:
@@ -92,6 +92,7 @@ def render(policy):
         "    public :: mir_v0_bridge_policy_function_supported",
         "    public :: mir_v0_bridge_policy_opcode_supported",
         "    public :: mir_v0_bridge_policy_instruction_count_for",
+        "    public :: mir_v0_bridge_policy_machine_operation_for",
         "",
         "contains",
         "",
@@ -137,6 +138,19 @@ def render(policy):
         "            mir_v0_bridge_policy_opcode_supported = .false.",
         "        end select",
         "    end function mir_v0_bridge_policy_opcode_supported",
+        "",
+        "    pure function mir_v0_bridge_policy_machine_operation_for(opcode) result(operation)",
+        "        integer(int32), intent(in) :: opcode",
+        "        character(len=16) :: operation",
+        "",
+        "        operation = ''",
+        "        select case (opcode)",
+    ]
+    for _, opcode, operation in policy["instructions"]:
+        lines += [f"        case ({opcode_constant(opcode)})", f"            operation = '{operation}'"]
+    lines += [
+        "        end select",
+        "    end function mir_v0_bridge_policy_machine_operation_for",
         "",
         "    pure integer(int32) function mir_v0_bridge_policy_instruction_count_for( &",
         "            function_name, source_rule)",

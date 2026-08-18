@@ -20,6 +20,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     public :: mir_v0_bridge_policy_function_supported
     public :: mir_v0_bridge_policy_opcode_supported
     public :: mir_v0_bridge_policy_instruction_count_for
+    public :: mir_v0_bridge_policy_machine_operation_for
 
 contains
 
@@ -103,6 +104,27 @@ contains
             mir_v0_bridge_policy_opcode_supported = .false.
         end select
     end function mir_v0_bridge_policy_opcode_supported
+
+    pure function mir_v0_bridge_policy_machine_operation_for(opcode) result(operation)
+        integer(int32), intent(in) :: opcode
+        character(len=16) :: operation
+
+        operation = ''
+        select case (opcode)
+        case (mir_v0_opcode_add)
+            operation = 'addi'
+        case (mir_v0_opcode_mul)
+            operation = 'mul'
+        case (mir_v0_opcode_div)
+            operation = 'div'
+        case (mir_v0_opcode_sub)
+            operation = 'sub'
+        case (mir_v0_opcode_store)
+            operation = 'addi'
+        case (mir_v0_opcode_return)
+            operation = 'return'
+        end select
+    end function mir_v0_bridge_policy_machine_operation_for
 
     pure integer(int32) function mir_v0_bridge_policy_instruction_count_for( &
             function_name, source_rule)
