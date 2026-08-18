@@ -79,7 +79,7 @@ contains
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
         type(riscv_opcode_record_t) :: records(9)
-        integer(int64) :: words(47), values(3)
+        integer(int64) :: words(53), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
         character(len=512) :: opcode_text
@@ -379,6 +379,84 @@ contains
                 call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
                     mir%instructions(1)%source_rule, 35_int32)), [5_int64, 2_int64, 17_int64], words(37), status, diagnostic)
             end if
+            if (mir%instruction_count == 17_int32) then
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 4_int32)), [5_int64, 0_int64, 56_int64], words(6), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 5_int32)), [6_int64, 0_int64, 10_int64], words(7), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 6_int32)), [5_int64, 2_int64, 2_int64], words(8), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 7_int32)), [6_int64, 2_int64, 3_int64], words(9), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 8_int32)), [5_int64, 0_int64, 57_int64], words(10), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 9_int32)), [6_int64, 0_int64, 10_int64], words(11), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 10_int32)), [5_int64, 2_int64, 4_int64], words(12), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 11_int32)), [6_int64, 2_int64, 5_int64], words(13), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 12_int32)), [5_int64, 0_int64, 49_int64], words(14), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 13_int32)), [5_int64, 2_int64, 6_int64], words(15), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 14_int32)), [5_int64, 0_int64, 48_int64], words(16), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 15_int32)), [5_int64, 2_int64, 7_int64], words(17), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 16_int32)), [5_int64, 0_int64, 10_int64], words(18), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 17_int32)), [5_int64, 2_int64, 8_int64], words(19), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 18_int32)), [5_int64, 0_int64, 49_int64], words(20), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 19_int32)), [5_int64, 2_int64, 9_int64], words(21), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 20_int32)), [5_int64, 0_int64, 49_int64], words(22), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 21_int32)), [5_int64, 2_int64, 10_int64], words(23), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 22_int32)), [5_int64, 0_int64, 10_int64], words(24), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 23_int32)), [5_int64, 2_int64, 11_int64], words(25), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 24_int32)), [5_int64, 0_int64, 49_int64], words(26), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 25_int32)), [5_int64, 2_int64, 12_int64], words(27), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 26_int32)), [5_int64, 0_int64, 50_int64], words(28), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 27_int32)), [5_int64, 2_int64, 13_int64], words(29), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 28_int32)), [5_int64, 0_int64, 10_int64], words(30), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 29_int32)), [5_int64, 2_int64, 14_int64], words(31), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 30_int32)), [5_int64, 0_int64, 49_int64], words(32), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 31_int32)), [5_int64, 2_int64, 15_int64], words(33), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 32_int32)), [5_int64, 0_int64, 51_int64], words(34), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 33_int32)), [5_int64, 2_int64, 16_int64], words(35), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 34_int32)), [5_int64, 0_int64, 10_int64], words(36), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 35_int32)), [5_int64, 2_int64, 17_int64], words(37), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 36_int32)), [5_int64, 0_int64, 49_int64], words(38), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 37_int32)), [5_int64, 2_int64, 18_int64], words(39), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 38_int32)), [5_int64, 0_int64, 52_int64], words(40), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 39_int32)), [5_int64, 2_int64, 19_int64], words(41), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 40_int32)), [5_int64, 0_int64, 10_int64], words(42), status, diagnostic)
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(1)%source_rule, 41_int32)), [5_int64, 2_int64, 20_int64], words(43), status, diagnostic)
+            end if
             print_common_start = 6_int32
             print_write_length = 2_int32
             if (mir%instruction_count == 5_int32) then
@@ -404,6 +482,10 @@ contains
             if (mir%instruction_count == 15_int32) then
                 print_common_start = 38_int32
                 print_write_length = 18_int32
+            end if
+            if (mir%instruction_count == 17_int32) then
+                print_common_start = 44_int32
+                print_write_length = 21_int32
             end if
             call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
                 words(print_common_start), status, diagnostic)
