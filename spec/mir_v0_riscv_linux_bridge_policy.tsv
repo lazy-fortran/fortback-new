@@ -36,6 +36,21 @@ route-operation source-rule frontend-ast-v1/storage-sequence-3 index 7 operation
 route-operation source-rule frontend-ast-v1/storage-sequence-3 index 8 operation add
 route-operation source-rule frontend-ast-v1/storage-sequence-3 index 9 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence-3 index 10 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 0 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 1 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 2 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 3 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 4 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 5 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 6 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 7 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 8 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 9 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 10 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 11 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 12 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 13 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-4 index 14 operation addi
 literal-range opcode const min 0 max 2047
 result-shape integer 1 integer i32
 result-shape integer-loaded 0 integer i32
@@ -52,6 +67,10 @@ result-shape integer-sequence-3-loaded 6 integer i32
 result-shape integer-sequence-3-literal-right 7 integer i32
 result-shape integer-sequence-3-expression 8 integer i32
 result-shape integer-sequence-3-expression-result 8 integer i32
+result-shape integer-sequence-4-loaded 10 integer i32
+result-shape integer-sequence-4-literal-right 11 integer i32
+result-shape integer-sequence-4-expression 10 integer i32
+result-shape integer-sequence-4-expression-result 10 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
@@ -78,6 +97,7 @@ source-rule function main frontend-ast-v1/expression integer-expression,integer,
 source-rule function main frontend-ast-v1/storage-sequence integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-expression-result const store load const add store return
 source-rule function main frontend-ast-v2/execution-part integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-expression-result const store load const add store return
 source-rule function main frontend-ast-v1/storage-sequence-3 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-3-expression-result const store load const add store load const add store return
+source-rule function main frontend-ast-v1/storage-sequence-4 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-4-loaded,integer-sequence-4-literal-right,integer-sequence-4-expression,integer-sequence-4-expression-result,integer-sequence-4-expression-result const store load const add store load const add store load const add store return
 source-rule function p frontend-ast-v1/program integer add return
 source-rule function p frontend-ast-v1/program real add return
 source-rule function p frontend-ast-v1/program double add return

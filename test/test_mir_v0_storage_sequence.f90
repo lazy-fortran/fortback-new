@@ -50,6 +50,10 @@ program test_mir_v0_storage_sequence
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
         'frontend-ast-v1/storage-sequence-3', 10_int32)), 'addi', 'three-step return route changed')
     call assert_sequence_route('frontend-ast-v2/execution-part')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v1/storage-sequence-4'), 15_int32, 'four-step route count changed')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v1/storage-sequence-4', 10_int32)), 'ld', 'four-step load route changed')
 
     input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v1/storage-sequence')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -133,6 +137,23 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'three-step storage qemu command failed')
     call assert_equal(exit_status, 9, 'three-step storage sequence did not return 9')
 
+    input = sequence_four_input('x', 'x', 10)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'four-step storage sequence was rejected')
+    call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'four-step frame encoding changed')
+    call assert_word(artifact%bytes, 193, [147, 5, 16, 0], 'four-step first increment changed')
+    call assert_word(artifact%bytes, 209, [147, 5, 16, 0], 'four-step second increment changed')
+    call assert_word(artifact%bytes, 225, [147, 5, 16, 0], 'four-step third increment changed')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'four-step storage ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'four-step storage chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'four-step qemu command failed')
+    call assert_equal(exit_status, 10, 'four-step storage sequence did not return 10')
+
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 8, .true.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong order was accepted')
@@ -142,7 +163,30 @@ program test_mir_v0_storage_sequence
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 10, .false.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong result was accepted')
-    write (*, '(a)') 'MIR-v0 seven-instruction storage sequence: ok'
+
+    input = sequence_four_input('x', 'x', 10, .false.)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'four-step storage sequence was rejected')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'four-step storage ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'four-step storage chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'four-step storage qemu command failed')
+    call assert_equal(exit_status, 10, 'four-step storage sequence did not return 10')
+
+    call compile_mir_v0_riscv_linux(sequence_four_input('x', 'x', 10, .true.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'four-step wrong order was accepted')
+    call compile_mir_v0_riscv_linux(sequence_four_input('y', 'x', 10, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'four-step wrong storage key was accepted')
+    call compile_mir_v0_riscv_linux(sequence_four_input('x', 'x', 9, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'four-step wrong result was accepted')
+    write (*, '(a)') 'MIR-v0 storage sequence routes: ok'
 
 contains
 
@@ -233,6 +277,88 @@ contains
             '(source-rule frontend-ast-v1/storage-sequence-3) (result (id '//int_text(return_id)//') '// &
             '(kind integer) (type i32)))))'
     end function sequence_three_input
+
+    function sequence_four_input(load_key, store_key, return_id, wrong_order) result(value)
+        character(len=*), intent(in) :: load_key, store_key
+        integer, intent(in) :: return_id
+        logical, intent(in) :: wrong_order
+        character(len=16384) :: value
+        character(len=16) :: operation_opcode
+
+        operation_opcode = 'add'
+        if (wrong_order) operation_opcode = 'store'
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 15) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 1) (opcode store) '// &
+            '(storage-key '//trim(store_key)//') (source-rule frontend-ast-v1/storage-sequence-4) '// &
+            '(result (id 1) (kind integer) (type i32))) (instruction (id 2) (opcode load) '// &
+            '(storage-key '//trim(load_key)//') (source-rule frontend-ast-v1/storage-sequence-4) '// &
+            '(result (id 2) (kind integer) (type i32))) (instruction (id 3) (opcode const) '// &
+            '(literal 1) (source-rule frontend-ast-v1/storage-sequence-4) (result (id 3) '// &
+            '(kind integer) (type i32))) (instruction (id 4) (opcode '//trim(operation_opcode)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 5) (opcode store) (storage-key '//trim(store_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 6) (opcode load) (storage-key '//trim(load_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 7) (opcode const) (literal 1) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 7) (kind integer) '// &
+            '(type i32))) (instruction (id 8) (opcode add) (source-rule '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 9) (opcode store) (storage-key '//trim(store_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 8) (kind integer) '// &
+            '(type i32))) (instruction (id 10) (opcode load) (storage-key '//trim(load_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 10) (kind integer) '// &
+            '(type i32))) (instruction (id 11) (opcode const) (literal 1) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 11) (kind integer) '// &
+            '(type i32))) (instruction (id 12) (opcode add) (source-rule '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id 10) (kind integer) '// &
+            '(type i32))) (instruction (id 13) (opcode store) (storage-key '//trim(store_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 10) (kind integer) '// &
+            '(type i32))) (instruction (id 14) (opcode return) (source-rule '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id '//int_text(return_id)//') '// &
+            '(kind integer) (type i32)))))'
+    end function sequence_four_input
+
+    function sequence_four_input(load_key, store_key, return_id) result(value)
+        character(len=*), intent(in) :: load_key, store_key
+        integer, intent(in) :: return_id
+        character(len=8192) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 15) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 1) (opcode store) '// &
+            '(storage-key '//trim(store_key)//') (source-rule frontend-ast-v1/storage-sequence-4) '// &
+            '(result (id 1) (kind integer) (type i32))) (instruction (id 2) (opcode load) '// &
+            '(storage-key '//trim(load_key)//') (source-rule frontend-ast-v1/storage-sequence-4) '// &
+            '(result (id 2) (kind integer) (type i32))) (instruction (id 3) (opcode const) '// &
+            '(literal 1) (source-rule frontend-ast-v1/storage-sequence-4) (result (id 3) '// &
+            '(kind integer) (type i32))) (instruction (id 4) (opcode add) (source-rule '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id 4) (kind integer) (type i32))) '// &
+            '(instruction (id 5) (opcode store) (storage-key '//trim(store_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 4) '// &
+            '(kind integer) (type i32))) (instruction (id 6) (opcode load) '// &
+            '(storage-key '//trim(load_key)//') (source-rule frontend-ast-v1/storage-sequence-4) '// &
+            '(result (id 6) (kind integer) (type i32))) (instruction (id 7) (opcode const) '// &
+            '(literal 1) (source-rule frontend-ast-v1/storage-sequence-4) (result (id 7) '// &
+            '(kind integer) (type i32))) (instruction (id 8) (opcode add) (source-rule '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id 8) (kind integer) (type i32))) '// &
+            '(instruction (id 9) (opcode store) (storage-key '//trim(store_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 8) '// &
+            '(kind integer) (type i32))) (instruction (id 10) (opcode load) '// &
+            '(storage-key '//trim(load_key)//') (source-rule frontend-ast-v1/storage-sequence-4) '// &
+            '(result (id 10) (kind integer) (type i32))) (instruction (id 11) (opcode const) '// &
+            '(literal 1) (source-rule frontend-ast-v1/storage-sequence-4) (result (id 11) '// &
+            '(kind integer) (type i32))) (instruction (id 12) (opcode add) (source-rule '// &
+            'frontend-ast-v1/storage-sequence-4) (result (id 10) (kind integer) (type i32))) '// &
+            '(instruction (id 13) (opcode store) (storage-key '//trim(store_key)//') '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id 10) '// &
+            '(kind integer) (type i32))) (instruction (id 14) (opcode return) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-4) (result (id '//int_text(return_id)//') '// &
+            '(kind integer) (type i32)))))'
+    end function sequence_four_input
 
     subroutine assert_word(bytes, first, expected, message)
         integer(int8), intent(in) :: bytes(:)
