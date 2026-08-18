@@ -67,6 +67,12 @@ program test_mir_v0_storage_sequence
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
         'frontend-ast-v1/storage-sequence-6'), 23_int32, 'six-step route count changed')
     call assert_sequence_six_route('frontend-ast-v1/storage-sequence-6')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v2/execution-part-6'), 23_int32, 'v2 six-step route count changed')
+    call assert_sequence_six_route('frontend-ast-v2/execution-part-6')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v2/execution-part-5', 22_int32)), '', &
+        'v2 five-step route collided with six-step route')
 
     input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v1/storage-sequence')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -216,6 +222,23 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'six-step storage qemu command failed')
     call assert_equal(exit_status, 12, 'six-step storage sequence did not return 12')
 
+    input = sequence_six_input_v2('x', 'x', 20, .false.)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'v2 six-step storage sequence was rejected')
+    call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'v2 six-step frame encoding changed')
+    call assert_word(artifact%bytes, 185, [35, 48, 161, 0], 'v2 six-step first store changed')
+    call assert_word(artifact%bytes, 253, [3, 53, 1, 0], 'v2 six-step fifth load changed')
+    call assert_word(artifact%bytes, 265, [35, 48, 161, 0], 'v2 six-step final store changed')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'v2 six-step storage ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'v2 six-step storage chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'v2 six-step storage qemu command failed')
+    call assert_equal(exit_status, 12, 'v2 six-step storage sequence did not return 12')
+
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 8, .true.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong order was accepted')
@@ -266,6 +289,15 @@ program test_mir_v0_storage_sequence
     call compile_mir_v0_riscv_linux(sequence_six_input('x', 'x', 19, .false.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'six-step wrong result was accepted')
+    call compile_mir_v0_riscv_linux(sequence_six_input_v2('x', 'x', 20, .true.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'v2 six-step wrong order was accepted')
+    call compile_mir_v0_riscv_linux(sequence_six_input_v2('y', 'x', 20, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'v2 six-step wrong storage key was accepted')
+    call compile_mir_v0_riscv_linux(sequence_six_input_v2('x', 'x', 19, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'v2 six-step wrong result was accepted')
     write (*, '(a)') 'MIR-v0 storage sequence routes: ok'
 
 contains
@@ -527,6 +559,17 @@ contains
             '(instruction (id 22) (opcode return) (source-rule frontend-ast-v1/storage-sequence-6) '// &
             '(result (id '//int_text(return_id)//') (kind integer) (type i32)))))'
     end function sequence_six_input
+
+    function sequence_six_input_v2(load_key, store_key, return_id, wrong_order) result(value)
+        character(len=*), intent(in) :: load_key, store_key
+        integer, intent(in) :: return_id
+        logical, intent(in) :: wrong_order
+        character(len=24576) :: value
+
+        value = sequence_six_input(load_key, store_key, return_id, wrong_order)
+        value = replace_text(value, 'frontend-ast-v1/storage-sequence-6', &
+            'frontend-ast-v2/execution-part-6')
+    end function sequence_six_input_v2
 
     function sequence_six_instruction(load_key, store_key, index, opcode, literal, shape, result_id) &
             result(text)
