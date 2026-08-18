@@ -503,7 +503,7 @@ contains
         integer, intent(inout) :: position
         type(bridge_instruction_t), intent(out) :: instruction
         character(len=*), intent(out) :: diagnostic
-        character(len=token_length) :: opcode_name, kind_name
+        character(len=token_length) :: opcode_name, kind_name, storage_label
         integer(int32) :: serialized_id
 
         instruction = bridge_instruction_t()
@@ -557,8 +557,11 @@ contains
             if (.not. ok) return
         end if
         if (position + 1 <= token_count) then
-            if (trim(token(position)) == '(' .and. trim(token(position + 1)) == 'storage') then
-                ok = read_atom(token, token_count, position, 'storage', instruction%storage_key, &
+            if (trim(token(position)) == '(' .and. &
+                (trim(token(position + 1)) == 'storage-key' .or. &
+                trim(token(position + 1)) == 'storage')) then
+                storage_label = trim(token(position + 1))
+                ok = read_atom(token, token_count, position, storage_label, instruction%storage_key, &
                     diagnostic)
                 if (.not. ok) return
                 instruction%storage_present = .true.
