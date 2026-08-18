@@ -1232,6 +1232,10 @@ contains
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
+                if (instruction_count == 9_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
                 if (instruction_count == 5_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
@@ -1825,7 +1829,7 @@ contains
                             return
                         end if
                     case (4_int32)
-                        if (opcode /= mir_v0_opcode_add) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_mul) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-sequence-expression', result_id, result_kind, result_type)) then
                         else

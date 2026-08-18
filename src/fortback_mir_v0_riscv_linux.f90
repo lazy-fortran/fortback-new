@@ -4,7 +4,7 @@ module fortback_mir_v0_riscv_linux
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, mir_v0_opcode_const, &
         mir_v0_opcode_load, mir_v0_opcode_output, mir_v0_opcode_return, mir_v0_opcode_store, &
-        mir_v0_opcode_value, &
+        mir_v0_opcode_mul, mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
         mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
@@ -156,10 +156,12 @@ contains
                 [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(4), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            call encode_operation(target, records, 'addi', [11_int64, 0_int64, 1_int64], words(5), &
+            call encode_operation(target, records, 'addi', &
+                [11_int64, 0_int64, int(mir%instructions(4)%literal, int64)], words(5), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], words(6), &
+            operation = mir_v0_bridge_policy_machine_operation_for(mir%instructions(5)%opcode)
+            call encode_operation(target, records, trim(operation), [10_int64, 10_int64, 11_int64], words(6), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
@@ -170,13 +172,20 @@ contains
                 [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(8), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 50_int64], words(9), &
+            if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
+                print_digits = '24'
+            else
+                print_digits = '46'
+            end if
+            call encode_operation(target, records, 'addi', &
+                [5_int64, 0_int64, int(iachar(print_digits(1:1)), int64)], words(9), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             call encode_operation(target, records, 'sb', [5_int64, 2_int64, 0_int64], words(10), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 52_int64], words(11), &
+            call encode_operation(target, records, 'addi', &
+                [5_int64, 0_int64, int(iachar(print_digits(2:2)), int64)], words(11), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             call encode_operation(target, records, 'sb', [5_int64, 2_int64, 1_int64], words(12), &
@@ -832,7 +841,8 @@ contains
             mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
             mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(5)%opcode == mir_v0_opcode_add .and. &
+            (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
+                mir%instructions(5)%opcode == mir_v0_opcode_mul) .and. &
             mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
             mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
@@ -870,7 +880,13 @@ contains
         if (trim(mir%instructions(6)%storage_key) /= 'x') return
         if (trim(mir%instructions(7)%storage_key) /= 'x') return
         if (mir%instructions(1)%literal /= 23_int32) return
-        if (mir%instructions(4)%literal /= 1_int32) return
+        if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
+            if (mir%instructions(4)%literal /= 1_int32) return
+        else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
+            if (mir%instructions(4)%literal /= 2_int32) return
+        else
+            return
+        end if
         if (mir%instructions(8)%storage_present) return
         if (mir%instructions(9)%storage_present) return
         if (mir%instructions(1)%result_id /= 0_int32) return

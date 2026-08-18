@@ -23,6 +23,9 @@ program test_mir_v0_print_variable
     input = print_variable_expression_input()
     call run_print_variable(input, path, output_path, 50, 52)
 
+    input = print_variable_multiply_expression_input()
+    call run_print_variable(input, path, output_path, 52, 54)
+
     input = print_variable_input('x', 'x', .false., 17)
     wrong_storage = print_variable_input('x', 'x', .true., 17)
     call compile_mir_v0_riscv_linux(wrong_storage, artifact, status, diagnostic)
@@ -40,6 +43,11 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'unsupported expression literal was accepted')
+    wrong_literal = print_variable_multiply_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(literal 2)', '(literal 3)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'unsupported multiplication literal was accepted')
     write (*, '(a)') 'MIR-v0 stored-variable PRINT qemu checks: ok'
 
 contains
@@ -130,6 +138,13 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_expression_input
+
+    function print_variable_multiply_expression_input() result(value)
+        character(len=8192) :: value
+
+        value = replace_text(print_variable_expression_input(), '(literal 1)', '(literal 2)')
+        value = replace_text(value, '(opcode add)', '(opcode mul)')
+    end function print_variable_multiply_expression_input
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new
