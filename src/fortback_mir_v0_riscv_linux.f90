@@ -4,7 +4,8 @@ module fortback_mir_v0_riscv_linux
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
         mir_v0_opcode_return, mir_v0_opcode_value, mir_v0_value_kind_integer, &
-        mir_v0_value_kind_value
+        mir_v0_value_kind_value, mir_v0_source_rule_frontend_ast_v1_program, &
+        mir_v0_source_rule_value
     use fortback_riscv_codec, only: riscv_encode_record
     use fortback_riscv_source, only: import_riscv_opcodes, riscv_opcode_record_t, &
         riscv_source_ok
@@ -201,6 +202,7 @@ contains
         integer(int32), intent(out) :: status
         character(len=*), intent(out) :: diagnostic
         integer :: index
+        integer(int32) :: source_rule
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
@@ -237,14 +239,13 @@ contains
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end if
-            select case (trim(mir%instructions(index)%source_rule))
-            case ('frontend-v0/program', 'frontend-ast-v1/program')
-            case default
+            source_rule = mir_v0_source_rule_value(mir%instructions(index)%source_rule)
+            if (source_rule == 0_int32) then
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
-            end select
+            end if
             if (trim(mir%name) == 'p' .and. &
-                trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v1/program') then
+                source_rule /= mir_v0_source_rule_frontend_ast_v1_program) then
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end if

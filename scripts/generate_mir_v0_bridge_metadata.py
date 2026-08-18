@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate MIR-v0 bridge opcode and value-kind metadata."""
+"""Generate MIR-v0 bridge opcode, value-kind, and source-rule metadata."""
 
 from pathlib import Path
 import sys
@@ -8,6 +8,15 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / "spec" / "mir_v0_bridge_metadata.tsv"
 OUTPUT = ROOT / "src" / "fortback_mir_v0_bridge_metadata.f90"
+CATEGORIES = {
+    "opcode": ("mir_v0_opcode", "mir_v0_opcode_value"),
+    "value_kind": ("mir_v0_value_kind", "mir_v0_value_kind_value"),
+    "source_rule": ("mir_v0_source_rule", "mir_v0_source_rule_value"),
+}
+
+
+def fortran_name(name):
+    return name.replace("-", "_").replace("/", "_")
 
 
 def read_rows():
@@ -17,7 +26,7 @@ def read_rows():
         fields = line.split()
         if not fields or fields[0].startswith("#"):
             continue
-        if len(fields) != 3 or fields[0] not in {"opcode", "value_kind"}:
+        if len(fields) != 3 or fields[0] not in CATEGORIES:
             raise SystemExit(f"{INPUT}:{line_number}: malformed row")
         if not fields[2].isdigit() or int(fields[2]) <= 0:
             raise SystemExit(f"{INPUT}:{line_number}: malformed value")
@@ -26,7 +35,7 @@ def read_rows():
             raise SystemExit(f"{INPUT}:{line_number}: duplicate row")
         seen.add(key)
         rows.append((fields[0], fields[1], int(fields[2])))
-    for category in ("opcode", "value_kind"):
+    for category in CATEGORIES:
         values = [value for row_category, _, value in rows if row_category == category]
         if values != list(range(1, len(values) + 1)):
             raise SystemExit(f"{INPUT}: {category} values must be consecutive starting at 1")
@@ -43,13 +52,14 @@ def render(rows):
         "",
     ]
     for category, name, value in rows:
-        prefix = "mir_v0_opcode" if category == "opcode" else "mir_v0_value_kind"
-        lines.append(f"    integer(int32), parameter, public :: {prefix}_{name} = {value}_int32")
-    lines += ["", "    public :: mir_v0_opcode_value", "    public :: mir_v0_value_kind_value", "", "contains", ""]
-    for category, function_name, prefix in (
-        ("opcode", "mir_v0_opcode_value", "mir_v0_opcode"),
-        ("value_kind", "mir_v0_value_kind_value", "mir_v0_value_kind"),
-    ):
+        prefix, _ = CATEGORIES[category]
+        lines.append(
+            f"    integer(int32), parameter, public :: {prefix}_{fortran_name(name)} = {value}_int32"
+        )
+    lines += [""]
+    lines += [f"    public :: {function_name}" for _, function_name in CATEGORIES.values()]
+    lines += ["", "contains", ""]
+    for category, (prefix, function_name) in CATEGORIES.items():
         lines += [
             f"    pure integer(int32) function {function_name}(name)",
             "        character(len=*), intent(in) :: name",
@@ -59,7 +69,10 @@ def render(rows):
         ]
         for row_category, name, _ in rows:
             if row_category == category:
-                lines += [f"        case ('{name}')", f"            {function_name} = {prefix}_{name}"]
+                lines += [
+                    f"        case ('{name}')",
+                    f"            {function_name} = {prefix}_{fortran_name(name)}",
+                ]
         lines += ["        end select", f"    end function {function_name}", ""]
     lines += ["end module fortback_mir_v0_bridge_metadata", ""]
     return "\n".join(lines)

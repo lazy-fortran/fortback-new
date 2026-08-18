@@ -18,9 +18,12 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_value_kind_real = 2_int32
     integer(int32), parameter, public :: mir_v0_value_kind_logical = 3_int32
     integer(int32), parameter, public :: mir_v0_value_kind_address = 4_int32
+    integer(int32), parameter, public :: mir_v0_source_rule_frontend_v0_program = 1_int32
+    integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_program = 2_int32
 
     public :: mir_v0_opcode_value
     public :: mir_v0_value_kind_value
+    public :: mir_v0_source_rule_value
 
 contains
 
@@ -67,5 +70,17 @@ contains
             mir_v0_value_kind_value = mir_v0_value_kind_address
         end select
     end function mir_v0_value_kind_value
+
+    pure integer(int32) function mir_v0_source_rule_value(name)
+        character(len=*), intent(in) :: name
+
+        mir_v0_source_rule_value = 0_int32
+        select case (trim(name))
+        case ('frontend-v0/program')
+            mir_v0_source_rule_value = mir_v0_source_rule_frontend_v0_program
+        case ('frontend-ast-v1/program')
+            mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v1_program
+        end select
+    end function mir_v0_source_rule_value
 
 end module fortback_mir_v0_bridge_metadata

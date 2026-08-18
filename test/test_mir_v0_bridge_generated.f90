@@ -2,12 +2,20 @@ program test_mir_v0_bridge_generated
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
         mir_v0_bridge_ok, riscv_linux_artifact_t
+    use fortback_mir_v0_bridge_metadata, only: mir_v0_source_rule_value
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
     character(len=2048) :: input
     character(len=256) :: diagnostic
     integer(int32) :: status
+
+    call assert_true(mir_v0_source_rule_value('frontend-v0/program') /= 0_int32, &
+        'legacy frontend source rule is missing from generated metadata')
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v1/program') /= 0_int32, &
+        'AST-v1 frontend source rule is missing from generated metadata')
+    call assert_true(mir_v0_source_rule_value('unknown/program') == 0_int32, &
+        'unknown frontend source rule resolved in generated metadata')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &
@@ -48,5 +56,12 @@ contains
 
         if (actual /= expected) error stop message
     end subroutine assert_equal
+
+    subroutine assert_true(condition, message)
+        logical, intent(in) :: condition
+        character(len=*), intent(in) :: message
+
+        if (.not. condition) error stop message
+    end subroutine assert_true
 
 end program test_mir_v0_bridge_generated
