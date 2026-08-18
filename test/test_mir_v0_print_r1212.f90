@@ -5,17 +5,18 @@ program test_mir_v0_print_r1212
         riscv_linux_artifact_provenance_valid, write_mir_v0_riscv_linux
     implicit none
 
-    character(len=4096) :: input, input_two, input_three, input_four, input_five, input_six
+    character(len=4096) :: input, input_two, input_three, input_four, input_five, input_six, input_seven
     character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
     character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
     character(len=4096) :: wrong_three_literal, wrong_three_shape, wrong_three_opcode
     character(len=4096) :: wrong_four_literal, wrong_four_shape, wrong_four_opcode
     character(len=4096) :: wrong_five_literal, wrong_five_shape, wrong_five_opcode
     character(len=4096) :: wrong_six_literal, wrong_six_shape, wrong_six_opcode
+    character(len=4096) :: wrong_seven_literal, wrong_seven_shape, wrong_seven_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
-    integer(int8) :: output(2), output_two(4), output_three(6), output_four(9), output_five(12), output_six(15)
+    integer(int8) :: output(2), output_two(4), output_three(6), output_four(9), output_five(12), output_six(15), output_seven(18)
     type(riscv_linux_artifact_t) :: artifact
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -288,6 +289,76 @@ program test_mir_v0_print_r1212
     call assert_true(io_status /= 0, 'six-item PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'six-item PRINT output cleanup failed')
+
+    input_seven = input_six
+    input_seven(index(input_seven, 'instruction-count 13'): &
+        index(input_seven, 'instruction-count 13') + 20) = 'instruction-count 15)'
+    input_seven = input_seven(:index(input_seven, '(instruction (id 12)') - 1)// &
+        '(instruction (id 12) (opcode const) (literal 13) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 13) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 14) (opcode return) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(input_seven, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'seven-item PRINT MIR was rejected')
+    call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
+        'seven-item PRINT artifact provenance was lost')
+    call write_mir_v0_riscv_linux(input_seven, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'seven-item PRINT ELF write failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'seven-item PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'seven-item PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'seven-item PRINT output was not written')
+    read (unit, iostat=io_status) output_seven
+    call assert_int(io_status, 0, 'seven-item PRINT output length or bytes changed')
+    call assert_byte(output_seven(1), 55, 'seven-item PRINT did not write ASCII 7')
+    call assert_byte(output_seven(2), 10, 'seven-item PRINT missed newline after 7')
+    call assert_byte(output_seven(3), 56, 'seven-item PRINT did not write ASCII 8')
+    call assert_byte(output_seven(4), 10, 'seven-item PRINT missed newline after 8')
+    call assert_byte(output_seven(5), 57, 'seven-item PRINT did not write ASCII 9')
+    call assert_byte(output_seven(6), 10, 'seven-item PRINT missed newline after 9')
+    call assert_byte(output_seven(7), 49, 'seven-item PRINT did not write ASCII 1 of 10')
+    call assert_byte(output_seven(8), 48, 'seven-item PRINT did not write ASCII 0 of 10')
+    call assert_byte(output_seven(9), 10, 'seven-item PRINT missed newline after 10')
+    call assert_byte(output_seven(10), 49, 'seven-item PRINT did not write ASCII 1 of 11')
+    call assert_byte(output_seven(11), 49, 'seven-item PRINT did not write ASCII 1 of 11')
+    call assert_byte(output_seven(12), 10, 'seven-item PRINT missed newline after 11')
+    call assert_byte(output_seven(13), 49, 'seven-item PRINT did not write ASCII 1 of 12')
+    call assert_byte(output_seven(14), 50, 'seven-item PRINT did not write ASCII 2 of 12')
+    call assert_byte(output_seven(15), 10, 'seven-item PRINT missed newline after 12')
+    call assert_byte(output_seven(16), 49, 'seven-item PRINT did not write ASCII 1 of 13')
+    call assert_byte(output_seven(17), 51, 'seven-item PRINT did not write ASCII 3 of 13')
+    call assert_byte(output_seven(18), 10, 'seven-item PRINT missed newline after 13')
+    read (unit, iostat=io_status) output_seven(1)
+    call assert_true(io_status /= 0, 'seven-item PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'seven-item PRINT output cleanup failed')
+
+    wrong_seven_literal = input_seven
+    wrong_seven_literal(index(wrong_seven_literal, 'literal 13'): &
+        index(wrong_seven_literal, 'literal 13') + 9) = 'literal 14'
+    call compile_mir_v0_riscv_linux(wrong_seven_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'seven-item PRINT literal mutation was accepted')
+
+    wrong_seven_shape = input_seven
+    wrong_seven_shape(index(wrong_seven_shape, 'type i32', back=.true.): &
+        index(wrong_seven_shape, 'type i32', back=.true.) + 7) = 'type real'
+    call compile_mir_v0_riscv_linux(wrong_seven_shape, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'seven-item PRINT result-shape mutation was accepted')
+
+    wrong_seven_opcode = input_seven
+    wrong_seven_opcode(index(wrong_seven_opcode, 'opcode output', back=.true.): &
+        index(wrong_seven_opcode, 'opcode output', back=.true.) + 12) = 'opcode return '
+    call compile_mir_v0_riscv_linux(wrong_seven_opcode, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'seven-item PRINT opcode mutation was accepted')
 
     wrong_six_literal = input_six
     wrong_six_literal(index(wrong_six_literal, 'literal 12'): &
