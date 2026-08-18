@@ -1292,6 +1292,10 @@ contains
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
+                if (instruction_count == 17_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
                 if (instruction_count == 13_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
@@ -1338,6 +1342,10 @@ contains
                     return
                 end if
                 if (instruction_count == 15_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 17_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
@@ -2280,6 +2288,130 @@ contains
                     case default
                         return
                     end select
+                case (17_int32)
+                    select case (instruction_index)
+                    case (0_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-literal-left', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (1_int32)
+                        if (opcode /= mir_v0_opcode_store) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-store-literal', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (2_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-loaded', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (3_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-literal-right', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (4_int32)
+                        if (opcode /= mir_v0_opcode_pow) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-expression', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (5_int32)
+                        if (opcode /= mir_v0_opcode_store) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-expression-result', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (6_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-3-loaded', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (7_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-3-loaded', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (8_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (9_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (10_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (11_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (12_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (13_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (14_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (15_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (16_int32)
+                        if (opcode /= mir_v0_opcode_return) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case default
+                        return
+                    end select
                 case (19_int32)
                     select case (instruction_index)
                     case (0_int32)
@@ -2849,6 +2981,130 @@ contains
                             'integer-variable-print-value', result_id, result_kind, result_type)) then
                         else if (mir_v0_bridge_policy_result_shape_matches( &
                                 'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case default
+                        return
+                    end select
+                case (17_int32)
+                    select case (instruction_index)
+                    case (0_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-literal-left', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (1_int32)
+                        if (opcode /= mir_v0_opcode_store) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-store-literal', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (2_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-loaded', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (3_int32)
+                        if (opcode /= mir_v0_opcode_const) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-literal-right', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (4_int32)
+                        if (opcode /= mir_v0_opcode_pow) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-expression', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (5_int32)
+                        if (opcode /= mir_v0_opcode_store) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-expression-result', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (6_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-3-loaded', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (7_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-sequence-3-loaded', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (8_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (9_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (10_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (11_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (12_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (13_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (14_int32)
+                        if (opcode /= mir_v0_opcode_load) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (15_int32)
+                        if (opcode /= mir_v0_opcode_output) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
+                        else
+                            return
+                        end if
+                    case (16_int32)
+                        if (opcode /= mir_v0_opcode_return) return
+                        if (mir_v0_bridge_policy_result_shape_matches( &
+                            'integer-variable-print-value-actual-9', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
