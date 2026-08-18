@@ -53,11 +53,11 @@ program test_mir_v0_print_r1212
         '(type i32))) (instruction (id 1) (opcode output) '// &
         '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
         '(type i32))) (instruction (id 2) (opcode const) (literal 8) '// &
-        '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
         '(type i32))) (instruction (id 3) (opcode output) '// &
-        '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
         '(type i32))) (instruction (id 4) (opcode return) '// &
-        '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
         '(type i32)))))'
     call compile_mir_v0_riscv_linux(input_two, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_ok, 'two-item PRINT MIR was rejected')

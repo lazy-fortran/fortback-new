@@ -167,7 +167,6 @@ result-shape integer-expression 2 integer i32
 result-shape integer-literal-left 0 integer i32
 result-shape integer-stop-code 0 integer i32
 result-shape integer-print-value 0 integer i32
-result-shape integer-print-value-2 1 integer i32
 result-shape integer-literal-right 1 integer i32
 result-shape integer-expression-result 2 integer i32
 result-shape integer-sequence-store-literal 1 integer i32
@@ -251,7 +250,7 @@ source-rule function p frontend-ast-v1/program character add return
 source-rule function p frontend-ast-v1/program logical add return
 source-rule function p frontend-ast-v2/stop-stmt integer-stop-code,integer-stop-code const return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value const output return
-source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value-2,integer-print-value-2,integer-print-value-2 const output const output return
+source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output return
 source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 0 value 7
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 2 value 8
