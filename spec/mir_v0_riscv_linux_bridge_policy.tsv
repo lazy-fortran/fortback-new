@@ -1,10 +1,11 @@
 # field key value
-instruction-count value 5
+instruction-count value 6
 instruction opcode 0 add
 instruction opcode 1 mul
 instruction opcode 2 div
-instruction opcode 3 store
-instruction opcode 4 return
+instruction opcode 3 sub
+instruction opcode 4 store
+instruction opcode 5 return
 result-shape integer 1 integer i32
 result-shape integer-expression 2 integer i32
 result-shape real 1 real f32
@@ -23,6 +24,7 @@ source-rule function main frontend-ast-v1/assignment integer store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer add store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer mul store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer div store return
+source-rule function main frontend-ast-v1/expression integer-expression,integer,integer sub store return
 source-rule function p frontend-ast-v1/program integer add return
 source-rule function p frontend-ast-v1/program real add return
 source-rule function p frontend-ast-v1/program double add return

@@ -6,9 +6,9 @@ program test_mir_v0_bridge_assignment
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact, legacy, expression_artifact, multiplication_artifact, &
-        division_artifact
+        division_artifact, subtraction_artifact
     character(len=4096) :: input, expression_input, multiplication_input, division_input, malformed, &
-        wrong_opcode, wrong_type, wrong_source
+        subtraction_input, wrong_opcode, wrong_type, wrong_source
     character(len=256) :: diagnostic, path, command
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -142,11 +142,36 @@ program test_mir_v0_bridge_assignment
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'division ELF cleanup failed')
 
-    wrong_opcode = division_input
-    wrong_opcode(index(wrong_opcode, 'opcode div'):index(wrong_opcode, 'opcode div') + 9) = &
-        'opcode sub'
-    call compile_mir_v0_riscv_linux(wrong_opcode, artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_unsupported, 'wrong division opcode was accepted')
+    subtraction_input = expression_input
+    subtraction_input(index(subtraction_input, 'opcode add'): &
+        index(subtraction_input, 'opcode add') + 9) = 'opcode sub'
+    call compile_mir_v0_riscv_linux(subtraction_input, subtraction_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'integer subtraction expression was rejected')
+    call assert_equal(size(subtraction_artifact%bytes), 400, 'subtraction artifact size changed')
+    call assert_byte(subtraction_artifact%bytes, 177, 51, 'sub encoding changed')
+    call assert_byte(subtraction_artifact%bytes, 178, 5, 'sub encoding changed')
+    call assert_byte(subtraction_artifact%bytes, 179, 0, 'sub encoding changed')
+    call assert_byte(subtraction_artifact%bytes, 180, 64, 'sub encoding changed')
+    call assert_byte(subtraction_artifact%bytes, 181, 147, 'subtraction store encoding changed')
+    call assert_byte(subtraction_artifact%bytes, 185, 115, 'subtraction ecall encoding changed')
+
+    path = '/tmp/fortback-mir-v0-subtraction-riscv-linux-test.elf'
+    call write_mir_v0_riscv_linux(subtraction_input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'subtraction ELF write failed')
+    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'subtraction ELF chmod command failed')
+    call assert_int(exit_status, 0, 'subtraction ELF chmod failed')
+    command = 'qemu-riscv64 '//trim(path)
+    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'subtraction qemu could not run artifact')
+    call assert_int(exit_status, 0, 'subtraction artifact did not return zero')
+    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
+    call assert_int(io_status, 0, 'subtraction ELF was not written')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'subtraction ELF cleanup failed')
+
     wrong_type = division_input
     wrong_type(index(wrong_type, 'type i32'):index(wrong_type, 'type i32') + 7) = 'type f32'
     call compile_mir_v0_riscv_linux(wrong_type, artifact, status, diagnostic)
@@ -181,10 +206,32 @@ program test_mir_v0_bridge_assignment
         'wrong expression source rule was accepted')
 
     wrong_opcode = multiplication_input
-    wrong_opcode(index(wrong_opcode, 'opcode mul'):index(wrong_opcode, 'opcode mul') + 9) = &
-        'opcode sub'
+    wrong_opcode(index(wrong_opcode, 'opcode store'):index(wrong_opcode, 'opcode store') + 11) = &
+        'opcode add  '
     call compile_mir_v0_riscv_linux(wrong_opcode, artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_unsupported, 'wrong multiplication opcode was accepted')
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong multiplication opcode was accepted')
+
+    wrong_opcode = subtraction_input
+    wrong_opcode(index(wrong_opcode, 'opcode store'):index(wrong_opcode, 'opcode store') + 11) = &
+        'opcode add  '
+    call compile_mir_v0_riscv_linux(wrong_opcode, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong subtraction opcode was accepted')
+
+    wrong_type = subtraction_input
+    wrong_type(index(wrong_type, 'type i32'):index(wrong_type, 'type i32') + 7) = 'type f32'
+    call compile_mir_v0_riscv_linux(wrong_type, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong subtraction type was accepted')
+
+    wrong_source = subtraction_input
+    wrong_source(index(wrong_source, 'frontend-ast-v1/expression'): &
+        index(wrong_source, 'frontend-ast-v1/expression') + 25) = 'frontend-ast-v1/assignment'
+    call compile_mir_v0_riscv_linux(wrong_source, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'wrong subtraction source rule was accepted')
+
+    malformed = subtraction_input(:len_trim(subtraction_input) - 1)
+    call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_malformed, 'malformed subtraction was accepted')
 
     wrong_source = multiplication_input
     wrong_source(index(wrong_source, 'frontend-ast-v1/expression'): &

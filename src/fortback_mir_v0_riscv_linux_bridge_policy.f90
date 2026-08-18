@@ -4,6 +4,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
         mir_v0_opcode_mul, &
         mir_v0_opcode_div, &
+        mir_v0_opcode_sub, &
         mir_v0_opcode_store, &
         mir_v0_opcode_return, &
         mir_v0_value_kind_complex, &
@@ -12,7 +13,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     implicit none
     private
 
-    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 5_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 6_int32
     integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 7_int32
 
     public :: mir_v0_bridge_policy_accepts
@@ -91,6 +92,8 @@ contains
         case (mir_v0_opcode_mul)
             mir_v0_bridge_policy_opcode_supported = .true.
         case (mir_v0_opcode_div)
+            mir_v0_bridge_policy_opcode_supported = .true.
+        case (mir_v0_opcode_sub)
             mir_v0_bridge_policy_opcode_supported = .true.
         case (mir_v0_opcode_store)
             mir_v0_bridge_policy_opcode_supported = .true.
@@ -218,7 +221,7 @@ contains
             case ('frontend-ast-v1/expression')
                 select case (instruction_index)
                 case (0_int32)
-                    if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_div) return
+                    if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_sub) return
                     if (mir_v0_bridge_policy_result_shape_matches( &
                         'integer-expression', result_id, result_kind, result_type)) then
                     else
