@@ -228,22 +228,36 @@ def render(policy):
                 lines += [f"                case ({route_length}_int32)",
                           "                    select case (instruction_index)"]
                 for index in range(route_length):
-                    opcodes_at_index = {opcodes[index] for _, opcodes in matching_routes}
-                    opcode_check = " .and. ".join(
-                        f"opcode /= {opcode_constant(opcode)}"
-                        for opcode in sorted(opcodes_at_index))
-                    shapes_at_index = []
-                    for shapes, _ in matching_routes:
-                        if shapes[index] not in shapes_at_index:
-                            shapes_at_index.append(shapes[index])
-                    lines += [f"                    case ({index}_int32)",
-                              f"                        if ({opcode_check}) return"]
-                    for shape_index, shape in enumerate(shapes_at_index):
-                        prefix = "if" if shape_index == 0 else "else if"
-                        continuation_indent = "                            " if shape_index == 0 else "                                "
-                        lines += [f"                        {prefix} (mir_v0_bridge_policy_result_shape_matches( &",
-                                  f"{continuation_indent}'{shape}', result_id, result_kind, result_type)) then"]
-                    lines += ["                        else", "                            return", "                        end if"]
+                    shapes_by_opcode = {}
+                    for shapes, opcodes in matching_routes:
+                        shapes_by_opcode.setdefault(opcodes[index], []).append(shapes[index])
+                    lines += [f"                    case ({index}_int32)"]
+                    shape_sets = {tuple(sorted(set(shapes))) for shapes in shapes_by_opcode.values()}
+                    if len(shape_sets) == 1:
+                        opcodes = sorted(shapes_by_opcode)
+                        opcode_check = " .and. ".join(
+                            f"opcode /= {opcode_constant(opcode)}" for opcode in opcodes)
+                        shapes_at_index = []
+                        for shapes, _ in matching_routes:
+                            if shapes[index] not in shapes_at_index:
+                                shapes_at_index.append(shapes[index])
+                        lines += [f"                        if ({opcode_check}) return"]
+                        for shape_index, shape in enumerate(shapes_at_index):
+                            prefix = "if" if shape_index == 0 else "else if"
+                            continuation_indent = "                            " if shape_index == 0 else "                                "
+                            lines += [f"                        {prefix} (mir_v0_bridge_policy_result_shape_matches( &",
+                                      f"{continuation_indent}'{shape}', result_id, result_kind, result_type)) then"]
+                        lines += ["                        else", "                            return", "                        end if"]
+                    else:
+                        for opcode_index, (opcode, shapes) in enumerate(sorted(shapes_by_opcode.items())):
+                            prefix = "if" if opcode_index == 0 else "else if"
+                            lines += [f"                        {prefix} (opcode == {opcode_constant(opcode)}) then"]
+                            for shape_index, shape in enumerate(sorted(set(shapes))):
+                                prefix = "if" if shape_index == 0 else "else if"
+                                lines += [f"                            {prefix} (mir_v0_bridge_policy_result_shape_matches( &",
+                                          f"                                '{shape}', result_id, result_kind, result_type)) then"]
+                            lines += ["                            else", "                                return", "                            end if"]
+                        lines += ["                        else", "                            return", "                        end if"]
                 lines += ["                    case default", "                        return", "                    end select"]
             lines += ["                case default", "                    return", "                end select",
                       "                select case (opcode)"]

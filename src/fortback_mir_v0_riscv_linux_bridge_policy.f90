@@ -8,14 +8,15 @@ module fortback_mir_v0_riscv_linux_bridge_policy
         mir_v0_opcode_store, &
         mir_v0_opcode_return, &
         mir_v0_opcode_const, &
+        mir_v0_opcode_load, &
         mir_v0_value_kind_complex, &
         mir_v0_value_kind_integer, mir_v0_value_kind_logical, &
         mir_v0_value_kind_real, mir_v0_value_kind_character
     implicit none
     private
 
-    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 7_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 10_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 8_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 11_int32
 
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
@@ -35,6 +36,11 @@ contains
         select case (trim(shape_name))
         case ('integer')
             if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-loaded')
+            if (result_id /= 0_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
@@ -119,6 +125,8 @@ contains
             mir_v0_bridge_policy_opcode_supported = .true.
         case (mir_v0_opcode_const)
             mir_v0_bridge_policy_opcode_supported = .true.
+        case (mir_v0_opcode_load)
+            mir_v0_bridge_policy_opcode_supported = .true.
         case default
             mir_v0_bridge_policy_opcode_supported = .false.
         end select
@@ -143,6 +151,8 @@ contains
         case (mir_v0_opcode_return)
             operation = 'return'
         case (mir_v0_opcode_const)
+            operation = 'addi'
+        case (mir_v0_opcode_load)
             operation = 'addi'
         end select
     end function mir_v0_bridge_policy_machine_operation_for
@@ -222,6 +232,10 @@ contains
                 end if
             case ('frontend-ast-v1/expression')
                 if (instruction_count == 3_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 5_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
@@ -476,9 +490,18 @@ contains
                 case (5_int32)
                     select case (instruction_index)
                     case (0_int32)
-                        if (opcode /= mir_v0_opcode_const) return
-                        if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-literal-left', result_id, result_kind, result_type)) then
+                        if (opcode == mir_v0_opcode_const) then
+                            if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer-literal-left', result_id, result_kind, result_type)) then
+                            else
+                                return
+                            end if
+                        else if (opcode == mir_v0_opcode_load) then
+                            if (mir_v0_bridge_policy_result_shape_matches( &
+                                'integer-loaded', result_id, result_kind, result_type)) then
+                            else
+                                return
+                            end if
                         else
                             return
                         end if

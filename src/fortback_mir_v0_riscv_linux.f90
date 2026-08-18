@@ -3,7 +3,7 @@ module fortback_mir_v0_riscv_linux
     use fortback_elf64, only: elf64_machine_riscv, elf64_target_t, &
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, mir_v0_opcode_const, &
-        mir_v0_opcode_value, &
+        mir_v0_opcode_load, mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
         mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
@@ -108,7 +108,12 @@ contains
                     mir%instructions(index)%opcode)
                 select case (index)
                 case (1)
-                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                    ! This structural route does not implement storage or name resolution.
+                    if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
+                        values = [10_int64, 0_int64, 0_int64]
+                    else
+                        values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                    end if
                 case (2)
                     values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
                 case (3)

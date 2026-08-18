@@ -56,6 +56,27 @@ program test_mir_v0_bridge_materialized_add
     call compile_mir_v0_riscv_linux(materialized_add_input(1, 2, 1), artifact, status, &
         diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong result shape was accepted')
+    input = variable_reference_input(0, 1, 2)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'variable-reference MIR was rejected')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'variable-reference ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_equal(command_status, 0, 'variable-reference chmod command failed')
+    call assert_equal(exit_status, 0, 'variable-reference chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_equal(command_status, 0, 'variable-reference qemu command failed')
+    call assert_equal(exit_status, 1, 'variable-reference did not return 1')
+    input = variable_reference_input(1, 1, 2)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'wrong loaded result shape was accepted')
+    input = variable_reference_input(0, 2, 2)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'wrong variable-reference literal shape was accepted')
     call compile_mir_v0_riscv_linux(input(:len_trim(input) - 1), artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_malformed, 'malformed materialized add was accepted')
     input = materialized_operation_input('mul', 2, 3, 1)
@@ -115,6 +136,27 @@ contains
             '(source-rule frontend-ast-v1/expression) (result (id 2) '// &
             '(kind integer) (type i32)))))'
     end function materialized_operation_input
+
+    function variable_reference_input(load_result_id, literal_result_id, add_result_id) result(value)
+        integer, intent(in) :: load_result_id, literal_result_id, add_result_id
+        character(len=4096) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 5) '// &
+            '(instructions (instruction (id 0) (opcode load) '// &
+            '(source-rule frontend-ast-v1/expression) (result (id '// &
+            int_text(load_result_id)//') (kind integer) (type i32))) '// &
+            '(instruction (id 1) (opcode const) (literal 1) '// &
+            '(source-rule frontend-ast-v1/expression) (result (id '// &
+            int_text(literal_result_id)//') (kind integer) (type i32))) '// &
+            '(instruction (id 2) (opcode add) (source-rule '// &
+            'frontend-ast-v1/expression) (result (id '// &
+            int_text(add_result_id)//') (kind integer) (type i32))) '// &
+            '(instruction (id 3) (opcode store) (source-rule '// &
+            'frontend-ast-v1/expression) (result (id 2) (kind integer) '// &
+            '(type i32))) (instruction (id 4) (opcode return) '// &
+            '(source-rule frontend-ast-v1/expression) (result (id 2) '// &
+            '(kind integer) (type i32)))))'
+    end function variable_reference_input
 
     subroutine assert_materialized_qemu(opcode, left, right, expected, path, artifact)
         character(len=*), intent(in) :: opcode, path
