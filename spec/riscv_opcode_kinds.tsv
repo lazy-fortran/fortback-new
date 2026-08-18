@@ -1,17 +1,17 @@
-# mnemonic kind format rd_lsb rd_width rs1_lsb rs1_width immediate_lsb immediate_width
-add 1 R 0 0 0 0 0 0
-sub 2 R 0 0 0 0 0 0
-addi 3 I 7 5 15 5 20 12
-and 4 R 0 0 0 0 0 0
-or 5 R 0 0 0 0 0 0
-xor 6 R 0 0 0 0 0 0
-sll 7 R 0 0 0 0 0 0
-ori 8 I 7 5 15 5 20 12
-andi 9 I 7 5 15 5 20 12
-sra 10 R 0 0 0 0 0 0
-slli 11 I 7 5 15 5 20 6
-srli 12 I 7 5 15 5 20 6
-srai 13 I 7 5 15 5 20 6
-slti 14 I 7 5 15 5 20 12
-sltiu 15 I 7 5 15 5 20 12
-xori 16 I 7 5 15 5 20 12
+# mnemonic kind format rd_lsb rd_width rs1_lsb rs1_width rs2_lsb rs2_width immediate_lsb immediate_width
+add 1 R 7 5 15 5 20 5 0 0
+sub 2 R 7 5 15 5 20 5 0 0
+addi 3 I 7 5 15 5 0 0 20 12
+and 4 R 7 5 15 5 20 5 0 0
+or 5 R 7 5 15 5 20 5 0 0
+xor 6 R 7 5 15 5 20 5 0 0
+sll 7 R 7 5 15 5 20 5 0 0
+ori 8 I 7 5 15 5 0 0 20 12
+andi 9 I 7 5 15 5 0 0 20 12
+sra 10 R 7 5 15 5 20 5 0 0
+slli 11 I 7 5 15 5 0 0 20 6
+srli 12 I 7 5 15 5 0 0 20 6
+srai 13 I 7 5 15 5 0 0 20 6
+slti 14 I 7 5 15 5 0 0 20 12
+sltiu 15 I 7 5 15 5 0 0 20 12
+xori 16 I 7 5 15 5 0 0 20 12

@@ -28,6 +28,8 @@ module fortback_riscv_opcode_table
     public :: riscv_rd_width_for_mnemonic
     public :: riscv_rs1_lsb_for_mnemonic
     public :: riscv_rs1_width_for_mnemonic
+    public :: riscv_rs2_lsb_for_mnemonic
+    public :: riscv_rs2_width_for_mnemonic
     public :: riscv_immediate_lsb_for_mnemonic
 
 contains
@@ -159,25 +161,25 @@ contains
         riscv_rd_lsb_for_mnemonic = 0_int32
         select case (trim(mnemonic))
         case ('add')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('sub')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('addi')
             riscv_rd_lsb_for_mnemonic = 7_int32
         case ('and')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('or')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('xor')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('sll')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('ori')
             riscv_rd_lsb_for_mnemonic = 7_int32
         case ('andi')
             riscv_rd_lsb_for_mnemonic = 7_int32
         case ('sra')
-            riscv_rd_lsb_for_mnemonic = 0_int32
+            riscv_rd_lsb_for_mnemonic = 7_int32
         case ('slli')
             riscv_rd_lsb_for_mnemonic = 7_int32
         case ('srli')
@@ -199,25 +201,25 @@ contains
         riscv_rd_width_for_mnemonic = 0_int32
         select case (trim(mnemonic))
         case ('add')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('sub')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('addi')
             riscv_rd_width_for_mnemonic = 5_int32
         case ('and')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('or')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('xor')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('sll')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('ori')
             riscv_rd_width_for_mnemonic = 5_int32
         case ('andi')
             riscv_rd_width_for_mnemonic = 5_int32
         case ('sra')
-            riscv_rd_width_for_mnemonic = 0_int32
+            riscv_rd_width_for_mnemonic = 5_int32
         case ('slli')
             riscv_rd_width_for_mnemonic = 5_int32
         case ('srli')
@@ -239,25 +241,25 @@ contains
         riscv_rs1_lsb_for_mnemonic = 0_int32
         select case (trim(mnemonic))
         case ('add')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('sub')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('addi')
             riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('and')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('or')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('xor')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('sll')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('ori')
             riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('andi')
             riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('sra')
-            riscv_rs1_lsb_for_mnemonic = 0_int32
+            riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('slli')
             riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('srli')
@@ -279,25 +281,25 @@ contains
         riscv_rs1_width_for_mnemonic = 0_int32
         select case (trim(mnemonic))
         case ('add')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('sub')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('addi')
             riscv_rs1_width_for_mnemonic = 5_int32
         case ('and')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('or')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('xor')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('sll')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('ori')
             riscv_rs1_width_for_mnemonic = 5_int32
         case ('andi')
             riscv_rs1_width_for_mnemonic = 5_int32
         case ('sra')
-            riscv_rs1_width_for_mnemonic = 0_int32
+            riscv_rs1_width_for_mnemonic = 5_int32
         case ('slli')
             riscv_rs1_width_for_mnemonic = 5_int32
         case ('srli')
@@ -312,6 +314,86 @@ contains
             riscv_rs1_width_for_mnemonic = 5_int32
         end select
     end function riscv_rs1_width_for_mnemonic
+
+    pure integer(int32) function riscv_rs2_lsb_for_mnemonic(mnemonic)
+        character(len=*), intent(in) :: mnemonic
+
+        riscv_rs2_lsb_for_mnemonic = 0_int32
+        select case (trim(mnemonic))
+        case ('add')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('sub')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('addi')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('and')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('or')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('xor')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('sll')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('ori')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('andi')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('sra')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
+        case ('slli')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('srli')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('srai')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('slti')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('sltiu')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('xori')
+            riscv_rs2_lsb_for_mnemonic = 0_int32
+        end select
+    end function riscv_rs2_lsb_for_mnemonic
+
+    pure integer(int32) function riscv_rs2_width_for_mnemonic(mnemonic)
+        character(len=*), intent(in) :: mnemonic
+
+        riscv_rs2_width_for_mnemonic = 0_int32
+        select case (trim(mnemonic))
+        case ('add')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('sub')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('addi')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('and')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('or')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('xor')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('sll')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('ori')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('andi')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('sra')
+            riscv_rs2_width_for_mnemonic = 5_int32
+        case ('slli')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('srli')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('srai')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('slti')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('sltiu')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        case ('xori')
+            riscv_rs2_width_for_mnemonic = 0_int32
+        end select
+    end function riscv_rs2_width_for_mnemonic
 
     pure integer(int32) function riscv_immediate_lsb_for_mnemonic(mnemonic)
         character(len=*), intent(in) :: mnemonic

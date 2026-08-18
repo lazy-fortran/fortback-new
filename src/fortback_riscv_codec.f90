@@ -2,6 +2,7 @@ module fortback_riscv_codec
     use iso_fortran_env, only: int32, int64
     use fortback_riscv_fixture, only: riscv_invalid_operand, riscv_malformed, riscv_ok
     use fortback_riscv_i_format, only: riscv_decode_i_format, riscv_encode_i_format
+    use fortback_riscv_r_format, only: riscv_decode_r_format, riscv_encode_r_format
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: target_ir_t
     implicit none
@@ -20,10 +21,25 @@ contains
         integer(int64), intent(in) :: values(:)
         integer(int64), intent(out) :: word
         integer(int32), intent(out) :: status
-        integer(int32) :: rd, rs1, immediate
+        integer(int32) :: rd, rs1, rs2, immediate
 
         word = 0_int64
         status = riscv_invalid_operand
+        if (record%format == 'R') then
+            if (size(values) /= i_format_operand_count) return
+            if (any(values < int(-huge(0_int32), int64)) .or. &
+                any(values > int(huge(0_int32), int64))) then
+                status = riscv_invalid_operand
+                return
+            end if
+            rd = int(values(1), int32)
+            rs1 = int(values(2), int32)
+            rs2 = int(values(3), int32)
+            call riscv_encode_r_format(target, record, rd, rs1, rs2, word, status)
+            if (status /= riscv_ok) word = 0_int64
+            return
+        end if
+        if (record%format /= 'I') return
         if (size(values) /= i_format_operand_count) return
         if (any(values < int(-huge(0_int32), int64)) .or. &
             any(values > int(huge(0_int32), int64))) then
@@ -44,10 +60,20 @@ contains
         integer(int64), allocatable, intent(out) :: values(:)
         integer(int32), intent(out) :: status
         type(riscv_opcode_record_t) :: records(1)
-        integer(int32) :: record_index, rd, rs1, immediate
+        integer(int32) :: record_index, rd, rs1, rs2, immediate
 
         status = riscv_malformed
         records(1) = record
+        if (record%format == 'R') then
+            call riscv_decode_r_format(target, word, records, record_index, rd, rs1, rs2, status)
+            if (status /= riscv_ok) return
+            allocate (values(i_format_operand_count))
+            values(1) = int(rd, int64)
+            values(2) = int(rs1, int64)
+            values(3) = int(rs2, int64)
+            return
+        end if
+        if (record%format /= 'I') return
         call riscv_decode_i_format(target, word, records, record_index, rd, rs1, immediate, &
             status)
         if (status /= riscv_ok) return

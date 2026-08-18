@@ -39,6 +39,11 @@ source-dir = "test"
 main = "test_riscv_i_format.f90"
 
 [[test]]
+name = "test_riscv_r_format"
+source-dir = "test"
+main = "test_riscv_r_format.f90"
+
+[[test]]
 name = "test_riscv_codec"
 source-dir = "test"
 main = "test_riscv_codec.f90"

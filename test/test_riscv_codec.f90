@@ -58,6 +58,16 @@ program test_riscv_codec
     call assert_int(status, riscv_invalid_target, 'wrong decode target accepted')
     call assert_unallocated(decoded, 'wrong target left stale values')
 
+    record = riscv_opcode_record_t('add', 'R', int(z'00000033', int64), &
+        int(z'FE00707F', int64), target%source)
+    values = [31_int64, 30_int64, 29_int64]
+    call riscv_encode_record(target, record, values, word, status)
+    call assert_int(status, riscv_ok, 'generic R-format encode failed')
+    call assert64(word, int(z'01DF0FB3', int64), 'generic R-format word changed')
+    call riscv_decode_record(target, record, word, decoded, status)
+    call assert_int(status, riscv_ok, 'generic R-format decode failed')
+    call assert_vector(decoded, values, 'generic R-format round trip changed')
+
     write (*, '(a)') 'RISC-V generic whole-record codec checks: ok'
 
 contains

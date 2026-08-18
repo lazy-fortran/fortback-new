@@ -4,7 +4,8 @@ program test_riscv_generated_table
         riscv_mnemonic_for_kind, riscv_immediate_lsb_for_mnemonic, &
         riscv_immediate_width_for_mnemonic, riscv_rd_lsb_for_mnemonic, &
         riscv_rd_width_for_mnemonic, riscv_rs1_lsb_for_mnemonic, &
-        riscv_rs1_width_for_mnemonic
+        riscv_rs1_width_for_mnemonic, riscv_rs2_lsb_for_mnemonic, &
+        riscv_rs2_width_for_mnemonic
     implicit none
 
     character(len=5), parameter :: names(3) = [character(len=5) :: 'add', 'slti', 'xori']
@@ -37,6 +38,12 @@ program test_riscv_generated_table
         'generated immediate position changed')
     call assert_equal(riscv_immediate_lsb_for_mnemonic('not-an-instruction'), 0_int32, &
         'unknown immediate position accepted')
+    call assert_equal(riscv_rs2_lsb_for_mnemonic('add'), 20_int32, &
+        'generated rs2 position changed')
+    call assert_equal(riscv_rs2_width_for_mnemonic('add'), 5_int32, &
+        'generated rs2 width changed')
+    call assert_equal(riscv_rs2_width_for_mnemonic('addi'), 0_int32, &
+        'I-format rs2 metadata changed')
     write (*, '(a)') 'RISC-V generated opcode table checks: ok'
 
 contains
