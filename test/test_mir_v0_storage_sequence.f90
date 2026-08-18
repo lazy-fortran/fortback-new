@@ -14,7 +14,7 @@ program test_mir_v0_storage_sequence
     character(len=32768) :: input
     character(len=256) :: diagnostic
     integer(int32) :: status
-    integer :: command_status, exit_status, index
+    integer :: command_status, exit_status, route_index
     character(len=*), parameter :: path = '/tmp/fortback-mir-v0-storage-sequence.elf'
 
     call assert_equal(mir_v0_bridge_policy_frame_size, 16_int32, 'frame policy changed')
@@ -60,6 +60,10 @@ program test_mir_v0_storage_sequence
         'frontend-ast-v1/storage-sequence-5', 14_int32)), 'ld', 'five-step load route changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
         'frontend-ast-v1/storage-sequence-5', 18_int32)), 'addi', 'five-step return route changed')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v2/execution-part', 14_int32)), 'ld', 'v2 five-step load route changed')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v2/execution-part', 18_int32)), 'addi', 'v2 five-step return route changed')
 
     input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v1/storage-sequence')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -175,6 +179,22 @@ program test_mir_v0_storage_sequence
         cmdstat=command_status)
     call assert_equal(command_status, 0, 'five-step storage qemu command failed')
     call assert_equal(exit_status, 11, 'five-step storage sequence did not return 11')
+
+    input = sequence_five_input_v2('x', 'x', 16, .false.)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'v2 five-step storage sequence was rejected')
+    call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'v2 five-step frame encoding changed')
+    call assert_word(artifact%bytes, 193, [147, 5, 16, 0], 'v2 five-step first increment changed')
+    call assert_word(artifact%bytes, 241, [147, 5, 16, 0], 'v2 five-step fourth increment changed')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'v2 five-step storage ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'v2 five-step storage chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'v2 five-step storage qemu command failed')
+    call assert_equal(exit_status, 11, 'v2 five-step storage sequence did not return 11')
 
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 8, .true.), artifact, &
         status, diagnostic)
@@ -425,6 +445,17 @@ contains
 
     end function sequence_five_input
 
+    function sequence_five_input_v2(load_key, store_key, return_id, wrong_order) result(value)
+        character(len=*), intent(in) :: load_key, store_key
+        integer, intent(in) :: return_id
+        logical, intent(in) :: wrong_order
+        character(len=20480) :: value
+
+        value = sequence_five_input(load_key, store_key, return_id, wrong_order)
+        value = replace_text(value, 'frontend-ast-v1/storage-sequence-5', &
+            'frontend-ast-v2/execution-part-5')
+    end function sequence_five_input_v2
+
     function sequence_five_instruction(load_key, store_key, index, opcode, literal, shape, result_id) &
             result(text)
         character(len=*), intent(in) :: load_key, store_key, opcode, literal, shape, result_id
@@ -441,6 +472,19 @@ contains
         text = trim(text)//'(source-rule frontend-ast-v1/storage-sequence-5) '// &
             '(result (id '//trim(result_id)//') (kind integer) (type i32))) '
     end function sequence_five_instruction
+
+    function replace_text(value, old, new) result(replaced)
+        character(len=*), intent(in) :: value, old, new
+        character(len=20480) :: replaced
+        integer :: start
+
+        replaced = value
+        start = index(replaced, old)
+        do while (start > 0)
+            replaced = replaced(:start - 1)//new//replaced(start + len(old):)
+            start = index(replaced, old)
+        end do
+    end function replace_text
 
     subroutine assert_word(bytes, first, expected, message)
         integer(int8), intent(in) :: bytes(:)
