@@ -224,13 +224,24 @@ contains
             return
         end if
         do index = 1, mir%instruction_count
-            if (mir%instructions(index)%result_id /= 1_int32 .or. &
-                mir%instructions(index)%result_kind /= mir_v0_value_kind_integer .or. &
-                trim(mir%instructions(index)%result_type) /= 'i32' .or. &
-                trim(mir%instructions(index)%source_rule) /= 'frontend-v0/program') then
+            if (mir%instructions(index)%result_id /= 1_int32) then
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end if
+            if (mir%instructions(index)%result_kind /= mir_v0_value_kind_integer) then
+                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
+                return
+            end if
+            if (trim(mir%instructions(index)%result_type) /= 'i32') then
+                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
+                return
+            end if
+            select case (trim(mir%instructions(index)%source_rule))
+            case ('frontend-v0/program', 'frontend-ast-v1/program')
+            case default
+                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
+                return
+            end select
         end do
         ok = .true.
         status = mir_v0_bridge_ok
