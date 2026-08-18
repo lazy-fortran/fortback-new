@@ -26,6 +26,12 @@ program test_mir_v0_print_variable
     input = print_variable_multiply_expression_input()
     call run_print_variable(input, path, output_path, 52, 54)
 
+    input = print_variable_subtract_expression_input()
+    call run_print_variable(input, path, output_path, 50, 49)
+
+    input = print_variable_divide_expression_input()
+    call run_print_variable(input, path, output_path, 49, 50)
+
     input = print_variable_input('x', 'x', .false., 17)
     wrong_storage = print_variable_input('x', 'x', .true., 17)
     call compile_mir_v0_riscv_linux(wrong_storage, artifact, status, diagnostic)
@@ -48,6 +54,21 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'unsupported multiplication literal was accepted')
+    wrong_literal = print_variable_subtract_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(literal 2)', '(literal 3)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'unsupported subtraction literal was accepted')
+    wrong_literal = print_variable_divide_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(literal 2)', '(literal 3)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'unsupported division literal was accepted')
+    wrong_literal = print_variable_subtract_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(opcode sub)', '(opcode div)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'wrong arithmetic operator neighbor was accepted')
     write (*, '(a)') 'MIR-v0 stored-variable PRINT qemu checks: ok'
 
 contains
@@ -145,6 +166,22 @@ contains
         value = replace_text(print_variable_expression_input(), '(literal 1)', '(literal 2)')
         value = replace_text(value, '(opcode add)', '(opcode mul)')
     end function print_variable_multiply_expression_input
+
+    function print_variable_subtract_expression_input() result(value)
+        character(len=8192) :: value
+
+        value = print_variable_expression_input()
+        value = replace_text(value, '(literal 1)', '(literal 2)')
+        value = replace_text(value, '(opcode add)', '(opcode sub)')
+    end function print_variable_subtract_expression_input
+
+    function print_variable_divide_expression_input() result(value)
+        character(len=8192) :: value
+
+        value = replace_text(print_variable_expression_input(), '(literal 23)', '(literal 24)')
+        value = replace_text(value, '(literal 1)', '(literal 2)')
+        value = replace_text(value, '(opcode add)', '(opcode div)')
+    end function print_variable_divide_expression_input
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new

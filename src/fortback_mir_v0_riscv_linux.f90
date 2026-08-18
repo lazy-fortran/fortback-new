@@ -4,7 +4,7 @@ module fortback_mir_v0_riscv_linux
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, mir_v0_opcode_const, &
         mir_v0_opcode_load, mir_v0_opcode_output, mir_v0_opcode_return, mir_v0_opcode_store, &
-        mir_v0_opcode_mul, mir_v0_opcode_value, &
+        mir_v0_opcode_mul, mir_v0_opcode_div, mir_v0_opcode_sub, mir_v0_opcode_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_ecall_policy, only: &
         mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
@@ -174,8 +174,12 @@ contains
             if (status /= mir_v0_bridge_ok) return
             if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
                 print_digits = '24'
-            else
+            else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
                 print_digits = '46'
+            else if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
+                print_digits = '21'
+            else
+                print_digits = '12'
             end if
             call encode_operation(target, records, 'addi', &
                 [5_int64, 0_int64, int(iachar(print_digits(1:1)), int64)], words(9), &
@@ -842,7 +846,9 @@ contains
             mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
             mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
-                mir%instructions(5)%opcode == mir_v0_opcode_mul) .and. &
+            mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
+            mir%instructions(5)%opcode == mir_v0_opcode_div .or. &
+            mir%instructions(5)%opcode == mir_v0_opcode_sub) .and. &
             mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
             mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
@@ -879,13 +885,15 @@ contains
         if (trim(mir%instructions(3)%storage_key) /= 'x') return
         if (trim(mir%instructions(6)%storage_key) /= 'x') return
         if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (mir%instructions(1)%literal /= 23_int32) return
+        if (mir%instructions(5)%opcode == mir_v0_opcode_div) then
+            if (mir%instructions(1)%literal /= 24_int32) return
+        else
+            if (mir%instructions(1)%literal /= 23_int32) return
+        end if
         if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
             if (mir%instructions(4)%literal /= 1_int32) return
-        else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
-            if (mir%instructions(4)%literal /= 2_int32) return
         else
-            return
+            if (mir%instructions(4)%literal /= 2_int32) return
         end if
         if (mir%instructions(8)%storage_present) return
         if (mir%instructions(9)%storage_present) return

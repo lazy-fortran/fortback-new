@@ -1236,6 +1236,14 @@ contains
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
+                if (instruction_count == 9_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 9_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
                 if (instruction_count == 5_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
@@ -1245,6 +1253,18 @@ contains
                     return
                 end if
             case ('frontend-ast-v2/print-stmt')
+                if (instruction_count == 9_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 9_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 9_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
                 if (instruction_count == 9_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
@@ -1829,7 +1849,7 @@ contains
                             return
                         end if
                     case (4_int32)
-                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_mul) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_sub) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-sequence-expression', result_id, result_kind, result_type)) then
                         else
@@ -2090,7 +2110,7 @@ contains
                             return
                         end if
                     case (4_int32)
-                        if (opcode /= mir_v0_opcode_add) return
+                        if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_div .and. opcode /= mir_v0_opcode_mul .and. opcode /= mir_v0_opcode_sub) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
                             'integer-sequence-expression', result_id, result_kind, result_type)) then
                         else
