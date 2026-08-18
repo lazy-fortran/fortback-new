@@ -11,14 +11,22 @@ OUTPUT = ROOT / "src" / "fortback_mir_v0_riscv_linux_bridge_policy.f90"
 
 
 def read_policy():
-    policy = {"instruction-count": None, "instructions": [], "result-shapes": [],
-              "source-rules": [], "literal-ranges": []}
+    policy = {"storage-policy": None, "instruction-count": None, "instructions": [],
+              "result-shapes": [], "source-rules": [], "literal-ranges": []}
     shape_names = set()
     for line_number, line in enumerate(INPUT.read_text().splitlines(), 1):
         fields = line.split()
         if not fields or fields[0].startswith("#"):
             continue
-        if fields[0] == "instruction-count" and len(fields) == 3 and fields[1] == "value":
+        if (fields[0] == "storage-policy" and len(fields) == 13 and fields[1] == "key" and
+                fields[3] == "offset" and fields[5] == "frame-size" and
+                fields[7] == "initialization" and fields[9] == "load-operation" and
+                fields[11] == "store-operation"):
+            if policy["storage-policy"] is not None:
+                raise SystemExit(f"{INPUT}:{line_number}: duplicate storage policy")
+            policy["storage-policy"] = (fields[2], int(fields[4]), int(fields[6]),
+                                          int(fields[8]), fields[10], fields[12])
+        elif fields[0] == "instruction-count" and len(fields) == 3 and fields[1] == "value":
             if policy["instruction-count"] is not None:
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate instruction count")
             policy["instruction-count"] = int(fields[2])
@@ -62,6 +70,8 @@ def read_policy():
         raise SystemExit(f"{INPUT}: at least one result-shape row is required")
     if not policy["source-rules"]:
         raise SystemExit(f"{INPUT}: at least one source-rule row is required")
+    if policy["storage-policy"] is None:
+        raise SystemExit(f"{INPUT}: storage policy is required")
     return policy
 
 
@@ -70,6 +80,7 @@ def opcode_constant(name):
 
 
 def render(policy):
+    storage_key, storage_offset, frame_size, initialization, load_operation, store_operation = policy["storage-policy"]
     source_rules_by_function = {}
     for function_name, source_rule, shape_names, opcodes in policy["source-rules"]:
         source_rules_by_function.setdefault(function_name, {}).setdefault(source_rule, []).append(
@@ -98,6 +109,12 @@ def render(policy):
         "",
         f"    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = {policy['instruction-count']}_int32",
         f"    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = {len(policy['result-shapes'])}_int32",
+        f"    character(len=16), parameter, public :: mir_v0_bridge_policy_storage_key = '{storage_key}'",
+        f"    integer(int32), parameter, public :: mir_v0_bridge_policy_storage_offset = {storage_offset}_int32",
+        f"    integer(int32), parameter, public :: mir_v0_bridge_policy_frame_size = {frame_size}_int32",
+        f"    integer(int32), parameter, public :: mir_v0_bridge_policy_storage_initialization = {initialization}_int32",
+        f"    character(len=16), parameter, public :: mir_v0_bridge_policy_load_operation = '{load_operation}'",
+        f"    character(len=16), parameter, public :: mir_v0_bridge_policy_store_operation = '{store_operation}'",
         "",
         "    public :: mir_v0_bridge_policy_accepts",
         "    public :: mir_v0_bridge_policy_function_supported",
@@ -105,8 +122,18 @@ def render(policy):
         "    public :: mir_v0_bridge_policy_instruction_count_for",
         "    public :: mir_v0_bridge_policy_instruction_count_matches",
         "    public :: mir_v0_bridge_policy_machine_operation_for",
+        "    public :: mir_v0_bridge_policy_storage_matches",
         "",
         "contains",
+        "",
+        "    pure logical function mir_v0_bridge_policy_storage_matches(storage_present, storage_key)",
+        "        logical, intent(in) :: storage_present",
+        "        character(len=*), intent(in) :: storage_key",
+        "",
+        "        mir_v0_bridge_policy_storage_matches = .not. storage_present",
+        "        if (storage_present) mir_v0_bridge_policy_storage_matches = &",
+        "            trim(storage_key) == trim(mir_v0_bridge_policy_storage_key)",
+        "    end function mir_v0_bridge_policy_storage_matches",
         "",
         "    pure logical function mir_v0_bridge_policy_result_shape_matches(shape_name, &",
         "            result_id, result_kind, result_type)",

@@ -3,6 +3,7 @@ module fortback_riscv_codec
     use fortback_riscv_fixture, only: riscv_invalid_operand, riscv_malformed, riscv_ok
     use fortback_riscv_i_format, only: riscv_decode_i_format, riscv_encode_i_format
     use fortback_riscv_r_format, only: riscv_decode_r_format, riscv_encode_r_format
+    use fortback_riscv_s_format, only: riscv_encode_s_format
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: target_ir_t
     implicit none
@@ -37,6 +38,14 @@ contains
             rs2 = int(values(3), int32)
             call riscv_encode_r_format(target, record, rd, rs1, rs2, word, status)
             if (status /= riscv_ok) word = 0_int64
+            return
+        end if
+        if (record%format == 'S') then
+            if (size(values) /= i_format_operand_count) return
+            if (any(values < int(-huge(0_int32), int64)) .or. &
+                any(values > int(huge(0_int32), int64))) return
+            call riscv_encode_s_format(target, record, int(values(1), int32), &
+                int(values(2), int32), int(values(3), int32), word, status)
             return
         end if
         if (record%format /= 'I') return

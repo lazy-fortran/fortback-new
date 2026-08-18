@@ -1,4 +1,5 @@
 # field key value machine-operation
+storage-policy key x offset 0 frame-size 16 initialization 0 load-operation ld store-operation sd
 instruction-count value 8
 instruction opcode 0 add add
 instruction opcode 1 mul mul

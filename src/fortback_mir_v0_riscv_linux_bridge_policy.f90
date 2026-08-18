@@ -17,6 +17,12 @@ module fortback_mir_v0_riscv_linux_bridge_policy
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 8_int32
     integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 11_int32
+    character(len=16), parameter, public :: mir_v0_bridge_policy_storage_key = 'x'
+    integer(int32), parameter, public :: mir_v0_bridge_policy_storage_offset = 0_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_frame_size = 16_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_storage_initialization = 0_int32
+    character(len=16), parameter, public :: mir_v0_bridge_policy_load_operation = 'ld'
+    character(len=16), parameter, public :: mir_v0_bridge_policy_store_operation = 'sd'
 
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
@@ -24,8 +30,18 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     public :: mir_v0_bridge_policy_instruction_count_for
     public :: mir_v0_bridge_policy_instruction_count_matches
     public :: mir_v0_bridge_policy_machine_operation_for
+    public :: mir_v0_bridge_policy_storage_matches
 
 contains
+
+    pure logical function mir_v0_bridge_policy_storage_matches(storage_present, storage_key)
+        logical, intent(in) :: storage_present
+        character(len=*), intent(in) :: storage_key
+
+        mir_v0_bridge_policy_storage_matches = .not. storage_present
+        if (storage_present) mir_v0_bridge_policy_storage_matches = &
+            trim(storage_key) == trim(mir_v0_bridge_policy_storage_key)
+    end function mir_v0_bridge_policy_storage_matches
 
     pure logical function mir_v0_bridge_policy_result_shape_matches(shape_name, &
             result_id, result_kind, result_type)

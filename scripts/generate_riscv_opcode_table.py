@@ -16,7 +16,7 @@ def read_rows():
         fields = line.split()
         if not fields or fields[0].startswith("#"):
             continue
-        if len(fields) != 11 or not fields[1].isdigit() or fields[2] not in {"R", "I"}:
+        if len(fields) != 11 or not fields[1].isdigit() or fields[2] not in {"R", "I", "S"}:
             raise SystemExit(f"{INPUT}:{line_number}: malformed row")
         values = fields[3:]
         if any(not value.isdigit() for value in values):
@@ -26,6 +26,8 @@ def read_rows():
             raise SystemExit(f"{INPUT}:{line_number}: malformed field metadata")
         if fields[2] == "I" and any(value == 0 for value in (metadata[0], metadata[1], metadata[2], metadata[3], metadata[6], metadata[7])):
             raise SystemExit(f"{INPUT}:{line_number}: incomplete I-format field metadata")
+        if fields[2] == "S" and any(value == 0 for value in (metadata[2], metadata[3], metadata[4], metadata[5], metadata[7])):
+            raise SystemExit(f"{INPUT}:{line_number}: incomplete S-format field metadata")
         if fields[2] == "I" and any(value != 0 for value in (metadata[4], metadata[5])):
             raise SystemExit(f"{INPUT}:{line_number}: I-format rs2 metadata must be zero")
         if fields[2] == "R" and any(value != 0 for value in (metadata[6], metadata[7])):

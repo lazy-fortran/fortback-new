@@ -12,7 +12,10 @@ module fortback_mir_v0_riscv_linux
         mir_v0_bridge_policy_accepts, mir_v0_bridge_policy_function_supported, &
         mir_v0_bridge_policy_instruction_count_matches, &
         mir_v0_bridge_policy_machine_operation_for, &
-        mir_v0_bridge_policy_opcode_supported
+        mir_v0_bridge_policy_opcode_supported, mir_v0_bridge_policy_storage_matches, &
+        mir_v0_bridge_policy_storage_offset, mir_v0_bridge_policy_frame_size, &
+        mir_v0_bridge_policy_storage_initialization, mir_v0_bridge_policy_load_operation, &
+        mir_v0_bridge_policy_store_operation
     use fortback_riscv_codec, only: riscv_encode_record
     use fortback_riscv_source, only: import_riscv_opcodes, riscv_opcode_record_t, &
         riscv_source_ok
@@ -50,7 +53,9 @@ module fortback_mir_v0_riscv_linux
         integer(int32) :: result_kind = 0_int32
         character(len=token_length) :: result_type = ''
         character(len=token_length) :: source_rule = ''
+        character(len=token_length) :: storage_key = ''
         logical :: literal_present = .false.
+        logical :: storage_present = .false.
         integer(int32) :: literal = 0_int32
     end type bridge_instruction_t
 
@@ -70,11 +75,12 @@ contains
         type(source_ref_t) :: opcode_source, target_source
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
-        type(riscv_opcode_record_t) :: records(6)
-        integer(int64) :: words(5), values(3)
+        type(riscv_opcode_record_t) :: records(8)
+        integer(int64) :: words(8), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
         character(len=512) :: opcode_text
+        logical :: storage_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -93,16 +99,43 @@ contains
             new_line('a')//'mul rd rs1 rs2 31..25=1 14..12=0 6..2=0x0c 1..0=3'// &
             new_line('a')//'div rd rs1 rs2 31..25=1 14..12=4 6..2=0x0c 1..0=3'// &
             new_line('a')//'sub rd rs1 rs2 31..25=0x20 14..12=0 6..2=0x0c 1..0=3'// &
+            new_line('a')//'ld rd rs1 imm12 14..12=3 6..2=0x00 1..0=3'// &
+            new_line('a')//'sd rs2 rs1 imm12 14..12=3 6..2=0x08 1..0=3'// &
             new_line('a')//trim(mir_v0_riscv_linux_ecall_operation)// &
             ' rd rs1 imm12 '//trim(mir_v0_riscv_linux_ecall_encoding)
         call import_riscv_opcodes(opcode_text, opcode_source, records, count, source_status)
-        if (source_status /= riscv_source_ok .or. count /= 6_int32) then
+        if (source_status /= riscv_source_ok .or. count /= 8_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: machine record import failed')
             status = mir_v0_bridge_malformed
             return
         end if
 
-        if (mir%instruction_count == 5_int32) then
+        storage_route = mir%instruction_count == 5_int32 .and. &
+            (mir%instructions(1)%storage_present .or. mir%instructions(4)%storage_present)
+        if (storage_route) then
+            call encode_operation(target, records, 'addi', [2_int64, 2_int64, &
+                -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
+                status, diagnostic)
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+                [0_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(2), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
+                [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(3), &
+                status, diagnostic)
+            call encode_operation(target, records, 'addi', [11_int64, 0_int64, 1_int64], words(4), &
+                status, diagnostic)
+            call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], words(5), &
+                status, diagnostic)
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+                [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(6), &
+                status, diagnostic)
+            call encode_operation(target, records, 'addi', [17_int64, 0_int64, 93_int64], words(7), &
+                status, diagnostic)
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(8), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+        else if (mir%instruction_count == 5_int32) then
             do index = 1, 4
                 operation = mir_v0_bridge_policy_machine_operation_for( &
                     mir%instructions(index)%opcode)
@@ -138,12 +171,14 @@ contains
             call encode_operation(target, records, 'addi', values, words(2), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
         end if
-        values = mir_v0_riscv_linux_ecall_operands
-        call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, values, &
-            words(merge(5, 3, mir%instruction_count == 5_int32)), status, diagnostic)
-        if (status /= mir_v0_bridge_ok) return
-        call write_elf64_executable(metadata, target_source, words(:merge(5, 3, &
-            mir%instruction_count == 5_int32)), artifact%bytes, &
+        if (.not. storage_route) then
+            values = mir_v0_riscv_linux_ecall_operands
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, values, &
+                words(merge(5, 3, mir%instruction_count == 5_int32)), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+        end if
+        call write_elf64_executable(metadata, target_source, words(:merge(8, merge(5, 3, &
+            mir%instruction_count == 5_int32), storage_route)), artifact%bytes, &
             source_status)
         if (source_status /= 0_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: executable artifact construction failed')
@@ -278,6 +313,11 @@ contains
             end if
         end do
         do index = 1, mir%instruction_count
+            if (.not. mir_v0_bridge_policy_storage_matches( &
+                mir%instructions(index)%storage_present, mir%instructions(index)%storage_key)) then
+                call set_diagnostic(diagnostic, 'mir-v0: storage identity is out of scope')
+                return
+            end if
             if (.not. mir_v0_bridge_policy_accepts(mir%name, mir%instruction_count, &
                 int(index - 1, int32), mir%instructions(index)%opcode, &
                 mir%instructions(index)%result_id, &
@@ -515,6 +555,14 @@ contains
             ok = read_atom(token, token_count, position, 'source-rule', &
                 instruction%source_rule, diagnostic)
             if (.not. ok) return
+        end if
+        if (position + 1 <= token_count) then
+            if (trim(token(position)) == '(' .and. trim(token(position + 1)) == 'storage') then
+                ok = read_atom(token, token_count, position, 'storage', instruction%storage_key, &
+                    diagnostic)
+                if (.not. ok) return
+                instruction%storage_present = .true.
+            end if
         end if
         ok = expect(token, token_count, position, '(', diagnostic)
         if (.not. ok) return
