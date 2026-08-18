@@ -26,6 +26,7 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_assignment = 3_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_expression = 4_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v2_execution_part = 5_int32
+    integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_storage_sequence_5 = 6_int32
 
     public :: mir_v0_opcode_value
     public :: mir_v0_value_kind_value
@@ -98,6 +99,8 @@ contains
             mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v1_expression
         case ('frontend-ast-v2/execution-part')
             mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v2_execution_part
+        case ('frontend-ast-v1/storage-sequence-5')
+            mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v1_storage_sequence_5
         end select
     end function mir_v0_source_rule_value
 

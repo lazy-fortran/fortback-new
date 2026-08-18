@@ -11,7 +11,7 @@ program test_mir_v0_storage_sequence
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
-    character(len=8192) :: input
+    character(len=32768) :: input
     character(len=256) :: diagnostic
     integer(int32) :: status
     integer :: command_status, exit_status, index
@@ -54,6 +54,12 @@ program test_mir_v0_storage_sequence
         'frontend-ast-v1/storage-sequence-4'), 15_int32, 'four-step route count changed')
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
         'frontend-ast-v1/storage-sequence-4', 10_int32)), 'ld', 'four-step load route changed')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v1/storage-sequence-5'), 19_int32, 'five-step route count changed')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v1/storage-sequence-5', 14_int32)), 'ld', 'five-step load route changed')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v1/storage-sequence-5', 18_int32)), 'addi', 'five-step return route changed')
 
     input = sequence_input('x', 'x', 4, .false., 'frontend-ast-v1/storage-sequence')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -154,6 +160,22 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'four-step qemu command failed')
     call assert_equal(exit_status, 10, 'four-step storage sequence did not return 10')
 
+    input = sequence_five_input('x', 'x', 16, .false.)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'five-step storage sequence was rejected')
+    call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'five-step frame encoding changed')
+    call assert_word(artifact%bytes, 193, [147, 5, 16, 0], 'five-step first increment changed')
+    call assert_word(artifact%bytes, 241, [147, 5, 16, 0], 'five-step fourth increment changed')
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'five-step storage ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'five-step storage chmod failed')
+    call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_equal(command_status, 0, 'five-step storage qemu command failed')
+    call assert_equal(exit_status, 11, 'five-step storage sequence did not return 11')
+
     call compile_mir_v0_riscv_linux(sequence_three_input('x', 'x', 8, .true.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'three-step wrong order was accepted')
@@ -186,6 +208,15 @@ program test_mir_v0_storage_sequence
     call compile_mir_v0_riscv_linux(sequence_four_input('x', 'x', 9, .false.), artifact, &
         status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'four-step wrong result was accepted')
+    call compile_mir_v0_riscv_linux(sequence_five_input('x', 'x', 16, .true.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'five-step wrong order was accepted')
+    call compile_mir_v0_riscv_linux(sequence_five_input('y', 'x', 16, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'five-step wrong storage key was accepted')
+    call compile_mir_v0_riscv_linux(sequence_five_input('x', 'x', 15, .false.), artifact, &
+        status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'five-step wrong result was accepted')
     write (*, '(a)') 'MIR-v0 storage sequence routes: ok'
 
 contains
@@ -359,6 +390,57 @@ contains
             '(source-rule frontend-ast-v1/storage-sequence-4) (result (id '//int_text(return_id)//') '// &
             '(kind integer) (type i32)))))'
     end function sequence_four_input_legacy
+
+    function sequence_five_input(load_key, store_key, return_id, wrong_order) result(value)
+        character(len=*), intent(in) :: load_key, store_key
+        integer, intent(in) :: return_id
+        logical, intent(in) :: wrong_order
+        character(len=20480) :: value
+        character(len=16) :: operation_opcode
+
+        operation_opcode = 'add'
+        if (wrong_order) operation_opcode = 'store'
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 19) (instructions '// &
+            sequence_five_instruction(load_key, store_key, 0, 'const', '7', 'integer-literal-left', '0')// &
+            sequence_five_instruction(load_key, store_key, 1, 'store', '', 'integer-sequence-store-literal', '1')// &
+            sequence_five_instruction(load_key, store_key, 2, 'load', '', 'integer-sequence-loaded', '2')// &
+            sequence_five_instruction(load_key, store_key, 3, 'const', '1', 'integer-sequence-literal-right', '3')// &
+            sequence_five_instruction(load_key, store_key, 4, operation_opcode, '', 'integer-sequence-expression', '4')// &
+            sequence_five_instruction(load_key, store_key, 5, 'store', '', 'integer-sequence-expression-result', '4')// &
+            sequence_five_instruction(load_key, store_key, 6, 'load', '', 'integer-sequence-3-loaded', '6')// &
+            sequence_five_instruction(load_key, store_key, 7, 'const', '1', 'integer-sequence-3-literal-right', '7')// &
+            sequence_five_instruction(load_key, store_key, 8, 'add', '', 'integer-sequence-3-expression', '8')// &
+            sequence_five_instruction(load_key, store_key, 9, 'store', '', 'integer-sequence-3-expression-result', '8')// &
+            sequence_five_instruction(load_key, store_key, 10, 'load', '', 'integer-sequence-4-loaded', '10')// &
+            sequence_five_instruction(load_key, store_key, 11, 'const', '1', 'integer-sequence-4-literal-right', '11')// &
+            sequence_five_instruction(load_key, store_key, 12, 'add', '', 'integer-sequence-4-expression', '12')// &
+            sequence_five_instruction(load_key, store_key, 13, 'store', '', 'integer-sequence-4-expression-result', '12')// &
+            sequence_five_instruction(load_key, store_key, 14, 'load', '', 'integer-sequence-5-loaded', '14')// &
+            sequence_five_instruction(load_key, store_key, 15, 'const', '1', 'integer-sequence-5-literal-right', '15')// &
+            sequence_five_instruction(load_key, store_key, 16, 'add', '', 'integer-sequence-5-expression', '16')// &
+            sequence_five_instruction(load_key, store_key, 17, 'store', '', 'integer-sequence-5-expression-result', '16')// &
+            '(instruction (id 18) (opcode return) '// &
+            '(source-rule frontend-ast-v1/storage-sequence-5) (result (id '//int_text(return_id)//') '// &
+            '(kind integer) (type i32)))))'
+
+    end function sequence_five_input
+
+    function sequence_five_instruction(load_key, store_key, index, opcode, literal, shape, result_id) &
+            result(text)
+        character(len=*), intent(in) :: load_key, store_key, opcode, literal, shape, result_id
+        integer, intent(in) :: index
+        character(len=512) :: text
+
+        text = '(instruction (id '//int_text(index)//') (opcode '//trim(opcode)//') '
+        if (len_trim(literal) > 0) text = trim(text)//'(literal '//trim(literal)//') '
+        if (index == 1 .or. index == 5 .or. index == 9 .or. index == 13 .or. index == 17) then
+            text = trim(text)//'(storage-key '//trim(store_key)//') '
+        else if (index == 2 .or. index == 6 .or. index == 10 .or. index == 14) then
+            text = trim(text)//'(storage-key '//trim(load_key)//') '
+        end if
+        text = trim(text)//'(source-rule frontend-ast-v1/storage-sequence-5) '// &
+            '(result (id '//trim(result_id)//') (kind integer) (type i32))) '
+    end function sequence_five_instruction
 
     subroutine assert_word(bytes, first, expected, message)
         integer(int8), intent(in) :: bytes(:)

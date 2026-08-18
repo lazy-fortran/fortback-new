@@ -45,9 +45,9 @@ module fortback_mir_v0_riscv_linux
     public :: write_mir_v0_riscv_linux
     public :: riscv_linux_artifact_provenance_valid
 
-    integer, parameter :: token_capacity = 512
+    integer, parameter :: token_capacity = 1024
     integer, parameter :: token_length = 256
-    integer, parameter :: instruction_capacity = 16
+    integer, parameter :: instruction_capacity = 32
 
     type :: bridge_instruction_t
         integer(int32) :: id = 0_int32
@@ -79,13 +79,14 @@ contains
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
         type(riscv_opcode_record_t) :: records(8)
-        integer(int64) :: words(17), values(3)
+        integer(int64) :: words(21), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
         character(len=512) :: opcode_text
         integer(int32) :: emitted_count
         logical :: storage_route, storage_sequence_route, storage_sequence_3_route
         logical :: storage_sequence_4_route
+        logical :: storage_sequence_5_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -120,6 +121,7 @@ contains
         storage_sequence_route = mir%instruction_count == 7_int32
         storage_sequence_3_route = mir%instruction_count == 11_int32
         storage_sequence_4_route = mir%instruction_count == 15_int32
+        storage_sequence_5_route = mir%instruction_count == 19_int32
         if (storage_sequence_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
@@ -212,6 +214,35 @@ contains
                 mir_v0_riscv_linux_ecall_operands, words(17), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             emitted_count = 17_int32
+        else if (storage_sequence_5_route) then
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
+                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            do index = 1, 19
+                operation = mir_v0_bridge_policy_route_operation_for( &
+                    mir%instructions(index)%source_rule, int(index - 1, int32))
+                select case (index)
+                case (1)
+                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                case (2, 6, 10, 14, 18)
+                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
+                case (3, 7, 11, 15)
+                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
+                case (4, 8, 12, 16)
+                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
+                case (5, 9, 13, 17)
+                    values = [10_int64, 10_int64, 11_int64]
+                case (19)
+                    values = [17_int64, 0_int64, 93_int64]
+                end select
+                call encode_operation(target, records, trim(operation), values, words(index + 1), &
+                    status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+            end do
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(21), status, diagnostic)
+            emitted_count = 21_int32
         else if (storage_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
@@ -277,7 +308,8 @@ contains
             if (status /= mir_v0_bridge_ok) return
         end if
         if (.not. storage_route .and. .not. storage_sequence_route .and. &
-            .not. storage_sequence_3_route .and. .not. storage_sequence_4_route) then
+            .not. storage_sequence_3_route .and. .not. storage_sequence_4_route .and. &
+            .not. storage_sequence_5_route) then
             values = mir_v0_riscv_linux_ecall_operands
             call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, values, &
                 words(emitted_count), status, diagnostic)

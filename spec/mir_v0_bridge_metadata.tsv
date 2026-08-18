@@ -21,3 +21,4 @@ source_rule frontend-ast-v1/program 2
 source_rule frontend-ast-v1/assignment 3
 source_rule frontend-ast-v1/expression 4
 source_rule frontend-ast-v2/execution-part 5
+source_rule frontend-ast-v1/storage-sequence-5 6
