@@ -6,9 +6,10 @@ program test_mir_v0_bridge_frontend_ast_v1
     implicit none
 
     type(riscv_linux_artifact_t) :: ast_v1_artifact, legacy_artifact, real_artifact, &
-        double_artifact, complex_artifact
+        double_artifact, complex_artifact, logical_artifact
     character(len=4096) :: ast_v1_input, legacy_input, real_input, double_input, complex_input
-    character(len=4096) :: wrong_type, wrong_kind, complex_wrong_type, complex_wrong_kind
+    character(len=4096) :: logical_input, wrong_type, wrong_kind, complex_wrong_type, &
+        complex_wrong_kind, logical_wrong_type, logical_wrong_kind, logical_wrong_source
     character(len=256) :: diagnostic
     character(len=256) :: path, command
     integer(int32) :: status
@@ -44,6 +45,12 @@ program test_mir_v0_bridge_frontend_ast_v1
         '(type c32))) (instruction (id 1) (opcode return) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind complex) '// &
         '(type c32)))))'
+    logical_input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+        '(instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind logical) '// &
+        '(type logical))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind logical) '// &
+        '(type logical)))))'
 
     call compile_mir_v0_riscv_linux(ast_v1_input, ast_v1_artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'frontend AST-v1 MIR witness rejected')
@@ -128,6 +135,31 @@ program test_mir_v0_bridge_frontend_ast_v1
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'COMPLEX bridge ELF cleanup failed')
 
+    call compile_mir_v0_riscv_linux(logical_input, logical_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'LOGICAL AST-v1 bridge input rejected')
+    call assert_true(size(logical_artifact%bytes) == 400, &
+        'LOGICAL bridge ELF size changed')
+    call assert_true(all(logical_artifact%bytes == legacy_artifact%bytes), &
+        'LOGICAL bridge ELF bytes changed')
+    call assert_byte(logical_artifact%bytes, 177, 19, 'LOGICAL addi result encoding changed')
+    call assert_byte(logical_artifact%bytes, 185, 115, 'LOGICAL ecall encoding changed')
+    path = '/tmp/fortback-mir-v0-logical-riscv-linux-test.elf'
+    call write_mir_v0_riscv_linux(logical_input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'LOGICAL bridge ELF write failed')
+    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'LOGICAL bridge ELF chmod command failed')
+    call assert_int(exit_status, 0, 'LOGICAL bridge ELF chmod failed')
+    command = 'qemu-riscv64 '//trim(path)
+    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'LOGICAL bridge qemu could not run artifact')
+    call assert_int(exit_status, 0, 'LOGICAL bridge artifact did not return zero')
+    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
+    call assert_int(io_status, 0, 'LOGICAL bridge ELF was not written')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'LOGICAL bridge ELF cleanup failed')
+
     wrong_type = double_input
     wrong_type(index(wrong_type, 'type f64'):index(wrong_type, 'type f64') + 7) = &
         'type f16'
@@ -158,6 +190,30 @@ program test_mir_v0_bridge_frontend_ast_v1
         '(type c32)))))'
     call compile_mir_v0_riscv_linux(complex_wrong_kind, complex_artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong COMPLEX kind was accepted')
+    logical_wrong_type = logical_input
+    logical_wrong_type(index(logical_wrong_type, 'type logical'): &
+        index(logical_wrong_type, 'type logical') + 11) = 'type i32   '
+    logical_wrong_type(index(logical_wrong_type, 'type logical', back=.true.): &
+        index(logical_wrong_type, 'type logical', back=.true.) + 11) = 'type i32   '
+    call compile_mir_v0_riscv_linux(logical_wrong_type, logical_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong LOGICAL type was accepted')
+    logical_wrong_kind = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+        '(instructions (instruction (id 0) (opcode add) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
+        '(type logical))) (instruction (id 1) (opcode return) '// &
+        '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
+        '(type logical)))))'
+    call compile_mir_v0_riscv_linux(logical_wrong_kind, logical_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong LOGICAL kind was accepted')
+    logical_wrong_source = logical_input
+    logical_wrong_source(index(logical_wrong_source, 'frontend-ast-v1/program'): &
+        index(logical_wrong_source, 'frontend-ast-v1/program') + 22) = 'frontend-v0/program   '
+    logical_wrong_source(index(logical_wrong_source, 'frontend-ast-v1/program', back=.true.): &
+        index(logical_wrong_source, 'frontend-ast-v1/program', back=.true.) + 22) = &
+        'frontend-v0/program   '
+    call compile_mir_v0_riscv_linux(logical_wrong_source, logical_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'legacy LOGICAL source route was accepted')
     write (*, '(a)') 'MIR-v0 frontend AST-v1 bridge behavioral checks: ok'
 
 contains

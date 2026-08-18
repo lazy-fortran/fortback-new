@@ -3,12 +3,13 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     use iso_fortran_env, only: int32
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
         mir_v0_opcode_return, mir_v0_value_kind_complex, &
-        mir_v0_value_kind_integer, mir_v0_value_kind_real
+        mir_v0_value_kind_integer, mir_v0_value_kind_logical, &
+        mir_v0_value_kind_real
     implicit none
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 2_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 4_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 5_int32
 
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
@@ -42,6 +43,11 @@ contains
             if (result_id /= 1_int32) return
             if (result_kind /= mir_v0_value_kind_complex) return
             if (trim(result_type) /= 'c32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('logical')
+            if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_logical) return
+            if (trim(result_type) /= 'logical') return
             mir_v0_bridge_policy_result_shape_matches = .true.
         case default
             return
@@ -109,6 +115,8 @@ contains
                         'double', result_id, result_kind, result_type)) then
                 else if (mir_v0_bridge_policy_result_shape_matches( &
                         'complex', result_id, result_kind, result_type)) then
+                else if (mir_v0_bridge_policy_result_shape_matches( &
+                        'logical', result_id, result_kind, result_type)) then
                 else
                     return
                 end if
@@ -126,6 +134,8 @@ contains
                         'double', result_id, result_kind, result_type)) then
                 else if (mir_v0_bridge_policy_result_shape_matches( &
                         'complex', result_id, result_kind, result_type)) then
+                else if (mir_v0_bridge_policy_result_shape_matches( &
+                        'logical', result_id, result_kind, result_type)) then
                 else
                     return
                 end if

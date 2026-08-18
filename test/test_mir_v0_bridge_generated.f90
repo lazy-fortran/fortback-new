@@ -23,7 +23,9 @@ program test_mir_v0_bridge_generated
         'generated bridge instruction policy changed')
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
         'generated complex value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 4_int32, &
+    call assert_equal(mir_v0_value_kind_value('logical'), 3_int32, &
+        'generated logical value kind changed')
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 5_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &

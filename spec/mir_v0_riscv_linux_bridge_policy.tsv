@@ -6,12 +6,15 @@ result-shape integer 1 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
+result-shape logical 1 logical logical
 source-rule function main frontend-v0/program integer
 source-rule function main frontend-ast-v1/program integer
 source-rule function main frontend-ast-v1/program real
 source-rule function main frontend-ast-v1/program double
 source-rule function main frontend-ast-v1/program complex
+source-rule function main frontend-ast-v1/program logical
 source-rule function p frontend-ast-v1/program integer
 source-rule function p frontend-ast-v1/program real
 source-rule function p frontend-ast-v1/program double
 source-rule function p frontend-ast-v1/program complex
+source-rule function p frontend-ast-v1/program logical
