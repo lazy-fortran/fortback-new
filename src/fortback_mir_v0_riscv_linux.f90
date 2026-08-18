@@ -1517,8 +1517,8 @@ contains
         if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) return
         if (mir%instructions(6)%opcode /= mir_v0_opcode_store) return
         do index = 1, item_count
-            if (mir%instructions(6 + 2 * index)%opcode /= mir_v0_opcode_load) return
-            if (mir%instructions(7 + 2 * index)%opcode /= mir_v0_opcode_output) return
+            if (mir%instructions(5 + 2 * index)%opcode /= mir_v0_opcode_load) return
+            if (mir%instructions(6 + 2 * index)%opcode /= mir_v0_opcode_output) return
         end do
         if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
         candidate = .true.
@@ -1795,7 +1795,7 @@ contains
                 if (trim(mir%instructions(index)%storage_key) /= 'x') return
             case default
                 if (index >= 9) then
-                    if (mod(index - 9, 2) == 0) then
+                    if (index <= 5 + 2 * item_count .and. mod(index - 9, 2) == 0) then
                         if (.not. mir%instructions(index)%storage_present) return
                         if (trim(mir%instructions(index)%storage_key) /= 'x') return
                     else if (mir%instructions(index)%storage_present) then
@@ -1815,9 +1815,9 @@ contains
         if (mir%instructions(5)%result_id /= 4_int32) return
         if (mir%instructions(6)%result_id /= 4_int32) return
         if (mir%instructions(7)%result_id /= 6_int32) return
-        do index = 1, item_count
+        do index = 2, item_count
+            if (mir%instructions(5 + 2 * index)%result_id < 7_int32) return
             if (mir%instructions(6 + 2 * index)%result_id < 7_int32) return
-            if (mir%instructions(7 + 2 * index)%result_id < 7_int32) return
         end do
         valid = .true.
     end function valid_print_variable_seven_to_ten_item
