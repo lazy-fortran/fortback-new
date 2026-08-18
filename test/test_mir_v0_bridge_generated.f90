@@ -2,7 +2,8 @@ program test_mir_v0_bridge_generated
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
         mir_v0_bridge_ok, riscv_linux_artifact_t
-    use fortback_mir_v0_bridge_metadata, only: mir_v0_source_rule_value
+    use fortback_mir_v0_bridge_metadata, only: mir_v0_source_rule_value, &
+        mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_shape_count
     implicit none
@@ -20,7 +21,9 @@ program test_mir_v0_bridge_generated
         'unknown frontend source rule resolved in generated metadata')
     call assert_equal(mir_v0_bridge_policy_instruction_count, 2_int32, &
         'generated bridge instruction policy changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 3_int32, &
+    call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
+        'generated complex value kind changed')
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 4_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &

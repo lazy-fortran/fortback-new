@@ -18,6 +18,7 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_value_kind_real = 2_int32
     integer(int32), parameter, public :: mir_v0_value_kind_logical = 3_int32
     integer(int32), parameter, public :: mir_v0_value_kind_address = 4_int32
+    integer(int32), parameter, public :: mir_v0_value_kind_complex = 5_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_v0_program = 1_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_program = 2_int32
 
@@ -68,6 +69,8 @@ contains
             mir_v0_value_kind_value = mir_v0_value_kind_logical
         case ('address')
             mir_v0_value_kind_value = mir_v0_value_kind_address
+        case ('complex')
+            mir_v0_value_kind_value = mir_v0_value_kind_complex
         end select
     end function mir_v0_value_kind_value
 
