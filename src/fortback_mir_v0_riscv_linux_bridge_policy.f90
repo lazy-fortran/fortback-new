@@ -495,6 +495,18 @@ contains
                 operation = 'addi'
             case (35_int32)
                 operation = 'sb'
+            case (42_int32)
+                operation = 'addi'
+            case (43_int32)
+                operation = 'sb'
+            case (44_int32)
+                operation = 'addi'
+            case (45_int32)
+                operation = 'sb'
+            case (46_int32)
+                operation = 'addi'
+            case (47_int32)
+                operation = 'sb'
             end select
         case ('frontend-ast-v2/execution-part')
             select case (index)
@@ -1319,6 +1331,10 @@ contains
                     return
                 end if
                 if (instruction_count == 17_int32) then
+                    mir_v0_bridge_policy_instruction_count_matches = .true.
+                    return
+                end if
+                if (instruction_count == 19_int32) then
                     mir_v0_bridge_policy_instruction_count_matches = .true.
                     return
                 end if
@@ -3854,6 +3870,7 @@ contains
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 10_int32 .and. literal /= 12_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 12_int32 .and. literal /= 13_int32) return
                 if (opcode == mir_v0_opcode_const .and. instruction_index == 14_int32 .and. literal /= 14_int32) return
+                if (opcode == mir_v0_opcode_const .and. instruction_index == 16_int32 .and. literal /= 15_int32) return
             case default
                 return
             end select
