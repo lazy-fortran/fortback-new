@@ -139,6 +139,11 @@ source-dir = "test"
 main = "test_mir_v0_bridge_generated.f90"
 
 [[test]]
+name = "test_mir_v0_riscv_linux_ecall_policy"
+source-dir = "test"
+main = "test_mir_v0_riscv_linux_ecall_policy.f90"
+
+[[test]]
 name = "test_mir_v0_bridge_frontend_ast_v1"
 source-dir = "test"
 main = "test_mir_v0_bridge_frontend_ast_v1.f90"

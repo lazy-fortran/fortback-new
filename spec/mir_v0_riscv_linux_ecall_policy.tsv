@@ -1,0 +1,8 @@
+# field key value
+operation name ecall
+operand rd 0
+operand rs1 0
+operand imm12 0
+encoding field 14..12=0
+encoding field 6..2=0x1C
+encoding field 1..0=3

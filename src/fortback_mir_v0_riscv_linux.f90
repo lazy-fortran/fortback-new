@@ -4,6 +4,9 @@ module fortback_mir_v0_riscv_linux
         write_elf64_executable
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_value, &
         mir_v0_value_kind_value
+    use fortback_mir_v0_riscv_linux_ecall_policy, only: &
+        mir_v0_riscv_linux_ecall_encoding, mir_v0_riscv_linux_ecall_operation, &
+        mir_v0_riscv_linux_ecall_operands
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_accepts, mir_v0_bridge_policy_function_supported, &
         mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_opcode_supported
@@ -80,7 +83,8 @@ contains
         metadata%target = target
         metadata%machine = elf64_machine_riscv
         opcode_text = 'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3'// &
-            new_line('a')//'ecall rd rs1 imm12 14..12=0 6..2=0x1C 1..0=3'
+            new_line('a')//trim(mir_v0_riscv_linux_ecall_operation)// &
+            ' rd rs1 imm12 '//trim(mir_v0_riscv_linux_ecall_encoding)
         call import_riscv_opcodes(opcode_text, opcode_source, records, count, source_status)
         if (source_status /= riscv_source_ok .or. count /= 2_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: machine record import failed')
@@ -94,8 +98,9 @@ contains
         values = [17_int64, 0_int64, 93_int64]
         call encode_operation(target, records, 'addi', values, words(2), status, diagnostic)
         if (status /= mir_v0_bridge_ok) return
-        values = [0_int64, 0_int64, 0_int64]
-        call encode_operation(target, records, 'ecall', values, words(3), status, diagnostic)
+        values = mir_v0_riscv_linux_ecall_operands
+        call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, values, &
+            words(3), status, diagnostic)
         if (status /= mir_v0_bridge_ok) return
         call write_elf64_executable(metadata, target_source, words(1:3), artifact%bytes, &
             source_status)
