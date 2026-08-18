@@ -39,6 +39,13 @@ program test_riscv_i_format
         'XORI source hash provenance changed')
     call assert_equal(trim(records(1)%source%origin), 'IMPORTED', &
         'XORI source origin provenance changed')
+    call riscv_encode_i_format(target, records(1), 10_int32, 10_int32, -2048_int32, word, status)
+    call assert_equal_int(status, riscv_ok, 'generated 12-bit lower bound rejected')
+    call riscv_encode_i_format(target, records(1), 10_int32, 10_int32, 2047_int32, word, status)
+    call assert_equal_int(status, riscv_ok, 'generated 12-bit upper bound rejected')
+    call riscv_encode_i_format(target, records(1), 10_int32, 10_int32, 2048_int32, word, status)
+    call assert_equal_int(status, riscv_invalid_operand, &
+        'generated 12-bit out-of-range immediate accepted')
 
     call riscv_encode_i_format(target, records(2), 10_int32, 10_int32, 63_int32, word, status)
     call assert_equal_int(status, riscv_ok, 'SLLI-shaped record rejected')
@@ -47,6 +54,9 @@ program test_riscv_i_format
     call assert_equal_int(status, riscv_ok, 'SLLI-shaped record decoding rejected')
     call assert_equal_int(record_index, 2_int32, 'SLLI source record was not selected')
     call assert_equal_int(immediate, 63_int32, 'SLLI immediate decoding changed')
+    call riscv_encode_i_format(target, records(2), 10_int32, 10_int32, 64_int32, word, status)
+    call assert_equal_int(status, riscv_invalid_operand, &
+        'generated 6-bit out-of-range immediate accepted')
 
     jalr = riscv_opcode_record_t('jalr', 'I', int(z'00000067', int64), &
         int(z'0000707F', int64), target%source)

@@ -2,6 +2,7 @@ module fortback_riscv_i_format
     use iso_fortran_env, only: int32, int64
     use fortback_riscv_fixture, only: riscv_invalid_operand, riscv_invalid_target, &
         riscv_malformed, riscv_ok, riscv_unsupported
+    use fortback_riscv_opcode_table, only: riscv_immediate_width_for_mnemonic
     use fortback_riscv_source, only: riscv_opcode_record_t
     use fortback_target_ir, only: source_ref_valid, target_ir_t, target_ir_valid
     implicit none
@@ -145,14 +146,19 @@ contains
     pure integer(int32) function record_immediate_width(record)
         type(riscv_opcode_record_t), intent(in) :: record
         integer(int64) :: variable_mask, expected_mask
-        integer(int32) :: width
+        integer(int32) :: width, generated_width
 
         variable_mask = iand(immediate_mask, not(record%mask))
-        width = 0_int32
-        do while (width < 12_int32)
-            if (.not. btest(variable_mask, 20 + width)) exit
-            width = width + 1_int32
-        end do
+        generated_width = riscv_immediate_width_for_mnemonic(record%mnemonic)
+        if (generated_width > 0_int32) then
+            width = generated_width
+        else
+            width = 0_int32
+            do while (width < 12_int32)
+                if (.not. btest(variable_mask, 20 + width)) exit
+                width = width + 1_int32
+            end do
+        end if
         expected_mask = ishft(ishft(1_int64, width) - 1_int64, 20)
         if (variable_mask /= expected_mask) width = 0_int32
         record_immediate_width = width

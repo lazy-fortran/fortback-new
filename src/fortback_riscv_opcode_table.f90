@@ -23,6 +23,7 @@ module fortback_riscv_opcode_table
 
     public :: riscv_kind_for_mnemonic
     public :: riscv_mnemonic_for_kind
+    public :: riscv_immediate_width_for_mnemonic
 
 contains
 
@@ -106,5 +107,45 @@ contains
             mnemonic = 'xori'
         end select
     end function riscv_mnemonic_for_kind
+
+    pure integer(int32) function riscv_immediate_width_for_mnemonic(mnemonic)
+        character(len=*), intent(in) :: mnemonic
+
+        riscv_immediate_width_for_mnemonic = 0_int32
+        select case (trim(mnemonic))
+        case ('add')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('sub')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('addi')
+            riscv_immediate_width_for_mnemonic = 12_int32
+        case ('and')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('or')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('xor')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('sll')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('ori')
+            riscv_immediate_width_for_mnemonic = 12_int32
+        case ('andi')
+            riscv_immediate_width_for_mnemonic = 12_int32
+        case ('sra')
+            riscv_immediate_width_for_mnemonic = 0_int32
+        case ('slli')
+            riscv_immediate_width_for_mnemonic = 6_int32
+        case ('srli')
+            riscv_immediate_width_for_mnemonic = 6_int32
+        case ('srai')
+            riscv_immediate_width_for_mnemonic = 6_int32
+        case ('slti')
+            riscv_immediate_width_for_mnemonic = 12_int32
+        case ('sltiu')
+            riscv_immediate_width_for_mnemonic = 12_int32
+        case ('xori')
+            riscv_immediate_width_for_mnemonic = 12_int32
+        end select
+    end function riscv_immediate_width_for_mnemonic
 
 end module fortback_riscv_opcode_table

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the RISC-V mnemonic/kind table used by the fixture codec."""
+"""Generate the RISC-V mnemonic/kind/operand table used by the codec."""
 
 from pathlib import Path
 import sys
@@ -16,9 +16,11 @@ def read_rows():
         fields = line.split()
         if not fields or fields[0].startswith("#"):
             continue
-        if len(fields) != 3 or not fields[1].isdigit() or fields[2] not in {"R", "I"}:
+        if len(fields) != 4 or not fields[1].isdigit() or fields[2] not in {"R", "I"}:
             raise SystemExit(f"{INPUT}:{line_number}: malformed row")
-        rows.append((fields[0], int(fields[1]), fields[2]))
+        if not fields[3].isdigit() or int(fields[3]) < 0 or int(fields[3]) > 12:
+            raise SystemExit(f"{INPUT}:{line_number}: malformed immediate width")
+        rows.append((fields[0], int(fields[1]), fields[2], int(fields[3])))
     if [row[1] for row in rows] != list(range(1, len(rows) + 1)):
         raise SystemExit(f"{INPUT}: kinds must be consecutive starting at 1")
     return rows
@@ -33,12 +35,13 @@ def render(rows):
         "    private",
         "",
     ]
-    for mnemonic, kind, _ in rows:
+    for mnemonic, kind, _, _ in rows:
         lines.append(f"    integer(int32), parameter, public :: riscv_{mnemonic} = {kind}_int32")
     lines += [
         "",
         "    public :: riscv_kind_for_mnemonic",
         "    public :: riscv_mnemonic_for_kind",
+        "    public :: riscv_immediate_width_for_mnemonic",
         "",
         "contains",
         "",
@@ -48,7 +51,7 @@ def render(rows):
         "        riscv_kind_for_mnemonic = 0_int32",
         "        select case (trim(mnemonic))",
     ]
-    for mnemonic, kind, _ in rows:
+    for mnemonic, kind, _, _ in rows:
         lines.append(f"        case ('{mnemonic}')")
         lines.append(f"            riscv_kind_for_mnemonic = riscv_{mnemonic}")
     lines += [
@@ -62,12 +65,26 @@ def render(rows):
         "        mnemonic = ''",
         "        select case (kind)",
     ]
-    for mnemonic, kind, _ in rows:
+    for mnemonic, kind, _, _ in rows:
         lines.append(f"        case (riscv_{mnemonic})")
         lines.append(f"            mnemonic = '{mnemonic}'")
     lines += [
         "        end select",
         "    end function riscv_mnemonic_for_kind",
+        "",
+        "    pure integer(int32) function riscv_immediate_width_for_mnemonic(mnemonic)",
+        "        character(len=*), intent(in) :: mnemonic",
+        "",
+        "        riscv_immediate_width_for_mnemonic = 0_int32",
+        "        select case (trim(mnemonic))",
+    ]
+    for mnemonic, _, _, immediate_width in rows:
+        lines.append(f"        case ('{mnemonic}')")
+        lines.append(
+            f"            riscv_immediate_width_for_mnemonic = {immediate_width}_int32")
+    lines += [
+        "        end select",
+        "    end function riscv_immediate_width_for_mnemonic",
         "",
         "end module fortback_riscv_opcode_table",
         "",

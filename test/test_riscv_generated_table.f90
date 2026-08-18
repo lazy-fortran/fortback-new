@@ -1,7 +1,7 @@
 program test_riscv_generated_table
     use iso_fortran_env, only: int32
     use fortback_riscv_opcode_table, only: riscv_kind_for_mnemonic, &
-        riscv_mnemonic_for_kind
+        riscv_mnemonic_for_kind, riscv_immediate_width_for_mnemonic
     implicit none
 
     character(len=5), parameter :: names(3) = [character(len=5) :: 'add', 'slti', 'xori']
@@ -16,6 +16,14 @@ program test_riscv_generated_table
     call assert_equal(riscv_kind_for_mnemonic('not-an-instruction'), 0_int32, &
         'unknown mnemonic accepted')
     call assert_equal_text(trim(riscv_mnemonic_for_kind(99_int32)), '', 'unknown kind accepted')
+    call assert_equal(riscv_immediate_width_for_mnemonic('addi'), 12_int32, &
+        'generated signed immediate width changed')
+    call assert_equal(riscv_immediate_width_for_mnemonic('slli'), 6_int32, &
+        'generated shift immediate width changed')
+    call assert_equal(riscv_immediate_width_for_mnemonic('add'), 0_int32, &
+        'generated R-format width changed')
+    call assert_equal(riscv_immediate_width_for_mnemonic('not-an-instruction'), 0_int32, &
+        'unknown immediate width accepted')
     write (*, '(a)') 'RISC-V generated opcode table checks: ok'
 
 contains

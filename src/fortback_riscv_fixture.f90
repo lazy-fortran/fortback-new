@@ -1,7 +1,7 @@
 module fortback_riscv_fixture
     use iso_fortran_env, only: int32, int64
     use fortback_riscv_opcode_table, only: riscv_add, riscv_addi, riscv_and, riscv_andi, &
-        riscv_kind_for_mnemonic, riscv_or, riscv_ori, riscv_sll, &
+        riscv_immediate_width_for_mnemonic, riscv_kind_for_mnemonic, riscv_or, riscv_ori, riscv_sll, &
         riscv_slli, riscv_srai, riscv_srli, riscv_sra, riscv_slti, riscv_sltiu, riscv_sub, &
         riscv_xor, riscv_xori
     use fortback_riscv_source, only: riscv_opcode_record_t
@@ -39,7 +39,8 @@ contains
         integer(int32), intent(out) :: status
         type(riscv_opcode_record_t), intent(in), optional :: records(:)
         integer :: index
-        integer(int64) :: operands
+        integer(int64) :: operands, immediate_value_mask
+        integer(int32) :: immediate_width
 
         word = 0_int64
         status = validate_target(target)
@@ -56,41 +57,26 @@ contains
             status = riscv_unsupported
             return
         end if
-        if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli .or. &
-            instruction%kind == riscv_srai) then
-            if (instruction%immediate < 0_int32 .or. &
-                instruction%immediate > 63_int32) then
-                status = riscv_invalid_operand
-                return
-            end if
-        else if (instruction%kind == riscv_addi .or. &
-                instruction%kind == riscv_ori .or. &
-                instruction%kind == riscv_andi .or. &
-                instruction%kind == riscv_slti .or. &
-                instruction%kind == riscv_sltiu .or. &
-                instruction%kind == riscv_xori) then
-            if (instruction%immediate < -2048_int32 .or. &
-                instruction%immediate > 2047_int32) then
+        immediate_width = record_immediate_width(records(index))
+        if (immediate_width > 0_int32) then
+            if (immediate_width == 12_int32) then
+                if (instruction%immediate < -2048_int32 .or. &
+                    instruction%immediate > 2047_int32) then
+                    status = riscv_invalid_operand
+                    return
+                end if
+            else if (instruction%immediate < 0_int32 .or. int(instruction%immediate, int64) > &
+                    ishft(1_int64, immediate_width) - 1_int64) then
                 status = riscv_invalid_operand
                 return
             end if
         end if
         operands = ishft(int(instruction%rd, int64), 7)
         operands = ior(operands, ishft(int(instruction%rs1, int64), 15))
-        if (instruction%kind == riscv_addi .or. instruction%kind == riscv_ori .or. &
-            instruction%kind == riscv_andi .or. instruction%kind == riscv_slti .or. &
-            instruction%kind == riscv_sltiu .or. &
-            instruction%kind == riscv_xori .or. &
-            instruction%kind == riscv_slli .or. &
-            instruction%kind == riscv_srli .or. instruction%kind == riscv_srai) then
-            if (instruction%kind == riscv_slli .or. instruction%kind == riscv_srli .or. &
-                instruction%kind == riscv_srai) then
-                operands = ior(operands, ishft(iand(int(instruction%immediate, int64), &
-                    63_int64), 20))
-            else
-                operands = ior(operands, ishft(iand(int(instruction%immediate, int64), &
-                    4095_int64), 20))
-            end if
+        if (immediate_width > 0_int32) then
+            immediate_value_mask = ishft(1_int64, immediate_width) - 1_int64
+            operands = ior(operands, ishft(iand(int(instruction%immediate, int64), &
+                immediate_value_mask), 20))
         else
             operands = ior(operands, ishft(int(instruction%rs2, int64), 20))
         end if
@@ -103,7 +89,8 @@ contains
         type(riscv_instruction_t), intent(out) :: instruction
         integer(int32), intent(out) :: status
         type(riscv_opcode_record_t), intent(in), optional :: records(:)
-        integer(int64) :: immediate
+        integer(int64) :: immediate, immediate_value_mask
+        integer(int32) :: immediate_width
         integer :: index
 
         instruction = riscv_instruction_t()
@@ -129,14 +116,14 @@ contains
         if (records(index)%format == 'R') then
             instruction%rs2 = int(iand(ishft(word, -20), 31_int64), int32)
         else
-            if (instruction%kind == riscv_slli) then
-                immediate = iand(ishft(word, -20), 63_int64)
-            else if (instruction%kind == riscv_srli) then
-                immediate = iand(ishft(word, -20), 63_int64)
-            else if (instruction%kind == riscv_srai) then
-                immediate = iand(ishft(word, -20), 63_int64)
-            else
-                immediate = iand(ishft(word, -20), 4095_int64)
+            immediate_width = record_immediate_width(records(index))
+            if (immediate_width == 0_int32) then
+                status = riscv_malformed
+                return
+            end if
+            immediate_value_mask = ishft(1_int64, immediate_width) - 1_int64
+            immediate = iand(ishft(word, -20), immediate_value_mask)
+            if (immediate_width == 12_int32) then
                 if (immediate >= 2048_int64) immediate = immediate - 4096_int64
             end if
             instruction%immediate = int(immediate, int32)
@@ -170,6 +157,15 @@ contains
             end if
         end do
     end function find_word
+
+    pure integer(int32) function record_immediate_width(record)
+        type(riscv_opcode_record_t), intent(in) :: record
+
+        record_immediate_width = riscv_immediate_width_for_mnemonic(record%mnemonic)
+        if (record_immediate_width == 0_int32 .and. record%format == 'I') then
+            record_immediate_width = 12_int32
+        end if
+    end function record_immediate_width
 
     pure integer(int32) function validate_target(target)
         type(target_ir_t), intent(in) :: target

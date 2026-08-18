@@ -1,17 +1,17 @@
-# mnemonic kind format
-add 1 R
-sub 2 R
-addi 3 I
-and 4 R
-or 5 R
-xor 6 R
-sll 7 R
-ori 8 I
-andi 9 I
-sra 10 R
-slli 11 I
-srli 12 I
-srai 13 I
-slti 14 I
-sltiu 15 I
-xori 16 I
+# mnemonic kind format immediate_width
+add 1 R 0
+sub 2 R 0
+addi 3 I 12
+and 4 R 0
+or 5 R 0
+xor 6 R 0
+sll 7 R 0
+ori 8 I 12
+andi 9 I 12
+sra 10 R 0
+slli 11 I 6
+srli 12 I 6
+srai 13 I 6
+slti 14 I 12
+sltiu 15 I 12
+xori 16 I 12
