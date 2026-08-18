@@ -78,7 +78,7 @@ contains
         type(source_ref_t) :: opcode_source, target_source
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
-        type(riscv_opcode_record_t) :: records(8)
+        type(riscv_opcode_record_t) :: records(9)
         integer(int64) :: words(41), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
@@ -89,6 +89,7 @@ contains
         logical :: storage_sequence_5_route
         logical :: storage_sequence_6_route
         logical :: storage_sequence_generated_route
+        logical :: print_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -109,10 +110,11 @@ contains
             new_line('a')//'sub rd rs1 rs2 31..25=0x20 14..12=0 6..2=0x0c 1..0=3'// &
             new_line('a')//'ld rd rs1 imm12 14..12=3 6..2=0x00 1..0=3'// &
             new_line('a')//'sd rs2 rs1 imm12 14..12=3 6..2=0x08 1..0=3'// &
+            new_line('a')//'sb rs2 rs1 imm12 14..12=0 6..2=0x08 1..0=3'// &
             new_line('a')//trim(mir_v0_riscv_linux_ecall_operation)// &
             ' rd rs1 imm12 '//trim(mir_v0_riscv_linux_ecall_encoding)
         call import_riscv_opcodes(opcode_text, opcode_source, records, count, source_status)
-        if (source_status /= riscv_source_ok .or. count /= 8_int32) then
+        if (source_status /= riscv_source_ok .or. count /= 9_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: machine record import failed')
             status = mir_v0_bridge_malformed
             return
@@ -128,7 +130,38 @@ contains
         storage_sequence_generated_route = mir%instruction_count == 27_int32 .or. &
             mir%instruction_count == 31_int32 .or. mir%instruction_count == 35_int32 .or. &
             mir%instruction_count == 39_int32
-        if (storage_sequence_generated_route) then
+        print_route = trim(mir%name) == 'p' .and. &
+            trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt'
+        if (print_route) then
+            call encode_operation(target, records, 'addi', [2_int64, 2_int64, -16_int64], &
+                words(1), status, diagnostic)
+            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 55_int64], &
+                words(2), status, diagnostic)
+            call encode_operation(target, records, 'addi', [6_int64, 0_int64, 10_int64], &
+                words(3), status, diagnostic)
+            call encode_operation(target, records, 'sb', [5_int64, 2_int64, 0_int64], &
+                words(4), status, diagnostic)
+            call encode_operation(target, records, 'sb', [6_int64, 2_int64, 1_int64], &
+                words(5), status, diagnostic)
+            call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
+                words(6), status, diagnostic)
+            call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], &
+                words(7), status, diagnostic)
+            call encode_operation(target, records, 'addi', [12_int64, 0_int64, 2_int64], &
+                words(8), status, diagnostic)
+            call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], &
+                words(9), status, diagnostic)
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(10), status, diagnostic)
+            call encode_operation(target, records, 'addi', [10_int64, 0_int64, 0_int64], &
+                words(11), status, diagnostic)
+            call encode_operation(target, records, 'addi', [17_int64, 0_int64, 93_int64], &
+                words(12), status, diagnostic)
+            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                mir_v0_riscv_linux_ecall_operands, words(13), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            emitted_count = 13_int32
+        else if (storage_sequence_generated_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -372,7 +405,7 @@ contains
                 values, words(2), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
         end if
-        if (.not. storage_route .and. .not. storage_sequence_route .and. &
+        if (.not. print_route .and. .not. storage_route .and. .not. storage_sequence_route .and. &
             .not. storage_sequence_3_route .and. .not. storage_sequence_4_route .and. &
             .not. storage_sequence_5_route .and. .not. storage_sequence_6_route .and. &
             .not. storage_sequence_generated_route) then

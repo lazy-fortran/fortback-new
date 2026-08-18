@@ -12,6 +12,10 @@ instruction opcode 7 load addi
 frame-operation addi
 exit-status-operation addi
 route-operation source-rule frontend-ast-v1/storage-sequence index 0 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 0 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 1 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 2 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 3 operation sb
 route-operation source-rule frontend-ast-v1/storage-sequence index 1 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence index 2 operation ld
 route-operation source-rule frontend-ast-v1/storage-sequence index 3 operation addi
@@ -157,6 +161,7 @@ result-shape integer-loaded 0 integer i32
 result-shape integer-expression 2 integer i32
 result-shape integer-literal-left 0 integer i32
 result-shape integer-stop-code 0 integer i32
+result-shape integer-print-value 0 integer i32
 result-shape integer-literal-right 1 integer i32
 result-shape integer-expression-result 2 integer i32
 result-shape integer-sequence-store-literal 1 integer i32
@@ -239,4 +244,6 @@ source-rule function p frontend-ast-v1/program complex add return
 source-rule function p frontend-ast-v1/program character add return
 source-rule function p frontend-ast-v1/program logical add return
 source-rule function p frontend-ast-v2/stop-stmt integer-stop-code,integer-stop-code const return
+source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value const return
 source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7
+source-literal function p source-rule frontend-ast-v2/print-stmt opcode const value 7

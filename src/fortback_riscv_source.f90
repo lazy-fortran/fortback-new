@@ -130,6 +130,7 @@ contains
             trim(tokens(1)) /= 'xori' .and. &
             trim(tokens(1)) /= 'ld' .and. &
             trim(tokens(1)) /= 'sd' .and. &
+            trim(tokens(1)) /= 'sb' .and. &
             trim(tokens(1)) /= 'div' .and. &
             trim(tokens(1)) /= 'ecall') then
             status = riscv_source_unsupported
@@ -150,7 +151,7 @@ contains
             trim(tokens(1)) == 'srli' .or. trim(tokens(1)) == 'srai' .or. &
             trim(tokens(1)) == 'ecall') then
             record%format = 'I'
-        else if (trim(tokens(1)) == 'sd') then
+        else if (trim(tokens(1)) == 'sd' .or. trim(tokens(1)) == 'sb') then
             record%format = 'S'
         else
             record%format = 'R'
