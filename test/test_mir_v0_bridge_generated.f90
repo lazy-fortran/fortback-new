@@ -5,7 +5,8 @@ program test_mir_v0_bridge_generated
     use fortback_mir_v0_bridge_metadata, only: mir_v0_source_rule_value, &
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
-        mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_shape_count
+        mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_shape_count, &
+        mir_v0_bridge_policy_instruction_count_for
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
@@ -21,15 +22,21 @@ program test_mir_v0_bridge_generated
         'unknown frontend source rule resolved in generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v1/assignment') /= 0_int32, &
         'assignment source rule is missing from generated metadata')
-    call assert_equal(mir_v0_bridge_policy_instruction_count, 2_int32, &
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v1/expression') /= 0_int32, &
+        'expression source rule is missing from generated metadata')
+    call assert_equal(mir_v0_bridge_policy_instruction_count, 3_int32, &
         'generated bridge instruction policy changed')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v1/assignment'), 2_int32, 'assignment route count changed')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+        'frontend-ast-v1/expression'), 3_int32, 'expression route count changed')
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
         'generated complex value kind changed')
     call assert_equal(mir_v0_value_kind_value('logical'), 3_int32, &
         'generated logical value kind changed')
     call assert_equal(mir_v0_value_kind_value('character'), 6_int32, &
         'generated character value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 6_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 7_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &

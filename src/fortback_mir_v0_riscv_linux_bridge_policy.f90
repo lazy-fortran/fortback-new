@@ -9,12 +9,13 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     implicit none
     private
 
-    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 2_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 6_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 3_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 7_int32
 
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
     public :: mir_v0_bridge_policy_opcode_supported
+    public :: mir_v0_bridge_policy_instruction_count_for
 
 contains
 
@@ -27,6 +28,11 @@ contains
         select case (trim(shape_name))
         case ('integer')
             if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-expression')
+            if (result_id /= 2_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
@@ -88,6 +94,31 @@ contains
         end select
     end function mir_v0_bridge_policy_opcode_supported
 
+    pure integer(int32) function mir_v0_bridge_policy_instruction_count_for( &
+            function_name, source_rule)
+        character(len=*), intent(in) :: function_name, source_rule
+
+        mir_v0_bridge_policy_instruction_count_for = 0_int32
+        select case (trim(function_name))
+        case ('main')
+            select case (trim(source_rule))
+            case ('frontend-v0/program')
+                mir_v0_bridge_policy_instruction_count_for = 2_int32
+            case ('frontend-ast-v1/program')
+                mir_v0_bridge_policy_instruction_count_for = 2_int32
+            case ('frontend-ast-v1/assignment')
+                mir_v0_bridge_policy_instruction_count_for = 2_int32
+            case ('frontend-ast-v1/expression')
+                mir_v0_bridge_policy_instruction_count_for = 3_int32
+            end select
+        case ('p')
+            select case (trim(source_rule))
+            case ('frontend-ast-v1/program')
+                mir_v0_bridge_policy_instruction_count_for = 2_int32
+            end select
+        end select
+    end function mir_v0_bridge_policy_instruction_count_for
+
     pure logical function mir_v0_bridge_policy_accepts(function_name, &
             instruction_index, opcode, result_id, result_kind, result_type, &
             source_rule)
@@ -104,54 +135,105 @@ contains
                 select case (instruction_index)
                 case (0_int32)
                     if (opcode /= mir_v0_opcode_add) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case (1_int32)
                     if (opcode /= mir_v0_opcode_return) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case default
                     return
                 end select
-                if (mir_v0_bridge_policy_result_shape_matches( &
-                    'integer', result_id, result_kind, result_type)) then
-                else
-                    return
-                end if
             case ('frontend-ast-v1/program')
                 select case (instruction_index)
                 case (0_int32)
                     if (opcode /= mir_v0_opcode_add) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'real', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'double', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'complex', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'character', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'logical', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case (1_int32)
                     if (opcode /= mir_v0_opcode_return) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'real', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'double', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'complex', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'character', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'logical', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case default
                     return
                 end select
-                if (mir_v0_bridge_policy_result_shape_matches( &
-                    'integer', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'real', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'double', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'complex', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'character', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'logical', result_id, result_kind, result_type)) then
-                else
-                    return
-                end if
             case ('frontend-ast-v1/assignment')
                 select case (instruction_index)
                 case (0_int32)
                     if (opcode /= mir_v0_opcode_store) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case (1_int32)
                     if (opcode /= mir_v0_opcode_return) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case default
                     return
                 end select
-                if (mir_v0_bridge_policy_result_shape_matches( &
-                    'integer', result_id, result_kind, result_type)) then
-                else
+            case ('frontend-ast-v1/expression')
+                select case (instruction_index)
+                case (0_int32)
+                    if (opcode /= mir_v0_opcode_add) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer-expression', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
+                case (1_int32)
+                    if (opcode /= mir_v0_opcode_store) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
+                case (2_int32)
+                    if (opcode /= mir_v0_opcode_return) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
+                case default
                     return
-                end if
+                end select
             case default
                 return
             end select
@@ -161,26 +243,41 @@ contains
                 select case (instruction_index)
                 case (0_int32)
                     if (opcode /= mir_v0_opcode_add) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'real', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'double', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'complex', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'character', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'logical', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case (1_int32)
                     if (opcode /= mir_v0_opcode_return) return
+                    if (mir_v0_bridge_policy_result_shape_matches( &
+                        'integer', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'real', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'double', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'complex', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'character', result_id, result_kind, result_type)) then
+                    else if (mir_v0_bridge_policy_result_shape_matches( &
+                            'logical', result_id, result_kind, result_type)) then
+                    else
+                        return
+                    end if
                 case default
                     return
                 end select
-                if (mir_v0_bridge_policy_result_shape_matches( &
-                    'integer', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'real', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'double', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'complex', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'character', result_id, result_kind, result_type)) then
-                else if (mir_v0_bridge_policy_result_shape_matches( &
-                        'logical', result_id, result_kind, result_type)) then
-                else
-                    return
-                end if
             case default
                 return
             end select

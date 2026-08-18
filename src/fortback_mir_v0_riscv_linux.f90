@@ -9,7 +9,7 @@ module fortback_mir_v0_riscv_linux
         mir_v0_riscv_linux_ecall_operands
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_accepts, mir_v0_bridge_policy_function_supported, &
-        mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_opcode_supported
+        mir_v0_bridge_policy_instruction_count_for, mir_v0_bridge_policy_opcode_supported
     use fortback_riscv_codec, only: riscv_encode_record
     use fortback_riscv_source, only: import_riscv_opcodes, riscv_opcode_record_t, &
         riscv_source_ok
@@ -212,9 +212,20 @@ contains
         ok = .false.
         status = mir_v0_bridge_out_of_scope
         call set_diagnostic(diagnostic, '')
-        if (.not. mir_v0_bridge_policy_function_supported(mir%name) .or. &
-            mir%entry_block /= 0_int32 .or. &
-            mir%instruction_count /= mir_v0_bridge_policy_instruction_count) then
+        if (.not. mir_v0_bridge_policy_function_supported(mir%name)) then
+            call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
+            return
+        end if
+        if (mir%entry_block /= 0_int32) then
+            call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
+            return
+        end if
+        if (mir%instruction_count <= 0_int32) then
+            call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
+            return
+        end if
+        if (mir%instruction_count /= mir_v0_bridge_policy_instruction_count_for( &
+            mir%name, mir%instructions(1)%source_rule)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
