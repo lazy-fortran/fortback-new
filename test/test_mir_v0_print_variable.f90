@@ -47,6 +47,8 @@ program test_mir_v0_print_variable
 
     four_item_input = print_variable_power_four_item_input()
     call run_print_variable_four_item(four_item_input, path, output_path)
+    call run_print_variable_many_items(print_variable_power_many_item_input(11), path, output_path, 11)
+    call run_print_variable_many_items(print_variable_power_many_item_input(20), path, output_path, 20)
     wrong_literal = replace_text(four_item_input, '(opcode output) (source-rule frontend-ast-v2/print-stmt)', &
         '(opcode return) (source-rule frontend-ast-v2/print-stmt)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
@@ -454,6 +456,78 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 8) (kind integer) '// &
             '(type i32))) (instruction (id 14) (opcode return)')
     end function print_variable_power_four_item_input
+
+    function print_variable_power_many_item_input(item_count) result(value)
+        character(len=8192) :: value
+        character(len=32) :: old_id, new_id, new_instruction, result_id
+        integer, intent(in) :: item_count
+        integer :: item_index, instruction_id
+
+        value = print_variable_power_two_item_input()
+        write (new_id, '(i0)') 2 * item_count + 7
+        value = replace_text(value, 'instruction-count 11', 'instruction-count '//trim(new_id))
+        value = replace_text(value, '(result (id 8)', '(result (id 7)')
+        value = replace_text(value, '(result (id 8)', '(result (id 7)')
+        value = replace_text(value, '(result (id 8)', '(result (id 7)')
+        instruction_id = 10
+        do item_index = 3, item_count
+            write (old_id, '(i0)') instruction_id
+            write (new_id, '(i0)') instruction_id + 1
+            write (new_instruction, '(i0)') instruction_id + 2
+            write (result_id, '(i0)') item_index + 5
+            value = replace_text(value, '(instruction (id '//trim(old_id)//') (opcode return)', &
+                '(instruction (id '//trim(old_id)//') (opcode load) (storage-key x) '// &
+                '(source-rule frontend-ast-v2/print-stmt) (result (id '//trim(result_id)//') '// &
+                '(kind integer) (type i32))) (instruction (id '//trim(new_id)//') (opcode output) '// &
+                '(source-rule frontend-ast-v2/print-stmt) (result (id '//trim(result_id)//') '// &
+                '(kind integer) (type i32))) (instruction (id '//trim(new_instruction)//') '// &
+                '(opcode return)')
+            instruction_id = instruction_id + 2
+        end do
+        write (result_id, '(i0)') item_count + 5
+        value = replace_text(value, '(instruction (id '//trim(new_instruction)//') (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 7)', &
+            '(instruction (id '//trim(new_instruction)//') (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id '//trim(result_id)//')')
+    end function print_variable_power_many_item_input
+
+    subroutine run_print_variable_many_items(input, path, output_path, item_count)
+        character(len=*), intent(in) :: input, path, output_path
+        integer, intent(in) :: item_count
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8), allocatable :: output(:)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit, item_index
+
+        allocate (output(2 * item_count))
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'many-item stored-variable PRINT MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'many-item stored-variable PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'many-item stored-variable PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'many-item stored-variable PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'many-item stored-variable PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'many-item stored-variable PRINT output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'many-item stored-variable PRINT output length changed')
+        do item_index = 1, item_count
+            call assert_byte(output(2 * item_index - 1), 57, 'many-item PRINT missed value 9')
+            call assert_byte(output(2 * item_index), 10, 'many-item PRINT missed newline')
+        end do
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'many-item stored-variable PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'many-item stored-variable PRINT output cleanup failed')
+        deallocate (output)
+    end subroutine run_print_variable_many_items
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new
