@@ -15,6 +15,7 @@ source-rule function main frontend-ast-v1/program double
 source-rule function main frontend-ast-v1/program complex
 source-rule function main frontend-ast-v1/program character
 source-rule function main frontend-ast-v1/program logical
+source-rule function main frontend-ast-v1/assignment integer store return
 source-rule function p frontend-ast-v1/program integer
 source-rule function p frontend-ast-v1/program real
 source-rule function p frontend-ast-v1/program double

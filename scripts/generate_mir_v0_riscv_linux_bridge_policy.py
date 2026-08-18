@@ -28,10 +28,15 @@ def read_policy():
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
             shape_names.add(fields[1])
             policy["result-shapes"].append(tuple(fields[1:]))
-        elif fields[0] == "source-rule" and len(fields) == 5 and fields[1] == "function":
+        elif fields[0] == "source-rule" and len(fields) in (5, 7) and fields[1] == "function":
             if fields[4] not in shape_names:
                 raise SystemExit(f"{INPUT}:{line_number}: unknown result shape")
-            policy["source-rules"].append(tuple(fields[2:]))
+            opcodes = tuple(fields[5:]) if len(fields) == 7 else tuple(
+                opcode for _, opcode in policy["instructions"]
+            )
+            if len(opcodes) != len(policy["instructions"]):
+                raise SystemExit(f"{INPUT}:{line_number}: instruction route length mismatch")
+            policy["source-rules"].append((*fields[2:5], opcodes))
         else:
             raise SystemExit(f"{INPUT}:{line_number}: malformed row")
     if policy["instruction-count"] != len(policy["instructions"]):
@@ -49,7 +54,7 @@ def opcode_constant(name):
 
 def render(policy):
     source_rules_by_function = {}
-    for function_name, source_rule, shape_name in policy["source-rules"]:
+    for function_name, source_rule, shape_name, _ in policy["source-rules"]:
         source_rules_by_function.setdefault(function_name, {}).setdefault(source_rule, []).append(shape_name)
 
     lines = [
@@ -57,6 +62,7 @@ def render(policy):
         "module fortback_mir_v0_riscv_linux_bridge_policy",
         "    use iso_fortran_env, only: int32",
         "    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &",
+        "        mir_v0_opcode_store, &",
         "        mir_v0_opcode_return, mir_v0_value_kind_complex, &",
         "        mir_v0_value_kind_integer, mir_v0_value_kind_logical, &",
         "        mir_v0_value_kind_real, mir_v0_value_kind_character",
@@ -107,7 +113,15 @@ def render(policy):
         "",
         "        select case (opcode)",
     ]
+    supported_opcodes = []
     for _, opcode in policy["instructions"]:
+        if opcode not in supported_opcodes:
+            supported_opcodes.append(opcode)
+    for _, _, _, opcodes in policy["source-rules"]:
+        for opcode in opcodes:
+            if opcode not in supported_opcodes:
+                supported_opcodes.append(opcode)
+    for opcode in supported_opcodes:
         lines += [f"        case ({opcode_constant(opcode)})", "            mir_v0_bridge_policy_opcode_supported = .true."]
     lines += [
         "        case default",
@@ -124,15 +138,19 @@ def render(policy):
         "        mir_v0_bridge_policy_accepts = .false.",
         "        if (instruction_index < 0_int32 .or. instruction_index >= &",
         "            mir_v0_bridge_policy_instruction_count) return",
-        "        select case (instruction_index)",
+        "        select case (trim(function_name))",
     ]
-    for index, opcode in policy["instructions"]:
-        lines += [f"        case ({index}_int32)", f"            if (opcode /= {opcode_constant(opcode)}) return"]
-    lines += ["        case default", "            return", "        end select", "        select case (trim(function_name))"]
     for function_name, source_rules in source_rules_by_function.items():
         lines += [f"        case ('{function_name}')", "            select case (trim(source_rule))"]
         for source_rule, shape_names in source_rules.items():
             lines += [f"            case ('{source_rule}')"]
+            route = next(route for route in policy["source-rules"] if
+                         route[0] == function_name and route[1] == source_rule)
+            lines += ["                select case (instruction_index)"]
+            for index, opcode in enumerate(route[3]):
+                lines += [f"                case ({index}_int32)",
+                          f"                    if (opcode /= {opcode_constant(opcode)}) return"]
+            lines += ["                case default", "                    return", "                end select"]
             for index, shape_name in enumerate(shape_names):
                 keyword = "if" if index == 0 else "else if"
                 continuation_indent = "                    " if index == 0 else "                        "

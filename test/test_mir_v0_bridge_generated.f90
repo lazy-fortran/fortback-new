@@ -19,6 +19,8 @@ program test_mir_v0_bridge_generated
         'AST-v1 frontend source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('unknown/program') == 0_int32, &
         'unknown frontend source rule resolved in generated metadata')
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v1/assignment') /= 0_int32, &
+        'assignment source rule is missing from generated metadata')
     call assert_equal(mir_v0_bridge_policy_instruction_count, 2_int32, &
         'generated bridge instruction policy changed')
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &

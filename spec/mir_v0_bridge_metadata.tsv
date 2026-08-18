@@ -17,3 +17,4 @@ value_kind complex 5
 value_kind character 6
 source_rule frontend-v0/program 1
 source_rule frontend-ast-v1/program 2
+source_rule frontend-ast-v1/assignment 3

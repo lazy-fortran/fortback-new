@@ -2,6 +2,7 @@
 module fortback_mir_v0_riscv_linux_bridge_policy
     use iso_fortran_env, only: int32
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
+        mir_v0_opcode_store, &
         mir_v0_opcode_return, mir_v0_value_kind_complex, &
         mir_v0_value_kind_integer, mir_v0_value_kind_logical, &
         mir_v0_value_kind_real, mir_v0_value_kind_character
@@ -80,6 +81,8 @@ contains
             mir_v0_bridge_policy_opcode_supported = .true.
         case (mir_v0_opcode_return)
             mir_v0_bridge_policy_opcode_supported = .true.
+        case (mir_v0_opcode_store)
+            mir_v0_bridge_policy_opcode_supported = .true.
         case default
             mir_v0_bridge_policy_opcode_supported = .false.
         end select
@@ -94,24 +97,32 @@ contains
         mir_v0_bridge_policy_accepts = .false.
         if (instruction_index < 0_int32 .or. instruction_index >= &
             mir_v0_bridge_policy_instruction_count) return
-        select case (instruction_index)
-        case (0_int32)
-            if (opcode /= mir_v0_opcode_add) return
-        case (1_int32)
-            if (opcode /= mir_v0_opcode_return) return
-        case default
-            return
-        end select
         select case (trim(function_name))
         case ('main')
             select case (trim(source_rule))
             case ('frontend-v0/program')
+                select case (instruction_index)
+                case (0_int32)
+                    if (opcode /= mir_v0_opcode_add) return
+                case (1_int32)
+                    if (opcode /= mir_v0_opcode_return) return
+                case default
+                    return
+                end select
                 if (mir_v0_bridge_policy_result_shape_matches( &
                     'integer', result_id, result_kind, result_type)) then
                 else
                     return
                 end if
             case ('frontend-ast-v1/program')
+                select case (instruction_index)
+                case (0_int32)
+                    if (opcode /= mir_v0_opcode_add) return
+                case (1_int32)
+                    if (opcode /= mir_v0_opcode_return) return
+                case default
+                    return
+                end select
                 if (mir_v0_bridge_policy_result_shape_matches( &
                     'integer', result_id, result_kind, result_type)) then
                 else if (mir_v0_bridge_policy_result_shape_matches( &
@@ -127,12 +138,34 @@ contains
                 else
                     return
                 end if
+            case ('frontend-ast-v1/assignment')
+                select case (instruction_index)
+                case (0_int32)
+                    if (opcode /= mir_v0_opcode_store) return
+                case (1_int32)
+                    if (opcode /= mir_v0_opcode_return) return
+                case default
+                    return
+                end select
+                if (mir_v0_bridge_policy_result_shape_matches( &
+                    'integer', result_id, result_kind, result_type)) then
+                else
+                    return
+                end if
             case default
                 return
             end select
         case ('p')
             select case (trim(source_rule))
             case ('frontend-ast-v1/program')
+                select case (instruction_index)
+                case (0_int32)
+                    if (opcode /= mir_v0_opcode_add) return
+                case (1_int32)
+                    if (opcode /= mir_v0_opcode_return) return
+                case default
+                    return
+                end select
                 if (mir_v0_bridge_policy_result_shape_matches( &
                     'integer', result_id, result_kind, result_type)) then
                 else if (mir_v0_bridge_policy_result_shape_matches( &
