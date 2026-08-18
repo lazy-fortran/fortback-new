@@ -1059,7 +1059,8 @@ contains
                     if (((mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
                         (mir%instructions(index + 2)%opcode == mir_v0_opcode_add .or. &
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_mul .or. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_div)) .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_div .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_pow)) .or. &
                         (mir%instructions(index + 1)%opcode == mir_v0_opcode_load .and. &
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_add)) .and. &
                         mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
@@ -1078,7 +1079,8 @@ contains
                         [11_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
                         words(word_index), status, diagnostic)
                 else if (mir%instructions(index + 2)%opcode == mir_v0_opcode_mul .or. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_div) then
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_div .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
                     call encode_operation(target, records, 'addi', [11_int64, 0_int64, &
                         int(mir%instructions(index + 1)%literal, int64)], words(word_index), &
                         status, diagnostic)
@@ -1093,6 +1095,9 @@ contains
                         words(word_index), status, diagnostic)
                 else if (mir%instructions(index + 2)%opcode == mir_v0_opcode_div) then
                     call encode_operation(target, records, 'div', [10_int64, 10_int64, 11_int64], &
+                        words(word_index), status, diagnostic)
+                else if (mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
+                    call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
                         words(word_index), status, diagnostic)
                 else
                     call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], &
@@ -1556,7 +1561,8 @@ contains
                     if (((mir%instructions(index + 1)%opcode == mir_v0_opcode_const .and. &
                         (mir%instructions(index + 2)%opcode == mir_v0_opcode_add .or. &
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_mul .or. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_div)) .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_div .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_pow)) .or. &
                         (mir%instructions(index + 1)%opcode == mir_v0_opcode_load .and. &
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_add)) .and. &
                         mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
@@ -1609,7 +1615,8 @@ contains
                     if (((operand_instruction%opcode == mir_v0_opcode_const .and. &
                         (operation_instruction%opcode == mir_v0_opcode_add .or. &
                         operation_instruction%opcode == mir_v0_opcode_mul .or. &
-                        operation_instruction%opcode == mir_v0_opcode_div)) .or. &
+                        operation_instruction%opcode == mir_v0_opcode_div .or. &
+                        operation_instruction%opcode == mir_v0_opcode_pow)) .or. &
                         (operand_instruction%opcode == mir_v0_opcode_load .and. &
                         operation_instruction%opcode == mir_v0_opcode_add)) .and. &
                         output_instruction%opcode == mir_v0_opcode_output) then
