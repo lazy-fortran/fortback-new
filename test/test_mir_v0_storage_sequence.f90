@@ -137,7 +137,7 @@ program test_mir_v0_storage_sequence
     call assert_equal(command_status, 0, 'three-step storage qemu command failed')
     call assert_equal(exit_status, 9, 'three-step storage sequence did not return 9')
 
-    input = sequence_four_input('x', 'x', 10)
+    input = sequence_four_input('x', 'x', 10, .false.)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'four-step storage sequence was rejected')
     call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'four-step frame encoding changed')
@@ -321,7 +321,7 @@ contains
             '(kind integer) (type i32)))))'
     end function sequence_four_input
 
-    function sequence_four_input(load_key, store_key, return_id) result(value)
+    function sequence_four_input_legacy(load_key, store_key, return_id) result(value)
         character(len=*), intent(in) :: load_key, store_key
         integer, intent(in) :: return_id
         character(len=8192) :: value
@@ -358,7 +358,7 @@ contains
             '(kind integer) (type i32))) (instruction (id 14) (opcode return) '// &
             '(source-rule frontend-ast-v1/storage-sequence-4) (result (id '//int_text(return_id)//') '// &
             '(kind integer) (type i32)))))'
-    end function sequence_four_input
+    end function sequence_four_input_legacy
 
     subroutine assert_word(bytes, first, expected, message)
         integer(int8), intent(in) :: bytes(:)
