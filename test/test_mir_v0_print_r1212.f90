@@ -2,15 +2,17 @@ program test_mir_v0_print_r1212
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
         mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, riscv_linux_artifact_t, &
-        write_mir_v0_riscv_linux
+        riscv_linux_artifact_provenance_valid, write_mir_v0_riscv_linux
     implicit none
 
-    character(len=4096) :: input, input_two, wrong_literal, wrong_shape, wrong_opcode
+    character(len=4096) :: input, input_two, input_three
+    character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
     character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
+    character(len=4096) :: wrong_three_literal, wrong_three_shape, wrong_three_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
-    integer(int8) :: output(2), output_two(4)
+    integer(int8) :: output(2), output_two(4), output_three(6)
     type(riscv_linux_artifact_t) :: artifact
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -61,6 +63,8 @@ program test_mir_v0_print_r1212
         '(type i32)))))'
     call compile_mir_v0_riscv_linux(input_two, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_ok, 'two-item PRINT MIR was rejected')
+    call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
+        'PRINT artifact provenance was lost')
     call write_mir_v0_riscv_linux(input_two, path, status, diagnostic)
     call assert_status(status, mir_v0_bridge_ok, 'two-item PRINT ELF write failed')
     call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
@@ -101,6 +105,69 @@ program test_mir_v0_print_r1212
     call compile_mir_v0_riscv_linux(wrong_two_opcode, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'two-item PRINT opcode mutation was accepted')
+
+    input_three = '(mir-function (name p) (entry-block 0) (instruction-count 7) '// &
+        '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 1) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 2) (opcode const) (literal 8) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 3) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 4) (opcode const) (literal 9) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 5) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 6) (opcode return) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(input_three, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'three-item PRINT MIR was rejected')
+    call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
+        'three-item PRINT artifact provenance was lost')
+    call write_mir_v0_riscv_linux(input_three, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'three-item PRINT ELF write failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'three-item PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'three-item PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'three-item PRINT output was not written')
+    read (unit, iostat=io_status) output_three
+    call assert_int(io_status, 0, 'three-item PRINT output length or bytes changed')
+    call assert_byte(output_three(1), 55, 'three-item PRINT did not write ASCII 7')
+    call assert_byte(output_three(2), 10, 'three-item PRINT missed newline after 7')
+    call assert_byte(output_three(3), 56, 'three-item PRINT did not write ASCII 8')
+    call assert_byte(output_three(4), 10, 'three-item PRINT missed newline after 8')
+    call assert_byte(output_three(5), 57, 'three-item PRINT did not write ASCII 9')
+    call assert_byte(output_three(6), 10, 'three-item PRINT missed newline after 9')
+    read (unit, iostat=io_status) output_three(1)
+    call assert_true(io_status /= 0, 'three-item PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'three-item PRINT output cleanup failed')
+
+    wrong_three_literal = input_three
+    wrong_three_literal(index(wrong_three_literal, 'literal 9'): &
+        index(wrong_three_literal, 'literal 9') + 8) = 'literal 6'
+    call compile_mir_v0_riscv_linux(wrong_three_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'three-item PRINT literal mutation was accepted')
+
+    wrong_three_shape = input_three
+    wrong_three_shape(index(wrong_three_shape, 'type i32', back=.true.): &
+        index(wrong_three_shape, 'type i32', back=.true.) + 7) = 'type real'
+    call compile_mir_v0_riscv_linux(wrong_three_shape, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'three-item PRINT result-shape mutation was accepted')
+
+    wrong_three_opcode = input_three
+    wrong_three_opcode(index(wrong_three_opcode, 'opcode output', back=.true.): &
+        index(wrong_three_opcode, 'opcode output', back=.true.) + 12) = 'opcode return '
+    call compile_mir_v0_riscv_linux(wrong_three_opcode, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'three-item PRINT opcode mutation was accepted')
 
     wrong_literal = input
     wrong_literal(index(wrong_literal, 'literal 7'):index(wrong_literal, 'literal 7') + 8) = &

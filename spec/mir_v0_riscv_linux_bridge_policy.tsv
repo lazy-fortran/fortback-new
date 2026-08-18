@@ -21,6 +21,10 @@ route-operation source-rule frontend-ast-v2/print-stmt index 4 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 5 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 6 operation sb
 route-operation source-rule frontend-ast-v2/print-stmt index 7 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 8 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 9 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 10 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 11 operation sb
 route-operation source-rule frontend-ast-v1/storage-sequence index 1 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence index 2 operation ld
 route-operation source-rule frontend-ast-v1/storage-sequence index 3 operation addi
@@ -251,6 +255,8 @@ source-rule function p frontend-ast-v1/program logical add return
 source-rule function p frontend-ast-v2/stop-stmt integer-stop-code,integer-stop-code const return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output return
+source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output return
 source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 0 value 7
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 2 value 8
+source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 4 value 9

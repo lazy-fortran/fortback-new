@@ -6,7 +6,8 @@ program test_mir_v0_bridge_generated
         mir_v0_value_kind_value
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_shape_count, &
-        mir_v0_bridge_policy_instruction_count_for
+        mir_v0_bridge_policy_instruction_count_for, &
+        mir_v0_bridge_policy_instruction_count_matches
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
@@ -40,6 +41,8 @@ program test_mir_v0_bridge_generated
         'frontend-ast-v1/expression'), 3_int32, 'expression route count changed')
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('p', &
         'frontend-ast-v2/stop-stmt'), 2_int32, 'STOP route count changed')
+    call assert_true(mir_v0_bridge_policy_instruction_count_matches('p', &
+        'frontend-ast-v2/print-stmt', 7_int32), 'three-item PRINT route count changed')
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
         'generated complex value kind changed')
     call assert_equal(mir_v0_value_kind_value('logical'), 3_int32, &
