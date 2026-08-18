@@ -237,3 +237,5 @@ source-rule function p frontend-ast-v1/program double add return
 source-rule function p frontend-ast-v1/program complex add return
 source-rule function p frontend-ast-v1/program character add return
 source-rule function p frontend-ast-v1/program logical add return
+source-rule function p frontend-ast-v2/stop-stmt integer const
+source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7

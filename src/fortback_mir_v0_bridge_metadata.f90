@@ -32,6 +32,7 @@ module fortback_mir_v0_bridge_metadata
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_storage_sequence_8 = 9_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_storage_sequence_9 = 10_int32
     integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v1_storage_sequence_10 = 11_int32
+    integer(int32), parameter, public :: mir_v0_source_rule_frontend_ast_v2_stop_stmt = 12_int32
 
     public :: mir_v0_opcode_value
     public :: mir_v0_value_kind_value
@@ -116,6 +117,8 @@ contains
             mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v1_storage_sequence_9
         case ('frontend-ast-v1/storage-sequence-10')
             mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v1_storage_sequence_10
+        case ('frontend-ast-v2/stop-stmt')
+            mir_v0_source_rule_value = mir_v0_source_rule_frontend_ast_v2_stop_stmt
         end select
     end function mir_v0_source_rule_value
 

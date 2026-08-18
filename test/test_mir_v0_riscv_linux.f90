@@ -15,6 +15,8 @@ program test_mir_v0_riscv_linux
     character(len=4096) :: wrong_type
     character(len=4096) :: wrong_source_rule
     character(len=4096) :: wrong_instruction_count
+    character(len=4096) :: stop_input
+    character(len=4096) :: wrong_stop_code
     character(len=256) :: diagnostic
     character(len=256) :: path, command
     integer(int32) :: status
@@ -56,6 +58,40 @@ program test_mir_v0_riscv_linux
     call assert_int(io_status, 0, 'artifact was not written')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'artifact cleanup failed')
+
+    stop_input = '(mir-function (name p) (entry-block 0) (instruction-count 1) '// &
+        '(instructions (instruction (id 0) (opcode const) (literal 7) '// &
+        '(source-rule frontend-ast-v2/stop-stmt) (result (id 1) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(stop_input, second, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'STOP 7 MIR was rejected')
+    call assert_byte(second%bytes, 177, 19, 'STOP emitter exit-code encoding changed')
+    call assert_byte(second%bytes, 178, 5, 'STOP emitter exit-code encoding changed')
+    call assert_byte(second%bytes, 179, 112, 'STOP emitter exit-code encoding changed')
+    call assert_byte(second%bytes, 180, 0, 'STOP emitter exit-code encoding changed')
+    path = '/tmp/fortback-mir-v0-riscv-linux-stop-test.elf'
+    call write_mir_v0_riscv_linux(stop_input, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'STOP 7 artifact write failed')
+    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'STOP 7 artifact chmod command failed')
+    call assert_int(exit_status, 0, 'STOP 7 artifact chmod failed')
+    command = 'qemu-riscv64 '//trim(path)
+    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'qemu-riscv64 could not run STOP artifact')
+    call assert_int(exit_status, 7, 'STOP 7 artifact did not return status 7')
+    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
+    call assert_int(io_status, 0, 'STOP artifact was not written')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'STOP artifact cleanup failed')
+
+    wrong_stop_code = stop_input
+    wrong_stop_code(index(wrong_stop_code, 'literal 7'): &
+        index(wrong_stop_code, 'literal 7') + 8) = 'literal 6'
+    call compile_mir_v0_riscv_linux(wrong_stop_code, second, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'mutated STOP code was accepted')
 
     malformed = input(:len_trim(input) - 1)
     call compile_mir_v0_riscv_linux(malformed, second, status, diagnostic)

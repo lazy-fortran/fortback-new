@@ -24,6 +24,8 @@ program test_mir_v0_bridge_generated
         'assignment source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v1/expression') /= 0_int32, &
         'expression source rule is missing from generated metadata')
+    call assert_true(mir_v0_source_rule_value('frontend-ast-v2/stop-stmt') /= 0_int32, &
+        'STOP source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v2/execution-part') /= 0_int32, &
         'execution-part source rule is missing from generated metadata')
     call assert_true(mir_v0_source_rule_value('frontend-ast-v1/storage-sequence-6') /= 0_int32, &
@@ -34,6 +36,8 @@ program test_mir_v0_bridge_generated
         'frontend-ast-v1/assignment'), 2_int32, 'assignment route count changed')
     call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
         'frontend-ast-v1/expression'), 3_int32, 'expression route count changed')
+    call assert_equal(mir_v0_bridge_policy_instruction_count_for('p', &
+        'frontend-ast-v2/stop-stmt'), 1_int32, 'STOP route count changed')
     call assert_equal(mir_v0_value_kind_value('complex'), 5_int32, &
         'generated complex value kind changed')
     call assert_equal(mir_v0_value_kind_value('logical'), 3_int32, &

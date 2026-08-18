@@ -27,3 +27,4 @@ source_rule frontend-ast-v1/storage-sequence-7 8
 source_rule frontend-ast-v1/storage-sequence-8 9
 source_rule frontend-ast-v1/storage-sequence-9 10
 source_rule frontend-ast-v1/storage-sequence-10 11
+source_rule frontend-ast-v2/stop-stmt 12
