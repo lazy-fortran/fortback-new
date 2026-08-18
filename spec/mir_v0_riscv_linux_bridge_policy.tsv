@@ -25,6 +25,11 @@ result-shape integer-expression 2 integer i32
 result-shape integer-literal-left 0 integer i32
 result-shape integer-literal-right 1 integer i32
 result-shape integer-expression-result 2 integer i32
+result-shape integer-sequence-store-literal 1 integer i32
+result-shape integer-sequence-loaded 2 integer i32
+result-shape integer-sequence-literal-right 3 integer i32
+result-shape integer-sequence-expression 4 integer i32
+result-shape integer-sequence-expression-result 4 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
@@ -48,7 +53,7 @@ source-rule function main frontend-ast-v1/expression integer-literal-left,intege
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer mul store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer div store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer sub store return
-source-rule function main frontend-ast-v1/storage-sequence integer-literal-left,integer-literal-left,integer-loaded,integer-literal-right,integer-expression,integer-expression-result,integer-expression-result const store load const add store return
+source-rule function main frontend-ast-v1/storage-sequence integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-expression-result const store load const add store return
 source-rule function p frontend-ast-v1/program integer add return
 source-rule function p frontend-ast-v1/program real add return
 source-rule function p frontend-ast-v1/program double add return

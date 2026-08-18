@@ -25,7 +25,7 @@ program test_mir_v0_storage_sequence
     call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
         'frontend-ast-v1/storage-sequence', 2_int32)), 'ld', 'load route changed')
 
-    input = sequence_input('x', 'x', 2, .false.)
+    input = sequence_input('x', 'x', 4, .false.)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'storage sequence was rejected')
     call assert_word(artifact%bytes, 177, [19, 1, 1, 255], 'frame encoding changed')
@@ -74,16 +74,16 @@ contains
             '(literal 7) (source-rule frontend-ast-v1/storage-sequence) '// &
             '(result (id 0) (kind integer) (type i32))) (instruction (id 1) '// &
             '(opcode '//trim(second_opcode)//') (storage-key '//trim(store_key)//') '// &
-            '(source-rule frontend-ast-v1/storage-sequence) (result (id 0) '// &
+            '(source-rule frontend-ast-v1/storage-sequence) (result (id 1) '// &
             '(kind integer) (type i32))) (instruction (id 2) (opcode load) '// &
             '(storage-key '//trim(load_key)//') (source-rule frontend-ast-v1/storage-sequence) '// &
-            '(result (id 0) (kind integer) (type i32))) (instruction (id 3) '// &
+            '(result (id 2) (kind integer) (type i32))) (instruction (id 3) '// &
             '(opcode const) (literal 1) (source-rule frontend-ast-v1/storage-sequence) '// &
-            '(result (id 1) (kind integer) (type i32))) (instruction (id 4) '// &
+            '(result (id 3) (kind integer) (type i32))) (instruction (id 4) '// &
             '(opcode '//trim(operation_opcode)//') (source-rule frontend-ast-v1/storage-sequence) '// &
-            '(result (id 2) (kind integer) (type i32))) (instruction (id 5) '// &
+            '(result (id 4) (kind integer) (type i32))) (instruction (id 5) '// &
             '(opcode store) (storage-key '//trim(store_key)//') (source-rule '// &
-            'frontend-ast-v1/storage-sequence) (result (id 2) (kind integer) '// &
+            'frontend-ast-v1/storage-sequence) (result (id 4) (kind integer) '// &
             '(type i32))) (instruction (id 6) (opcode return) (source-rule '// &
             'frontend-ast-v1/storage-sequence) (result (id '//int_text(return_id)//') '// &
             '(kind integer) (type i32)))))'

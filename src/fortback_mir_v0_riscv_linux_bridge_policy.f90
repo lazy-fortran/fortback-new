@@ -16,7 +16,7 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 8_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 11_int32
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 16_int32
     character(len=16), parameter, public :: mir_v0_bridge_policy_storage_key = 'x'
     integer(int32), parameter, public :: mir_v0_bridge_policy_storage_offset = 0_int32
     integer(int32), parameter, public :: mir_v0_bridge_policy_frame_size = 16_int32
@@ -80,6 +80,31 @@ contains
             mir_v0_bridge_policy_result_shape_matches = .true.
         case ('integer-expression-result')
             if (result_id /= 2_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-sequence-store-literal')
+            if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-sequence-loaded')
+            if (result_id /= 2_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-sequence-literal-right')
+            if (result_id /= 3_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-sequence-expression')
+            if (result_id /= 4_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('integer-sequence-expression-result')
+            if (result_id /= 4_int32) return
             if (result_kind /= mir_v0_value_kind_integer) return
             if (trim(result_type) /= 'i32') return
             mir_v0_bridge_policy_result_shape_matches = .true.
@@ -624,42 +649,42 @@ contains
                     case (1_int32)
                         if (opcode /= mir_v0_opcode_store) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-literal-left', result_id, result_kind, result_type)) then
+                            'integer-sequence-store-literal', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
                     case (2_int32)
                         if (opcode /= mir_v0_opcode_load) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-loaded', result_id, result_kind, result_type)) then
+                            'integer-sequence-loaded', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
                     case (3_int32)
                         if (opcode /= mir_v0_opcode_const) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-literal-right', result_id, result_kind, result_type)) then
+                            'integer-sequence-literal-right', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
                     case (4_int32)
                         if (opcode /= mir_v0_opcode_add) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-expression', result_id, result_kind, result_type)) then
+                            'integer-sequence-expression', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
                     case (5_int32)
                         if (opcode /= mir_v0_opcode_store) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-expression-result', result_id, result_kind, result_type)) then
+                            'integer-sequence-expression-result', result_id, result_kind, result_type)) then
                         else
                             return
                         end if
                     case (6_int32)
                         if (opcode /= mir_v0_opcode_return) return
                         if (mir_v0_bridge_policy_result_shape_matches( &
-                            'integer-expression-result', result_id, result_kind, result_type)) then
+                            'integer-sequence-expression-result', result_id, result_kind, result_type)) then
                         else
                             return
                         end if

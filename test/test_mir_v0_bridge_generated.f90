@@ -36,7 +36,7 @@ program test_mir_v0_bridge_generated
         'generated logical value kind changed')
     call assert_equal(mir_v0_value_kind_value('character'), 6_int32, &
         'generated character value kind changed')
-    call assert_equal(mir_v0_bridge_policy_result_shape_count, 11_int32, &
+    call assert_equal(mir_v0_bridge_policy_result_shape_count, 16_int32, &
         'generated bridge result-shape policy changed')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
