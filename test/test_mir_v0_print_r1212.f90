@@ -5,15 +5,16 @@ program test_mir_v0_print_r1212
         riscv_linux_artifact_provenance_valid, write_mir_v0_riscv_linux
     implicit none
 
-    character(len=4096) :: input, input_two, input_three, input_four
+    character(len=4096) :: input, input_two, input_three, input_four, input_five
     character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
     character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
     character(len=4096) :: wrong_three_literal, wrong_three_shape, wrong_three_opcode
     character(len=4096) :: wrong_four_literal, wrong_four_shape, wrong_four_opcode
+    character(len=4096) :: wrong_five_literal, wrong_five_shape, wrong_five_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
-    integer(int8) :: output(2), output_two(4), output_three(6), output_four(9)
+    integer(int8) :: output(2), output_two(4), output_three(6), output_four(9), output_five(12)
     type(riscv_linux_artifact_t) :: artifact
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -197,6 +198,70 @@ program test_mir_v0_print_r1212
     call assert_true(io_status /= 0, 'four-item PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'four-item PRINT output cleanup failed')
+
+    input_five = input_four
+    input_five(index(input_five, 'instruction-count 9'): &
+        index(input_five, 'instruction-count 9') + 20) = 'instruction-count 11)'
+    input_five = input_five(:index(input_five, '(instruction (id 8)') - 1)// &
+        '(instruction (id 8) (opcode const) (literal 11) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 9) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 10) (opcode return) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(input_five, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'five-item PRINT MIR was rejected')
+    call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
+        'five-item PRINT artifact provenance was lost')
+    call write_mir_v0_riscv_linux(input_five, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'five-item PRINT ELF write failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'five-item PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'five-item PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'five-item PRINT output was not written')
+    read (unit, iostat=io_status) output_five
+    call assert_int(io_status, 0, 'five-item PRINT output length or bytes changed')
+    call assert_byte(output_five(1), 55, 'five-item PRINT did not write ASCII 7')
+    call assert_byte(output_five(2), 10, 'five-item PRINT missed newline after 7')
+    call assert_byte(output_five(3), 56, 'five-item PRINT did not write ASCII 8')
+    call assert_byte(output_five(4), 10, 'five-item PRINT missed newline after 8')
+    call assert_byte(output_five(5), 57, 'five-item PRINT did not write ASCII 9')
+    call assert_byte(output_five(6), 10, 'five-item PRINT missed newline after 9')
+    call assert_byte(output_five(7), 49, 'five-item PRINT did not write ASCII 1 of 10')
+    call assert_byte(output_five(8), 48, 'five-item PRINT did not write ASCII 0 of 10')
+    call assert_byte(output_five(9), 10, 'five-item PRINT missed newline after 10')
+    call assert_byte(output_five(10), 49, 'five-item PRINT did not write ASCII 1 of 11')
+    call assert_byte(output_five(11), 49, 'five-item PRINT did not write ASCII 1 of 11')
+    call assert_byte(output_five(12), 10, 'five-item PRINT missed newline after 11')
+    read (unit, iostat=io_status) output_five(1)
+    call assert_true(io_status /= 0, 'five-item PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'five-item PRINT output cleanup failed')
+
+    wrong_five_literal = input_five
+    wrong_five_literal(index(wrong_five_literal, 'literal 11'): &
+        index(wrong_five_literal, 'literal 11') + 9) = 'literal 12'
+    call compile_mir_v0_riscv_linux(wrong_five_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'five-item PRINT literal mutation was accepted')
+
+    wrong_five_shape = input_five
+    wrong_five_shape(index(wrong_five_shape, 'type i32', back=.true.): &
+        index(wrong_five_shape, 'type i32', back=.true.) + 7) = 'type real'
+    call compile_mir_v0_riscv_linux(wrong_five_shape, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'five-item PRINT result-shape mutation was accepted')
+
+    wrong_five_opcode = input_five
+    wrong_five_opcode(index(wrong_five_opcode, 'opcode output', back=.true.): &
+        index(wrong_five_opcode, 'opcode output', back=.true.) + 12) = 'opcode return '
+    call compile_mir_v0_riscv_linux(wrong_five_opcode, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'five-item PRINT opcode mutation was accepted')
 
     wrong_four_literal = input_four
     wrong_four_literal(index(wrong_four_literal, 'literal 10'): &
