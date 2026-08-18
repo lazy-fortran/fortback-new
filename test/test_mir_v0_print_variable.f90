@@ -62,17 +62,17 @@ contains
             store_text = ''
             load_text = ''
         end if
-        value = '(mir-function (name p) (entry-block 0) (instruction-count 5) '// &
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 5) '// &
             '(instructions (instruction (id 0) (opcode const) (literal 17) '// &
-            '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) '// &
             '(type i32))) (instruction (id 1) (opcode store) '//trim(store_text)// &
-            ' (source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+            ' (source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) '// &
             '(type i32))) (instruction (id 2) (opcode load) '//trim(load_text)// &
-            ' (source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+            ' (source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
             '(type i32))) (instruction (id 3) (opcode output) '// &
-            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
             '(type i32))) (instruction (id 4) (opcode return) '// &
-            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_input
 

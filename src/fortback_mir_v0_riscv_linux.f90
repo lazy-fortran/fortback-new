@@ -640,10 +640,12 @@ contains
         integer(int32), intent(out) :: status
         character(len=*), intent(out) :: diagnostic
         integer :: index
+        logical :: print_variable_route
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
         call set_diagnostic(diagnostic, '')
+        print_variable_route = is_print_variable_candidate(mir)
         if (.not. mir_v0_bridge_policy_function_supported(mir%name)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
@@ -661,7 +663,12 @@ contains
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
-        if (trim(mir%name) == 'p') then
+        if (print_variable_route) then
+            if (.not. valid_print_variable(mir)) then
+                call set_diagnostic(diagnostic, 'mir-v0: PRINT variable witness is out of scope')
+                return
+            end if
+        else if (trim(mir%name) == 'p') then
             if (trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt') then
                 if (mir%instruction_count == 7_int32) then
                     if (mir%instructions(1)%literal == 7_int32) then
@@ -686,12 +693,6 @@ contains
                         call set_diagnostic(diagnostic, 'mir-v0: PRINT item sequence is out of scope')
                         return
                     end if
-                end if
-            end if
-            if (is_print_variable_candidate(mir)) then
-                if (.not. valid_print_variable(mir)) then
-                    call set_diagnostic(diagnostic, 'mir-v0: PRINT variable witness is out of scope')
-                    return
                 end if
             end if
         end if
@@ -726,9 +727,10 @@ contains
         type(parsed_mir_t), intent(in) :: mir
 
         candidate = .false.
-        if (trim(mir%name) /= 'p') return
+        if (trim(mir%name) /= 'main') return
         if (mir%instruction_count /= 5_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
+        if (trim(mir%instructions(3)%source_rule) /= 'frontend-ast-v2/print-stmt') return
         candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
             mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
@@ -747,11 +749,11 @@ contains
         if (trim(mir%instructions(3)%storage_key) /= 'x') return
         if (mir%instructions(4)%storage_present) return
         if (mir%instructions(5)%storage_present) return
-        if (mir%instructions(1)%result_id /= 1_int32) return
+        if (mir%instructions(1)%result_id /= 0_int32) return
         if (mir%instructions(2)%result_id /= 1_int32) return
-        if (mir%instructions(3)%result_id /= 0_int32) return
-        if (mir%instructions(4)%result_id /= 0_int32) return
-        if (mir%instructions(5)%result_id /= 0_int32) return
+        if (mir%instructions(3)%result_id /= 2_int32) return
+        if (mir%instructions(4)%result_id /= 2_int32) return
+        if (mir%instructions(5)%result_id /= 2_int32) return
         valid = .true.
     end function valid_print_variable
 
