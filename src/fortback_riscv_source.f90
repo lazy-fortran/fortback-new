@@ -128,6 +128,7 @@ contains
             trim(tokens(1)) /= 'slti' .and. &
             trim(tokens(1)) /= 'sltiu' .and. &
             trim(tokens(1)) /= 'xori' .and. &
+            trim(tokens(1)) /= 'div' .and. &
             trim(tokens(1)) /= 'ecall') then
             status = riscv_source_unsupported
             return
