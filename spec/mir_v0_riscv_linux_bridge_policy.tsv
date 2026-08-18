@@ -2,9 +2,10 @@
 instruction-count value 2
 instruction opcode 0 add
 instruction opcode 1 return
-result id 1
-result kind integer
-result type i32
-source-rule function main frontend-v0/program
-source-rule function main frontend-ast-v1/program
-source-rule function p frontend-ast-v1/program
+result-shape integer 1 integer i32
+result-shape real 1 real f32
+source-rule function main frontend-v0/program integer
+source-rule function main frontend-ast-v1/program integer
+source-rule function main frontend-ast-v1/program real
+source-rule function p frontend-ast-v1/program integer
+source-rule function p frontend-ast-v1/program real

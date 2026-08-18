@@ -2,21 +2,40 @@
 module fortback_mir_v0_riscv_linux_bridge_policy
     use iso_fortran_env, only: int32
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
-        mir_v0_opcode_return, mir_v0_value_kind_integer
+        mir_v0_opcode_return, mir_v0_value_kind_integer, mir_v0_value_kind_real
     implicit none
     private
 
     integer(int32), parameter, public :: mir_v0_bridge_policy_instruction_count = 2_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_id = 1_int32
-    integer(int32), parameter, public :: mir_v0_bridge_policy_result_kind = &
-        mir_v0_value_kind_integer
-    character(len=*), parameter, public :: mir_v0_bridge_policy_result_type = 'i32'
+    integer(int32), parameter, public :: mir_v0_bridge_policy_result_shape_count = 2_int32
 
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
     public :: mir_v0_bridge_policy_opcode_supported
 
 contains
+
+    pure logical function mir_v0_bridge_policy_result_shape_matches(shape_name, &
+            result_id, result_kind, result_type)
+        character(len=*), intent(in) :: shape_name, result_type
+        integer(int32), intent(in) :: result_id, result_kind
+
+        mir_v0_bridge_policy_result_shape_matches = .false.
+        select case (trim(shape_name))
+        case ('integer')
+            if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_integer) return
+            if (trim(result_type) /= 'i32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case ('real')
+            if (result_id /= 1_int32) return
+            if (result_kind /= mir_v0_value_kind_real) return
+            if (trim(result_type) /= 'f32') return
+            mir_v0_bridge_policy_result_shape_matches = .true.
+        case default
+            return
+        end select
+    end function mir_v0_bridge_policy_result_shape_matches
 
     pure logical function mir_v0_bridge_policy_function_supported(function_name)
         character(len=*), intent(in) :: function_name
@@ -53,9 +72,6 @@ contains
         mir_v0_bridge_policy_accepts = .false.
         if (instruction_index < 0_int32 .or. instruction_index >= &
             mir_v0_bridge_policy_instruction_count) return
-        if (result_id /= mir_v0_bridge_policy_result_id .or. &
-            result_kind /= mir_v0_bridge_policy_result_kind .or. &
-            trim(result_type) /= mir_v0_bridge_policy_result_type) return
         select case (instruction_index)
         case (0_int32)
             if (opcode /= mir_v0_opcode_add) return
@@ -68,13 +84,32 @@ contains
         case ('main')
             select case (trim(source_rule))
             case ('frontend-v0/program')
+                if (mir_v0_bridge_policy_result_shape_matches( &
+                    'integer', result_id, result_kind, result_type)) then
+                else
+                    return
+                end if
             case ('frontend-ast-v1/program')
+                if (mir_v0_bridge_policy_result_shape_matches( &
+                    'integer', result_id, result_kind, result_type)) then
+                else if (mir_v0_bridge_policy_result_shape_matches( &
+                        'real', result_id, result_kind, result_type)) then
+                else
+                    return
+                end if
             case default
                 return
             end select
         case ('p')
             select case (trim(source_rule))
             case ('frontend-ast-v1/program')
+                if (mir_v0_bridge_policy_result_shape_matches( &
+                    'integer', result_id, result_kind, result_type)) then
+                else if (mir_v0_bridge_policy_result_shape_matches( &
+                        'real', result_id, result_kind, result_type)) then
+                else
+                    return
+                end if
             case default
                 return
             end select
