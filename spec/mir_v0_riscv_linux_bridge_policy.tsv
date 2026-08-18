@@ -7,9 +7,14 @@ instruction opcode 3 sub sub
 instruction opcode 4 store addi
 instruction opcode 5 return return
 instruction opcode 6 const addi
+literal opcode const value 1
+literal opcode const value 2
 literal opcode const value 7
 result-shape integer 1 integer i32
 result-shape integer-expression 2 integer i32
+result-shape integer-literal-left 0 integer i32
+result-shape integer-literal-right 1 integer i32
+result-shape integer-expression-result 2 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
@@ -25,6 +30,7 @@ source-rule function main frontend-ast-v1/program logical add return
 source-rule function main frontend-ast-v1/assignment integer store return
 source-rule function main frontend-ast-v1/assignment integer const store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer add store return
+source-rule function main frontend-ast-v1/expression integer-literal-left,integer-literal-right,integer-expression-result,integer-expression-result,integer-expression-result const const add store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer mul store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer div store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer sub store return

@@ -159,6 +159,11 @@ source-dir = "test"
 main = "test_mir_v0_bridge_const.f90"
 
 [[test]]
+name = "test_mir_v0_bridge_materialized_add"
+source-dir = "test"
+main = "test_mir_v0_bridge_materialized_add.f90"
+
+[[test]]
 name = "test_dispatch_l2_observable_trace"
 source-dir = "test"
 main = "test_dispatch_l2_observable_trace.f90"

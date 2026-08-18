@@ -241,9 +241,14 @@ def render(policy):
                 lines += ["                    case default", "                        return", "                    end select"]
             lines += ["                case default", "                    return", "                end select",
                       "                select case (opcode)"]
+            literal_values = {}
             for opcode, value in policy["literals"]:
+                literal_values.setdefault(opcode, []).append(value)
+            for opcode, values in literal_values.items():
+                allowed = " .and. ".join(f"literal /= {value}_int32" for value in values)
                 lines += [f"                case ({opcode_constant(opcode)})",
-                          f"                    if (.not. literal_present .or. literal /= {value}_int32) return"]
+                          "                    if (.not. literal_present) return",
+                          f"                    if ({allowed}) return"]
             lines += ["                case default", "                    if (literal_present) return", "                end select"]
         lines += ["            case default", "                return", "            end select"]
     lines += ["        case default", "            return", "        end select", "        mir_v0_bridge_policy_accepts = .true.", "    end function mir_v0_bridge_policy_accepts", "", "end module fortback_mir_v0_riscv_linux_bridge_policy", ""]
