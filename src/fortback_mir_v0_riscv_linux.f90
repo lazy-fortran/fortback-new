@@ -65,7 +65,7 @@ contains
         type(source_ref_t) :: opcode_source, target_source
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
-        type(riscv_opcode_record_t) :: records(2)
+        type(riscv_opcode_record_t) :: records(3)
         integer(int64) :: words(3), values(3)
         integer(int32) :: count, source_status
         character(len=256) :: opcode_text
@@ -83,17 +83,24 @@ contains
         metadata%target = target
         metadata%machine = elf64_machine_riscv
         opcode_text = 'addi rd rs1 imm12 14..12=0 6..2=0x04 1..0=3'// &
+            new_line('a')//'mul rd rs1 rs2 31..25=1 14..12=0 6..2=0x0c 1..0=3'// &
             new_line('a')//trim(mir_v0_riscv_linux_ecall_operation)// &
             ' rd rs1 imm12 '//trim(mir_v0_riscv_linux_ecall_encoding)
         call import_riscv_opcodes(opcode_text, opcode_source, records, count, source_status)
-        if (source_status /= riscv_source_ok .or. count /= 2_int32) then
+        if (source_status /= riscv_source_ok .or. count /= 3_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: machine record import failed')
             status = mir_v0_bridge_malformed
             return
         end if
 
-        values = [10_int64, 0_int64, 0_int64]
-        call encode_operation(target, records, 'addi', values, words(1), status, diagnostic)
+        if (mir%instruction_count == 3_int32 .and. mir%instructions(1)%opcode == &
+            mir_v0_opcode_value('mul')) then
+            values = [10_int64, 0_int64, 0_int64]
+            call encode_operation(target, records, 'mul', values, words(1), status, diagnostic)
+        else
+            values = [10_int64, 0_int64, 0_int64]
+            call encode_operation(target, records, 'addi', values, words(1), status, diagnostic)
+        end if
         if (status /= mir_v0_bridge_ok) return
         values = [17_int64, 0_int64, 93_int64]
         call encode_operation(target, records, 'addi', values, words(2), status, diagnostic)

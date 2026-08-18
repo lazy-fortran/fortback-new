@@ -5,8 +5,9 @@ program test_mir_v0_bridge_assignment
         mir_v0_bridge_unsupported, riscv_linux_artifact_t, write_mir_v0_riscv_linux
     implicit none
 
-    type(riscv_linux_artifact_t) :: artifact, legacy, expression_artifact
-    character(len=4096) :: input, expression_input, malformed, wrong_opcode, wrong_type, wrong_source
+    type(riscv_linux_artifact_t) :: artifact, legacy, expression_artifact, multiplication_artifact
+    character(len=4096) :: input, expression_input, multiplication_input, malformed, wrong_opcode, &
+        wrong_type, wrong_source
     character(len=256) :: diagnostic, path, command
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -64,6 +65,37 @@ program test_mir_v0_bridge_assignment
     call assert_byte(expression_artifact%bytes, 181, 147, 'expression store encoding changed')
     call assert_byte(expression_artifact%bytes, 185, 115, 'expression ecall encoding changed')
 
+    multiplication_input = expression_input
+    multiplication_input(index(multiplication_input, 'opcode add'): &
+        index(multiplication_input, 'opcode add') + 9) = 'opcode mul'
+    call compile_mir_v0_riscv_linux(multiplication_input, multiplication_artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'integer multiplication expression was rejected')
+    call assert_equal(size(multiplication_artifact%bytes), 400, &
+        'multiplication artifact size changed')
+    call assert_byte(multiplication_artifact%bytes, 177, 51, 'mul encoding changed')
+    call assert_byte(multiplication_artifact%bytes, 178, 5, 'mul encoding changed')
+    call assert_byte(multiplication_artifact%bytes, 179, 0, 'mul encoding changed')
+    call assert_byte(multiplication_artifact%bytes, 180, 2, 'mul encoding changed')
+    call assert_byte(multiplication_artifact%bytes, 181, 147, 'expression store encoding changed')
+    call assert_byte(multiplication_artifact%bytes, 185, 115, 'expression ecall encoding changed')
+
+    path = '/tmp/fortback-mir-v0-multiplication-riscv-linux-test.elf'
+    call write_mir_v0_riscv_linux(multiplication_input, path, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_ok, 'multiplication ELF write failed')
+    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'multiplication ELF chmod command failed')
+    call assert_int(exit_status, 0, 'multiplication ELF chmod failed')
+    command = 'qemu-riscv64 '//trim(path)
+    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'multiplication qemu could not run artifact')
+    call assert_int(exit_status, 0, 'multiplication artifact did not return zero')
+    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
+    call assert_int(io_status, 0, 'multiplication ELF was not written')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'multiplication ELF cleanup failed')
+
     path = '/tmp/fortback-mir-v0-expression-riscv-linux-test.elf'
     call write_mir_v0_riscv_linux(expression_input, path, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'expression ELF write failed')
@@ -100,6 +132,19 @@ program test_mir_v0_bridge_assignment
     call compile_mir_v0_riscv_linux(wrong_source, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, &
         'wrong expression source rule was accepted')
+
+    wrong_opcode = multiplication_input
+    wrong_opcode(index(wrong_opcode, 'opcode mul'):index(wrong_opcode, 'opcode mul') + 9) = &
+        'opcode sub'
+    call compile_mir_v0_riscv_linux(wrong_opcode, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_unsupported, 'wrong multiplication opcode was accepted')
+
+    wrong_source = multiplication_input
+    wrong_source(index(wrong_source, 'frontend-ast-v1/expression'): &
+        index(wrong_source, 'frontend-ast-v1/expression') + 25) = 'frontend-ast-v1/assignment'
+    call compile_mir_v0_riscv_linux(wrong_source, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'wrong multiplication source rule was accepted')
 
     malformed = input(:len_trim(input) - 1)
     call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)

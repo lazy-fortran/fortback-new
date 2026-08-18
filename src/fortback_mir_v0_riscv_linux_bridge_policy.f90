@@ -2,6 +2,7 @@
 module fortback_mir_v0_riscv_linux_bridge_policy
     use iso_fortran_env, only: int32
     use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &
+        mir_v0_opcode_mul, &
         mir_v0_opcode_store, &
         mir_v0_opcode_return, mir_v0_value_kind_complex, &
         mir_v0_value_kind_integer, mir_v0_value_kind_logical, &
@@ -85,9 +86,11 @@ contains
         select case (opcode)
         case (mir_v0_opcode_add)
             mir_v0_bridge_policy_opcode_supported = .true.
-        case (mir_v0_opcode_return)
+        case (mir_v0_opcode_mul)
             mir_v0_bridge_policy_opcode_supported = .true.
         case (mir_v0_opcode_store)
+            mir_v0_bridge_policy_opcode_supported = .true.
+        case (mir_v0_opcode_return)
             mir_v0_bridge_policy_opcode_supported = .true.
         case default
             mir_v0_bridge_policy_opcode_supported = .false.
@@ -211,7 +214,7 @@ contains
             case ('frontend-ast-v1/expression')
                 select case (instruction_index)
                 case (0_int32)
-                    if (opcode /= mir_v0_opcode_add) return
+                    if (opcode /= mir_v0_opcode_add .and. opcode /= mir_v0_opcode_mul) return
                     if (mir_v0_bridge_policy_result_shape_matches( &
                         'integer-expression', result_id, result_kind, result_type)) then
                     else

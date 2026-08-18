@@ -20,6 +20,7 @@ module fortback_riscv_opcode_table
     integer(int32), parameter, public :: riscv_slti = 14_int32
     integer(int32), parameter, public :: riscv_sltiu = 15_int32
     integer(int32), parameter, public :: riscv_xori = 16_int32
+    integer(int32), parameter, public :: riscv_mul = 17_int32
 
     public :: riscv_kind_for_mnemonic
     public :: riscv_mnemonic_for_kind
@@ -71,6 +72,8 @@ contains
             riscv_kind_for_mnemonic = riscv_sltiu
         case ('xori')
             riscv_kind_for_mnemonic = riscv_xori
+        case ('mul')
+            riscv_kind_for_mnemonic = riscv_mul
         end select
     end function riscv_kind_for_mnemonic
 
@@ -112,6 +115,8 @@ contains
             mnemonic = 'sltiu'
         case (riscv_xori)
             mnemonic = 'xori'
+        case (riscv_mul)
+            mnemonic = 'mul'
         end select
     end function riscv_mnemonic_for_kind
 
@@ -152,6 +157,8 @@ contains
             riscv_immediate_width_for_mnemonic = 12_int32
         case ('xori')
             riscv_immediate_width_for_mnemonic = 12_int32
+        case ('mul')
+            riscv_immediate_width_for_mnemonic = 0_int32
         end select
     end function riscv_immediate_width_for_mnemonic
 
@@ -191,6 +198,8 @@ contains
         case ('sltiu')
             riscv_rd_lsb_for_mnemonic = 7_int32
         case ('xori')
+            riscv_rd_lsb_for_mnemonic = 7_int32
+        case ('mul')
             riscv_rd_lsb_for_mnemonic = 7_int32
         end select
     end function riscv_rd_lsb_for_mnemonic
@@ -232,6 +241,8 @@ contains
             riscv_rd_width_for_mnemonic = 5_int32
         case ('xori')
             riscv_rd_width_for_mnemonic = 5_int32
+        case ('mul')
+            riscv_rd_width_for_mnemonic = 5_int32
         end select
     end function riscv_rd_width_for_mnemonic
 
@@ -271,6 +282,8 @@ contains
         case ('sltiu')
             riscv_rs1_lsb_for_mnemonic = 15_int32
         case ('xori')
+            riscv_rs1_lsb_for_mnemonic = 15_int32
+        case ('mul')
             riscv_rs1_lsb_for_mnemonic = 15_int32
         end select
     end function riscv_rs1_lsb_for_mnemonic
@@ -312,6 +325,8 @@ contains
             riscv_rs1_width_for_mnemonic = 5_int32
         case ('xori')
             riscv_rs1_width_for_mnemonic = 5_int32
+        case ('mul')
+            riscv_rs1_width_for_mnemonic = 5_int32
         end select
     end function riscv_rs1_width_for_mnemonic
 
@@ -352,6 +367,8 @@ contains
             riscv_rs2_lsb_for_mnemonic = 0_int32
         case ('xori')
             riscv_rs2_lsb_for_mnemonic = 0_int32
+        case ('mul')
+            riscv_rs2_lsb_for_mnemonic = 20_int32
         end select
     end function riscv_rs2_lsb_for_mnemonic
 
@@ -392,6 +409,8 @@ contains
             riscv_rs2_width_for_mnemonic = 0_int32
         case ('xori')
             riscv_rs2_width_for_mnemonic = 0_int32
+        case ('mul')
+            riscv_rs2_width_for_mnemonic = 5_int32
         end select
     end function riscv_rs2_width_for_mnemonic
 
@@ -432,6 +451,8 @@ contains
             riscv_immediate_lsb_for_mnemonic = 20_int32
         case ('xori')
             riscv_immediate_lsb_for_mnemonic = 20_int32
+        case ('mul')
+            riscv_immediate_lsb_for_mnemonic = 0_int32
         end select
     end function riscv_immediate_lsb_for_mnemonic
 

@@ -69,6 +69,7 @@ def render(policy):
         "module fortback_mir_v0_riscv_linux_bridge_policy",
         "    use iso_fortran_env, only: int32",
         "    use fortback_mir_v0_bridge_metadata, only: mir_v0_opcode_add, &",
+        "        mir_v0_opcode_mul, &",
         "        mir_v0_opcode_store, &",
         "        mir_v0_opcode_return, mir_v0_value_kind_complex, &",
         "        mir_v0_value_kind_integer, mir_v0_value_kind_logical, &",
@@ -172,15 +173,26 @@ def render(policy):
             lines += [f"            case ('{source_rule}')"]
             lines += ["                select case (instruction_index)"]
             for index, opcode in enumerate(routes[0][1]):
+                opcodes_at_index = []
+                for route in routes:
+                    if route[1][index] not in opcodes_at_index:
+                        opcodes_at_index.append(route[1][index])
+                opcode_checks = " .and. ".join(
+                    f"opcode /= {opcode_constant(route_opcode)}"
+                    for route_opcode in opcodes_at_index)
                 lines += [f"                case ({index}_int32)",
-                          f"                    if (opcode /= {opcode_constant(opcode)}) return",
+                          f"                    if ({opcode_checks}) return",
                           "                    if (mir_v0_bridge_policy_result_shape_matches( &"]
-                for route_index, (shapes, _) in enumerate(routes):
+                unique_shapes = []
+                for shapes, _ in routes:
+                    if shapes[index] not in unique_shapes:
+                        unique_shapes.append(shapes[index])
+                for route_index, shape_name in enumerate(unique_shapes):
                     if route_index == 0:
-                        lines += [f"                        '{shapes[index]}', result_id, result_kind, result_type)) then"]
+                        lines += [f"                        '{shape_name}', result_id, result_kind, result_type)) then"]
                     else:
                         lines += ["                    else if (mir_v0_bridge_policy_result_shape_matches( &",
-                                  f"                            '{shapes[index]}', result_id, result_kind, result_type)) then"]
+                                  f"                            '{shape_name}', result_id, result_kind, result_type)) then"]
                 lines += ["                    else", "                        return", "                    end if"]
             lines += ["                case default", "                    return", "                end select"]
         lines += ["            case default", "                return", "            end select"]

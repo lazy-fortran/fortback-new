@@ -67,9 +67,9 @@ program test_mir_v0_riscv_linux
     unsupported(index(unsupported, 'opcode add'):index(unsupported, 'opcode add') + 9) = &
         'opcode mul'
     call compile_mir_v0_riscv_linux(unsupported, second, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_unsupported, 'unsupported MIR was accepted')
-    call assert_equal(trim(diagnostic), 'mir-v0: opcode is unsupported', &
-        'unsupported diagnostic changed')
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'wrong-route MIR was accepted')
+    call assert_equal(trim(diagnostic), 'mir-v0: witness is out of scope', &
+        'wrong-route diagnostic changed')
 
     malformed_opcode = input
     malformed_opcode(index(malformed_opcode, 'opcode add'): &
