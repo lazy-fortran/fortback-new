@@ -12,7 +12,7 @@ OUTPUT = ROOT / "src" / "fortback_mir_v0_riscv_linux_bridge_policy.f90"
 
 def read_policy():
     policy = {"instruction-count": None, "instructions": [], "result-shapes": [],
-              "source-rules": [], "literals": []}
+              "source-rules": [], "literal-ranges": []}
     shape_names = set()
     for line_number, line in enumerate(INPUT.read_text().splitlines(), 1):
         fields = line.split()
@@ -29,8 +29,16 @@ def read_policy():
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
             shape_names.add(fields[1])
             policy["result-shapes"].append(tuple(fields[1:]))
-        elif fields[0] == "literal" and len(fields) == 5 and fields[1] == "opcode" and fields[3] == "value":
-            policy["literals"].append((fields[2], int(fields[4])))
+        elif (fields[0] == "literal-range" and len(fields) == 7 and
+              fields[1] == "opcode" and fields[3] == "min" and fields[5] == "max"):
+            opcode = fields[2]
+            minimum = int(fields[4])
+            maximum = int(fields[6])
+            if minimum > maximum:
+                raise SystemExit(f"{INPUT}:{line_number}: literal range minimum exceeds maximum")
+            if any(existing_opcode == opcode for existing_opcode, _, _ in policy["literal-ranges"]):
+                raise SystemExit(f"{INPUT}:{line_number}: duplicate literal range")
+            policy["literal-ranges"].append((opcode, minimum, maximum))
         elif fields[0] == "source-rule" and len(fields) >= 6 and fields[1] == "function":
             shapes = tuple(fields[4].split(","))
             if any(shape not in shape_names for shape in shapes):
@@ -239,14 +247,10 @@ def render(policy):
                 lines += ["                    case default", "                        return", "                    end select"]
             lines += ["                case default", "                    return", "                end select",
                       "                select case (opcode)"]
-            literal_values = {}
-            for opcode, value in policy["literals"]:
-                literal_values.setdefault(opcode, []).append(value)
-            for opcode, values in literal_values.items():
-                allowed = " .and. ".join(f"literal /= {value}_int32" for value in values)
+            for opcode, minimum, maximum in policy["literal-ranges"]:
                 lines += [f"                case ({opcode_constant(opcode)})",
                           "                    if (.not. literal_present) return",
-                          f"                    if ({allowed}) return"]
+                          f"                    if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return"]
             lines += ["                case default", "                    if (literal_present) return", "                end select"]
         lines += ["            case default", "                return", "            end select"]
     lines += ["        case default", "            return", "        end select", "        mir_v0_bridge_policy_accepts = .true.", "    end function mir_v0_bridge_policy_accepts", "", "end module fortback_mir_v0_riscv_linux_bridge_policy", ""]

@@ -327,7 +327,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
+                    if (literal < 0_int32 .or. literal > 2047_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -380,7 +380,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
+                    if (literal < 0_int32 .or. literal > 2047_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -439,7 +439,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
+                    if (literal < 0_int32 .or. literal > 2047_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -519,7 +519,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
+                    if (literal < 0_int32 .or. literal > 2047_int32) return
                 case default
                     if (literal_present) return
                 end select
@@ -577,7 +577,7 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal /= 1_int32 .and. literal /= 2_int32 .and. literal /= 3_int32 .and. literal /= 5_int32 .and. literal /= 6_int32 .and. literal /= 7_int32) return
+                    if (literal < 0_int32 .or. literal > 2047_int32) return
                 case default
                     if (literal_present) return
                 end select

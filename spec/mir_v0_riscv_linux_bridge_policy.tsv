@@ -7,12 +7,7 @@ instruction opcode 3 sub sub
 instruction opcode 4 store addi
 instruction opcode 5 return return
 instruction opcode 6 const addi
-literal opcode const value 1
-literal opcode const value 2
-literal opcode const value 3
-literal opcode const value 5
-literal opcode const value 6
-literal opcode const value 7
+literal-range opcode const min 0 max 2047
 result-shape integer 1 integer i32
 result-shape integer-expression 2 integer i32
 result-shape integer-literal-left 0 integer i32

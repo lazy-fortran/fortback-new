@@ -1,15 +1,14 @@
 program test_mir_v0_bridge_const
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
-        mir_v0_bridge_malformed, mir_v0_bridge_ok, riscv_linux_artifact_t, &
-        write_mir_v0_riscv_linux
+        mir_v0_bridge_malformed, mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, &
+        riscv_linux_artifact_t, write_mir_v0_riscv_linux
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
     character(len=4096) :: input, malformed
-    character(len=256) :: diagnostic, path, command
+    character(len=256) :: diagnostic, path
     integer(int32) :: status
-    integer :: command_status, exit_status, io_status, unit
 
     input = const_input('(literal 7)')
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -18,39 +17,75 @@ program test_mir_v0_bridge_const
     call assert_byte(artifact%bytes, 178, 5, 'const addi rs1 byte changed')
     call assert_byte(artifact%bytes, 179, 112, 'const addi immediate byte changed')
     call assert_byte(artifact%bytes, 180, 0, 'const addi immediate high byte changed')
-
     path = '/tmp/fortback-mir-v0-const-riscv-linux-test.elf'
-    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_ok, 'const ELF write failed')
-    call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
-        exitstat=exit_status, cmdstat=command_status)
-    call assert_int(command_status, 0, 'const ELF chmod command failed')
-    call assert_int(exit_status, 0, 'const ELF chmod failed')
-    command = 'qemu-riscv64 '//trim(path)
-    call execute_command_line(trim(command), wait=.true., exitstat=exit_status, &
-        cmdstat=command_status)
-    call assert_int(command_status, 0, 'const qemu could not run artifact')
-    call assert_int(exit_status, 7, 'const artifact did not return seven')
-    open (newunit=unit, file=trim(path), status='old', iostat=io_status)
-    call assert_int(io_status, 0, 'const ELF was not written')
-    close (unit, status='delete', iostat=io_status)
-    call assert_int(io_status, 0, 'const ELF cleanup failed')
+    call assert_const_qemu(0, artifact, path)
+    call assert_const_qemu(7, artifact, path)
+    call assert_const_qemu(2047, artifact, path)
 
     malformed = const_input('')
     call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_malformed, 'missing literal was accepted')
     malformed = const_input('(literal seven)')
     call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_malformed, 'non-integer literal was accepted')
+    call assert_equal(status, mir_v0_bridge_malformed, &
+        'non-integer literal was accepted')
+    malformed = const_input('(literal -1)')
+    call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'negative literal was accepted')
+    malformed = const_input('(literal 2048)')
+    call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
+    call assert_equal(status, mir_v0_bridge_out_of_scope, &
+        'literal above policy range was accepted')
     malformed = const_input('(literal 2147483648)')
     call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_malformed, 'out-of-range literal was accepted')
+    call assert_equal(status, mir_v0_bridge_malformed, &
+        'out-of-range literal was accepted')
     malformed = input(:len_trim(input) - 1)
     call compile_mir_v0_riscv_linux(malformed, artifact, status, diagnostic)
-    call assert_equal(status, mir_v0_bridge_malformed, 'malformed const MIR was accepted')
+    call assert_equal(status, mir_v0_bridge_malformed, &
+        'malformed const MIR was accepted')
     write (*, '(a)') 'MIR-v0 const bridge encoding and qemu checks: ok'
 
 contains
+
+    subroutine assert_const_qemu(literal, artifact, path)
+        integer, intent(in) :: literal
+        type(riscv_linux_artifact_t), intent(inout) :: artifact
+        character(len=*), intent(in) :: path
+        character(len=4096) :: value
+        character(len=256) :: value_diagnostic, value_command
+        integer(int32) :: value_status
+        integer :: value_command_status, value_exit_status, value_io_status, value_unit
+
+        value = const_input('(literal '//int_text(literal)//')')
+        call compile_mir_v0_riscv_linux(value, artifact, value_status, value_diagnostic)
+        call assert_equal(value_status, mir_v0_bridge_ok, &
+            'accepted const literal was rejected')
+        call write_mir_v0_riscv_linux(value, path, value_status, value_diagnostic)
+        call assert_equal(value_status, mir_v0_bridge_ok, 'const ELF write failed')
+        call execute_command_line('chmod 755 -- '//trim(path), wait=.true., &
+            exitstat=value_exit_status, cmdstat=value_command_status)
+        call assert_int(value_command_status, 0, 'const ELF chmod command failed')
+        call assert_int(value_exit_status, 0, 'const ELF chmod failed')
+        value_command = 'qemu-riscv64 '//trim(path)
+        call execute_command_line(trim(value_command), wait=.true., &
+            exitstat=value_exit_status, cmdstat=value_command_status)
+        call assert_int(value_command_status, 0, 'const qemu could not run artifact')
+        call assert_int(value_exit_status, modulo(literal, 256), &
+            'const artifact returned wrong literal')
+        open (newunit=value_unit, file=trim(path), status='old', iostat=value_io_status)
+        call assert_int(value_io_status, 0, 'const ELF was not written')
+        close (value_unit, status='delete', iostat=value_io_status)
+        call assert_int(value_io_status, 0, 'const ELF cleanup failed')
+    end subroutine assert_const_qemu
+
+    function int_text(value) result(text)
+        integer, intent(in) :: value
+        character(len=32) :: text
+
+        write (text, '(i0)') value
+    end function int_text
 
     function const_input(literal) result(value)
         character(len=*), intent(in) :: literal

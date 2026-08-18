@@ -50,9 +50,9 @@ program test_mir_v0_bridge_materialized_add
     call assert_materialized_qemu('sub', 5, 3, 2, &
         '/tmp/fortback-mir-v0-materialized-sub.elf', artifact)
 
-    call compile_mir_v0_riscv_linux(materialized_add_input(4, 2, 2), artifact, status, &
+    call compile_mir_v0_riscv_linux(materialized_add_input(2048, 2, 2), artifact, status, &
         diagnostic)
-    call assert_equal(status, mir_v0_bridge_out_of_scope, 'disallowed literal was accepted')
+    call assert_equal(status, mir_v0_bridge_out_of_scope, 'out-of-range literal was accepted')
     call compile_mir_v0_riscv_linux(materialized_add_input(1, 2, 1), artifact, status, &
         diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'wrong result shape was accepted')
