@@ -6,7 +6,7 @@ program test_mir_v0_print_r1212
     implicit none
 
     character(len=4096) :: input, input_two, input_three, input_four, input_five, input_six
-    character(len=4096) :: input_seven, input_eight, input_nine
+    character(len=4096) :: input_seven, input_eight, input_nine, input_ten
     character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
     character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
     character(len=4096) :: wrong_three_literal, wrong_three_shape, wrong_three_opcode
@@ -16,11 +16,13 @@ program test_mir_v0_print_r1212
     character(len=4096) :: wrong_seven_literal, wrong_seven_shape, wrong_seven_opcode
     character(len=4096) :: wrong_eight_literal, wrong_eight_shape, wrong_eight_opcode
     character(len=4096) :: wrong_nine_literal, wrong_nine_shape, wrong_nine_opcode
+    character(len=4096) :: wrong_ten_literal, wrong_ten_shape, wrong_ten_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
     integer(int8) :: output(2), output_two(4), output_three(6), output_four(9), output_five(12)
     integer(int8) :: output_six(15), output_seven(18), output_eight(21), output_nine(24)
+    integer(int8) :: output_ten(27)
     type(riscv_linux_artifact_t) :: artifact
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
@@ -449,6 +451,85 @@ program test_mir_v0_print_r1212
     call assert_true(io_status /= 0, 'nine-item PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'nine-item PRINT output cleanup failed')
+
+    input_ten = input_nine
+    input_ten(index(input_ten, 'instruction-count 19'): &
+        index(input_ten, 'instruction-count 19') + 20) = 'instruction-count 21)'
+    input_ten = input_ten(:index(input_ten, '(instruction (id 18)') - 1)// &
+        '(instruction (id 18) (opcode const) (literal 16) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 19) (opcode output) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32))) (instruction (id 20) (opcode return) '// &
+        '(source-rule frontend-ast-v2/print-stmt) (result (id 0) (kind integer) '// &
+        '(type i32)))))'
+    call compile_mir_v0_riscv_linux(input_ten, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'ten-item PRINT MIR was rejected')
+    call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
+        'ten-item PRINT artifact provenance was lost')
+    call write_mir_v0_riscv_linux(input_ten, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'ten-item PRINT ELF write failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'ten-item PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'ten-item PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'ten-item PRINT output was not written')
+    read (unit, iostat=io_status) output_ten
+    call assert_int(io_status, 0, 'ten-item PRINT output length or bytes changed')
+    call assert_byte(output_ten(1), 55, 'ten-item PRINT did not write ASCII 7')
+    call assert_byte(output_ten(2), 10, 'ten-item PRINT missed newline after 7')
+    call assert_byte(output_ten(3), 56, 'ten-item PRINT did not write ASCII 8')
+    call assert_byte(output_ten(4), 10, 'ten-item PRINT missed newline after 8')
+    call assert_byte(output_ten(5), 57, 'ten-item PRINT did not write ASCII 9')
+    call assert_byte(output_ten(6), 10, 'ten-item PRINT missed newline after 9')
+    call assert_byte(output_ten(7), 49, 'ten-item PRINT did not write ASCII 1 of 10')
+    call assert_byte(output_ten(8), 48, 'ten-item PRINT did not write ASCII 0 of 10')
+    call assert_byte(output_ten(9), 10, 'ten-item PRINT missed newline after 10')
+    call assert_byte(output_ten(10), 49, 'ten-item PRINT did not write ASCII 1 of 11')
+    call assert_byte(output_ten(11), 49, 'ten-item PRINT did not write ASCII 1 of 11')
+    call assert_byte(output_ten(12), 10, 'ten-item PRINT missed newline after 11')
+    call assert_byte(output_ten(13), 49, 'ten-item PRINT did not write ASCII 1 of 12')
+    call assert_byte(output_ten(14), 50, 'ten-item PRINT did not write ASCII 2 of 12')
+    call assert_byte(output_ten(15), 10, 'ten-item PRINT missed newline after 12')
+    call assert_byte(output_ten(16), 49, 'ten-item PRINT did not write ASCII 1 of 13')
+    call assert_byte(output_ten(17), 51, 'ten-item PRINT did not write ASCII 3 of 13')
+    call assert_byte(output_ten(18), 10, 'ten-item PRINT missed newline after 13')
+    call assert_byte(output_ten(19), 49, 'ten-item PRINT did not write ASCII 1 of 14')
+    call assert_byte(output_ten(20), 52, 'ten-item PRINT did not write ASCII 4 of 14')
+    call assert_byte(output_ten(21), 10, 'ten-item PRINT missed newline after 14')
+    call assert_byte(output_ten(22), 49, 'ten-item PRINT did not write ASCII 1 of 15')
+    call assert_byte(output_ten(23), 53, 'ten-item PRINT did not write ASCII 5 of 15')
+    call assert_byte(output_ten(24), 10, 'ten-item PRINT missed newline after 15')
+    call assert_byte(output_ten(25), 49, 'ten-item PRINT did not write ASCII 1 of 16')
+    call assert_byte(output_ten(26), 54, 'ten-item PRINT did not write ASCII 6 of 16')
+    call assert_byte(output_ten(27), 10, 'ten-item PRINT missed newline after 16')
+    read (unit, iostat=io_status) output_ten(1)
+    call assert_true(io_status /= 0, 'ten-item PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'ten-item PRINT output cleanup failed')
+
+    wrong_ten_literal = input_ten
+    wrong_ten_literal(index(wrong_ten_literal, 'literal 16'): &
+        index(wrong_ten_literal, 'literal 16') + 9) = 'literal 17'
+    call compile_mir_v0_riscv_linux(wrong_ten_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'ten-item PRINT literal mutation was accepted')
+
+    wrong_ten_shape = input_ten
+    wrong_ten_shape(index(wrong_ten_shape, 'type i32', back=.true.): &
+        index(wrong_ten_shape, 'type i32', back=.true.) + 7) = 'type real'
+    call compile_mir_v0_riscv_linux(wrong_ten_shape, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'ten-item PRINT result-shape mutation was accepted')
+
+    wrong_ten_opcode = input_ten
+    wrong_ten_opcode(index(wrong_ten_opcode, 'opcode output', back=.true.): &
+        index(wrong_ten_opcode, 'opcode output', back=.true.) + 12) = 'opcode return '
+    call compile_mir_v0_riscv_linux(wrong_ten_opcode, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'ten-item PRINT opcode mutation was accepted')
 
     wrong_nine_literal = input_nine
     wrong_nine_literal(index(wrong_nine_literal, 'literal 15'): &

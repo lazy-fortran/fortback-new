@@ -49,12 +49,24 @@ route-operation source-rule frontend-ast-v2/print-stmt index 38 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 39 operation sb
 route-operation source-rule frontend-ast-v2/print-stmt index 40 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 41 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 42 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 43 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 44 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 45 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 46 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 47 operation sb
 route-operation source-rule frontend-ast-v2/print-stmt index 30 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 31 operation sb
 route-operation source-rule frontend-ast-v2/print-stmt index 32 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 33 operation sb
 route-operation source-rule frontend-ast-v2/print-stmt index 34 operation addi
 route-operation source-rule frontend-ast-v2/print-stmt index 35 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 48 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 49 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 50 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 51 operation sb
+route-operation source-rule frontend-ast-v2/print-stmt index 52 operation addi
+route-operation source-rule frontend-ast-v2/print-stmt index 53 operation sb
 route-operation source-rule frontend-ast-v1/storage-sequence index 1 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence index 2 operation ld
 route-operation source-rule frontend-ast-v1/storage-sequence index 3 operation addi
@@ -290,6 +302,7 @@ source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-pr
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output const output const output return
+source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output const output const output const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output const output return
 source-rule function p frontend-ast-v2/print-stmt integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value,integer-print-value const output const output const output const output const output const output const output const output const output return
 source-literal function p source-rule frontend-ast-v2/stop-stmt opcode const value 7
@@ -302,3 +315,4 @@ source-literal function p source-rule frontend-ast-v2/print-stmt opcode const in
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 12 value 13
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 14 value 14
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 16 value 15
+source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 18 value 16
