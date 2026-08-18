@@ -6,7 +6,7 @@ program test_mir_v0_print_variable
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
-    character(len=4096) :: input, wrong_storage, wrong_output, wrong_literal
+    character(len=8192) :: input, wrong_storage, wrong_output, wrong_literal
     character(len=256) :: diagnostic
     integer(int8) :: output(3)
     integer(int32) :: status
@@ -20,6 +20,9 @@ program test_mir_v0_print_variable
     input = print_variable_input('x', 'x', .false., 23)
     call run_print_variable(input, path, output_path, 50, 51)
 
+    input = print_variable_expression_input()
+    call run_print_variable(input, path, output_path, 50, 52)
+
     input = print_variable_input('x', 'x', .false., 17)
     wrong_storage = print_variable_input('x', 'x', .true., 17)
     call compile_mir_v0_riscv_linux(wrong_storage, artifact, status, diagnostic)
@@ -32,6 +35,11 @@ program test_mir_v0_print_variable
     wrong_literal = print_variable_input('x', 'x', .false., 24)
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'unsupported stored literal was accepted')
+    wrong_literal = print_variable_expression_input()
+    wrong_literal = replace_text(wrong_literal, '(literal 23)', '(literal 24)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'unsupported expression literal was accepted')
     write (*, '(a)') 'MIR-v0 stored-variable PRINT qemu checks: ok'
 
 contains
@@ -97,6 +105,41 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_input
+
+    function print_variable_expression_input() result(value)
+        character(len=8192) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 9) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 23) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) '// &
+            '(type i32))) (instruction (id 1) (opcode store) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 2) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 2) (kind integer) '// &
+            '(type i32))) (instruction (id 3) (opcode const) (literal 1) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 3) (kind integer) '// &
+            '(type i32))) (instruction (id 4) (opcode add) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 5) (opcode store) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 6) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 7) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32))) (instruction (id 8) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
+            '(type i32)))))'
+    end function print_variable_expression_input
+
+    function replace_text(value, old, new) result(replaced)
+        character(len=*), intent(in) :: value, old, new
+        character(len=8192) :: replaced
+        integer :: location
+
+        replaced = value
+        location = index(replaced, old)
+        if (location > 0) replaced = replaced(:location - 1)//new//replaced(location + len(old):)
+    end function replace_text
 
     subroutine assert_byte(actual, expected, message)
         integer(int8), intent(in) :: actual
