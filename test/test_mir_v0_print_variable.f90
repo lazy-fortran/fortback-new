@@ -6,7 +6,7 @@ program test_mir_v0_print_variable
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
-    character(len=16384) :: input, two_item_input, three_item_input, four_item_input
+    character(len=65536) :: input, two_item_input, three_item_input, four_item_input
     character(len=8192) :: wrong_storage, wrong_output, wrong_literal
     character(len=256) :: diagnostic
     integer(int8) :: output(3)
@@ -52,6 +52,9 @@ program test_mir_v0_print_variable
     call run_print_variable_many_items(print_variable_power_many_item_input(21), path, output_path, 21)
     call run_print_variable_many_items(print_variable_power_many_item_input(30), path, output_path, 30)
     call run_print_variable_many_items(print_variable_power_many_item_input(40), path, output_path, 40)
+    call run_print_variable_many_items(print_variable_power_many_item_input(41), path, output_path, 41)
+    call run_print_variable_many_items(print_variable_power_many_item_input(50), path, output_path, 50)
+    call run_print_variable_many_items(print_variable_power_many_item_input(60), path, output_path, 60)
     wrong_literal = replace_text(four_item_input, '(opcode output) (source-rule frontend-ast-v2/print-stmt)', &
         '(opcode return) (source-rule frontend-ast-v2/print-stmt)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
@@ -340,7 +343,7 @@ contains
     end function print_variable_input
 
     function print_variable_expression_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = '(mir-function (name main) (entry-block 0) (instruction-count 9) '// &
             '(instructions (instruction (id 0) (opcode const) (literal 23) '// &
@@ -365,14 +368,14 @@ contains
     end function print_variable_expression_input
 
     function print_variable_multiply_expression_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = replace_text(print_variable_expression_input(), '(literal 1)', '(literal 2)')
         value = replace_text(value, '(opcode add)', '(opcode mul)')
     end function print_variable_multiply_expression_input
 
     function print_variable_subtract_expression_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = print_variable_expression_input()
         value = replace_text(value, '(literal 1)', '(literal 2)')
@@ -380,7 +383,7 @@ contains
     end function print_variable_subtract_expression_input
 
     function print_variable_divide_expression_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = replace_text(print_variable_expression_input(), '(literal 23)', '(literal 24)')
         value = replace_text(value, '(literal 1)', '(literal 2)')
@@ -388,7 +391,7 @@ contains
     end function print_variable_divide_expression_input
 
     function print_variable_power_expression_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = print_variable_expression_input()
         value = replace_text(value, '(literal 23)', '(literal 2)')
@@ -397,7 +400,7 @@ contains
     end function print_variable_power_expression_input
 
     function print_variable_power_value_expression_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = print_variable_power_expression_input()
         value = replace_text(value, '(literal 2)', '(literal 99)')
@@ -406,7 +409,7 @@ contains
     end function print_variable_power_value_expression_input
 
     function print_variable_power_two_item_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = '(mir-function (name main) (entry-block 0) (instruction-count 11) '// &
             '(instructions (instruction (id 0) (opcode const) (literal 3) '// &
@@ -435,7 +438,7 @@ contains
     end function print_variable_power_two_item_input
 
     function print_variable_power_three_item_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = print_variable_power_two_item_input()
         value = replace_text(value, 'instruction-count 11', 'instruction-count 13')
@@ -448,7 +451,7 @@ contains
     end function print_variable_power_three_item_input
 
     function print_variable_power_four_item_input() result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
 
         value = print_variable_power_three_item_input()
         value = replace_text(value, 'instruction-count 13', 'instruction-count 15')
@@ -461,7 +464,7 @@ contains
     end function print_variable_power_four_item_input
 
     function print_variable_power_many_item_input(item_count) result(value)
-        character(len=16384) :: value
+        character(len=65536) :: value
         character(len=32) :: old_id, new_id, new_instruction, result_id
         integer, intent(in) :: item_count
         integer :: item_index, instruction_id
@@ -534,7 +537,7 @@ contains
 
     function replace_text(value, old, new) result(replaced)
         character(len=*), intent(in) :: value, old, new
-        character(len=16384) :: replaced
+        character(len=65536) :: replaced
         integer :: location
 
         replaced = value

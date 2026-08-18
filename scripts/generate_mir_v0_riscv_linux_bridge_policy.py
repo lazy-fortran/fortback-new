@@ -48,7 +48,7 @@ def read_policy():
               fields[5] == "pattern" and fields[6] in ("storage-sequence", "stored-variable-print")):
             count = int(fields[4])
             if fields[6] == "stored-variable-print":
-                counts = range(count, 88, 2) if count == 49 else (count,)
+                counts = range(count, 128, 2) if count == 49 else (count,)
                 for generated_count in counts:
                     policy["generated-source-routes"].append((fields[2], generated_count))
                     if fields[2] == "frontend-ast-v2/print-stmt":
@@ -132,7 +132,7 @@ def read_policy():
     if not policy["source-rules"]:
         raise SystemExit(f"{INPUT}: at least one source-rule row is required")
     for source_rule, instruction_count in policy["generated-source-routes"]:
-        if instruction_count < 49 or instruction_count > 87 or instruction_count % 2 == 0:
+        if instruction_count < 49 or instruction_count > 127 or instruction_count % 2 == 0:
             raise SystemExit(f"{INPUT}: stored-variable PRINT count is out of range")
         item_count = (instruction_count - 7) // 2
         shapes = ["integer-literal-left", "integer-sequence-store-literal",
