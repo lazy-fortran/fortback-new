@@ -18,6 +18,17 @@ route-operation source-rule frontend-ast-v1/storage-sequence index 3 operation a
 route-operation source-rule frontend-ast-v1/storage-sequence index 4 operation add
 route-operation source-rule frontend-ast-v1/storage-sequence index 5 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence index 6 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 0 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 1 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 2 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 3 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 4 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 5 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 6 operation ld
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 7 operation addi
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 8 operation add
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 9 operation sd
+route-operation source-rule frontend-ast-v1/storage-sequence-3 index 10 operation addi
 literal-range opcode const min 0 max 2047
 result-shape integer 1 integer i32
 result-shape integer-loaded 0 integer i32
@@ -30,6 +41,10 @@ result-shape integer-sequence-loaded 2 integer i32
 result-shape integer-sequence-literal-right 3 integer i32
 result-shape integer-sequence-expression 4 integer i32
 result-shape integer-sequence-expression-result 4 integer i32
+result-shape integer-sequence-3-loaded 6 integer i32
+result-shape integer-sequence-3-literal-right 7 integer i32
+result-shape integer-sequence-3-expression 8 integer i32
+result-shape integer-sequence-3-expression-result 8 integer i32
 result-shape real 1 real f32
 result-shape double 1 real f64
 result-shape complex 1 complex c32
@@ -54,6 +69,7 @@ source-rule function main frontend-ast-v1/expression integer-expression,integer,
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer div store return
 source-rule function main frontend-ast-v1/expression integer-expression,integer,integer sub store return
 source-rule function main frontend-ast-v1/storage-sequence integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-expression-result const store load const add store return
+source-rule function main frontend-ast-v1/storage-sequence-3 integer-literal-left,integer-sequence-store-literal,integer-sequence-loaded,integer-sequence-literal-right,integer-sequence-expression,integer-sequence-expression-result,integer-sequence-3-loaded,integer-sequence-3-literal-right,integer-sequence-3-expression,integer-sequence-3-expression-result,integer-sequence-3-expression-result const store load const add store load const add store return
 source-rule function p frontend-ast-v1/program integer add return
 source-rule function p frontend-ast-v1/program real add return
 source-rule function p frontend-ast-v1/program double add return

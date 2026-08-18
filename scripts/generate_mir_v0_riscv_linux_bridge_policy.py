@@ -63,9 +63,7 @@ def read_policy():
             opcodes = tuple(fields[5:])
             if len(opcodes) != len(policy["instructions"]):
                 if not opcodes:
-                    opcodes = tuple(opcode for _, opcode in policy["instructions"])
-                elif len(opcodes) > len(policy["instructions"]):
-                    raise SystemExit(f"{INPUT}:{line_number}: instruction route length mismatch")
+                    opcodes = tuple(opcode for _, opcode, _ in policy["instructions"])
             if len(shapes) not in (1, len(opcodes)):
                 raise SystemExit(f"{INPUT}:{line_number}: result shape route length mismatch")
             if len(shapes) == 1:
