@@ -9,7 +9,7 @@ program test_mir_v0_bridge_frontend_ast_v1
     character(len=256) :: diagnostic
     integer(int32) :: status
 
-    ast_v1_input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
+    ast_v1_input = '(mir-function (name p) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &
         '(source-rule frontend-ast-v1/program) (result (id 1) (kind integer) '// &
         '(type i32))) (instruction (id 1) (opcode return) '// &
@@ -27,13 +27,13 @@ program test_mir_v0_bridge_frontend_ast_v1
     call compile_mir_v0_riscv_linux(legacy_input, legacy_artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_ok, 'legacy MIR-v0 witness rejected')
     call assert_true(size(ast_v1_artifact%bytes) == size(legacy_artifact%bytes), &
-        'AST-v1 artifact size changed')
+        'source-derived p artifact size changed')
     call assert_true(all(ast_v1_artifact%bytes == legacy_artifact%bytes), &
-        'AST-v1 artifact bytes differ from legacy bytes')
-    call assert_byte(ast_v1_artifact%bytes, 185, 115, 'AST-v1 ecall encoding changed')
-    call assert_byte(ast_v1_artifact%bytes, 186, 0, 'AST-v1 ecall encoding changed')
-    call assert_byte(ast_v1_artifact%bytes, 187, 0, 'AST-v1 ecall encoding changed')
-    call assert_byte(ast_v1_artifact%bytes, 188, 0, 'AST-v1 ecall encoding changed')
+        'source-derived p artifact bytes differ from legacy bytes')
+    call assert_byte(ast_v1_artifact%bytes, 185, 115, 'source-derived p ecall encoding changed')
+    call assert_byte(ast_v1_artifact%bytes, 186, 0, 'source-derived p ecall encoding changed')
+    call assert_byte(ast_v1_artifact%bytes, 187, 0, 'source-derived p ecall encoding changed')
+    call assert_byte(ast_v1_artifact%bytes, 188, 0, 'source-derived p ecall encoding changed')
     write (*, '(a)') 'MIR-v0 frontend AST-v1 bridge behavioral checks: ok'
 
 contains

@@ -205,7 +205,8 @@ contains
         ok = .false.
         status = mir_v0_bridge_out_of_scope
         call set_diagnostic(diagnostic, '')
-        if (trim(mir%name) /= 'main' .or. mir%entry_block /= 0_int32 .or. &
+        if ((trim(mir%name) /= 'main' .and. trim(mir%name) /= 'p') .or. &
+            mir%entry_block /= 0_int32 .or. &
             mir%instruction_count /= 2_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
@@ -242,6 +243,11 @@ contains
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end select
+            if (trim(mir%name) == 'p' .and. &
+                trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v1/program') then
+                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
+                return
+            end if
         end do
         ok = .true.
         status = mir_v0_bridge_ok
