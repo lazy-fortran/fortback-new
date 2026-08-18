@@ -87,6 +87,7 @@ contains
         character(len=512) :: opcode_text
         integer(int32) :: emitted_count, print_write_length
         integer(int32) :: print_item_index, print_digit_index, print_digit_count
+        integer(int32) :: print_item_count
         integer(int32) :: print_buffer_offset
         integer(int32) :: print_syscall_word
         character(len=32) :: print_digits
@@ -101,6 +102,7 @@ contains
         logical :: print_variable_four_item_route
         logical :: print_variable_five_item_route
         logical :: print_variable_six_item_route
+        logical :: print_variable_seven_to_ten_item_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -148,11 +150,17 @@ contains
         print_variable_four_item_route = is_print_variable_four_item_candidate(mir)
         print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
         print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
+        print_variable_seven_to_ten_item_route = &
+            is_print_variable_seven_to_ten_item_candidate(mir)
         print_route = trim(mir%name) == 'p' .and. &
             trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
             .not. print_variable_route
-        if (print_variable_three_item_route .or. print_variable_four_item_route .or. &
-            print_variable_five_item_route .or. print_variable_six_item_route) then
+        if (print_variable_seven_to_ten_item_route) then
+            call encode_print_variable_seven_to_ten(target, records, mir, words, emitted_count, &
+                status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+        else if (print_variable_three_item_route .or. print_variable_four_item_route .or. &
+                print_variable_five_item_route .or. print_variable_six_item_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -1010,6 +1018,118 @@ contains
         call set_diagnostic(diagnostic, '')
     end subroutine compile_mir_v0_riscv_linux
 
+    subroutine encode_print_variable_seven_to_ten(target, records, mir, words, emitted_count, &
+            status, diagnostic)
+        type(target_ir_t), intent(in) :: target
+        type(riscv_opcode_record_t), intent(in) :: records(:)
+        type(parsed_mir_t), intent(in) :: mir
+        integer(int64), intent(out) :: words(:)
+        integer(int32), intent(out) :: emitted_count
+        integer(int32), intent(out) :: status
+        character(len=*), intent(out) :: diagnostic
+        integer(int32) :: item_count, item_index, word_index, offset
+
+        item_count = (mir%instruction_count - 7_int32) / 2_int32
+        word_index = 1_int32
+        call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
+            [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(word_index), &
+            status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [10_int64, 0_int64, 3_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+            [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
+            [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [11_int64, 0_int64, 2_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+            [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
+            [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+
+        do item_index = 1, item_count
+            offset = 2_int32 * (item_index - 1_int32)
+            if (item_index > 1_int32) then
+                call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
+                    [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+            end if
+            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 57_int64], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+            call encode_operation(target, records, 'sb', [5_int64, 2_int64, int(offset, int64)], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+            call encode_operation(target, records, 'sb', [5_int64, 2_int64, int(offset + 1_int32, int64)], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+        end do
+
+        call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [12_int64, 0_int64, int(2 * item_count, int64)], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+            mir_v0_riscv_linux_ecall_operands, words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [10_int64, 0_int64, 0_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, 'addi', [17_int64, 0_int64, 93_int64], &
+            words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        word_index = word_index + 1_int32
+        call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+            mir_v0_riscv_linux_ecall_operands, words(word_index), status, diagnostic)
+        if (status /= mir_v0_bridge_ok) return
+        emitted_count = word_index
+    end subroutine encode_print_variable_seven_to_ten
+
     subroutine write_mir_v0_riscv_linux(input, path, status, diagnostic)
         character(len=*), intent(in) :: input
         character(len=*), intent(in) :: path
@@ -1111,6 +1231,7 @@ contains
         logical :: print_variable_four_item_route
         logical :: print_variable_five_item_route
         logical :: print_variable_six_item_route
+        logical :: print_variable_seven_to_ten_item_route
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
@@ -1122,6 +1243,8 @@ contains
         print_variable_four_item_route = is_print_variable_four_item_candidate(mir)
         print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
         print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
+        print_variable_seven_to_ten_item_route = &
+            is_print_variable_seven_to_ten_item_candidate(mir)
         if (.not. mir_v0_bridge_policy_function_supported(mir%name)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
@@ -1139,7 +1262,13 @@ contains
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
-        if (print_variable_six_item_route) then
+        if (print_variable_seven_to_ten_item_route) then
+            if (.not. valid_print_variable_seven_to_ten_item(mir)) then
+                call set_diagnostic(diagnostic, &
+                    'mir-v0: PRINT seven-to-ten-item witness is out of scope')
+                return
+            end if
+        else if (print_variable_six_item_route) then
             if (.not. valid_print_variable_six_item(mir)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT six-item witness is out of scope')
                 return
@@ -1369,6 +1498,31 @@ contains
             mir%instructions(18)%opcode == mir_v0_opcode_output .and. &
             mir%instructions(19)%opcode == mir_v0_opcode_return
     end function is_print_variable_six_item_candidate
+
+    logical function is_print_variable_seven_to_ten_item_candidate(mir) result(candidate)
+        type(parsed_mir_t), intent(in) :: mir
+        integer :: index, item_count
+
+        candidate = .false.
+        if (trim(mir%name) /= 'main') return
+        if (mir%instruction_count < 21_int32 .or. mir%instruction_count > 27_int32) return
+        if (mod(mir%instruction_count - 7_int32, 2_int32) /= 0_int32) return
+        item_count = (mir%instruction_count - 7) / 2
+        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
+        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+        if (mir%instructions(1)%opcode /= mir_v0_opcode_const) return
+        if (mir%instructions(2)%opcode /= mir_v0_opcode_store) return
+        if (mir%instructions(3)%opcode /= mir_v0_opcode_load) return
+        if (mir%instructions(4)%opcode /= mir_v0_opcode_const) return
+        if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) return
+        if (mir%instructions(6)%opcode /= mir_v0_opcode_store) return
+        do index = 1, item_count
+            if (mir%instructions(6 + 2 * index)%opcode /= mir_v0_opcode_load) return
+            if (mir%instructions(7 + 2 * index)%opcode /= mir_v0_opcode_output) return
+        end do
+        if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
+        candidate = .true.
+    end function is_print_variable_seven_to_ten_item_candidate
 
     logical function is_print_variable_expression_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
@@ -1627,6 +1781,46 @@ contains
         if (mir%instructions(19)%result_id /= 11_int32) return
         valid = .true.
     end function valid_print_variable_six_item
+
+    logical function valid_print_variable_seven_to_ten_item(mir) result(valid)
+        type(parsed_mir_t), intent(in) :: mir
+        integer :: index, item_count
+
+        valid = .false.
+        item_count = (mir%instruction_count - 7) / 2
+        do index = 1, mir%instruction_count
+            select case (index)
+            case (2, 3, 6, 7)
+                if (.not. mir%instructions(index)%storage_present) return
+                if (trim(mir%instructions(index)%storage_key) /= 'x') return
+            case default
+                if (index >= 9) then
+                    if (mod(index - 9, 2) == 0) then
+                        if (.not. mir%instructions(index)%storage_present) return
+                        if (trim(mir%instructions(index)%storage_key) /= 'x') return
+                    else if (mir%instructions(index)%storage_present) then
+                        return
+                    end if
+                else if (mir%instructions(index)%storage_present) then
+                    return
+                end if
+            end select
+        end do
+        if (mir%instructions(1)%literal /= 3_int32) return
+        if (mir%instructions(4)%literal /= 2_int32) return
+        if (mir%instructions(1)%result_id /= 0_int32) return
+        if (mir%instructions(2)%result_id /= 1_int32) return
+        if (mir%instructions(3)%result_id /= 2_int32) return
+        if (mir%instructions(4)%result_id /= 3_int32) return
+        if (mir%instructions(5)%result_id /= 4_int32) return
+        if (mir%instructions(6)%result_id /= 4_int32) return
+        if (mir%instructions(7)%result_id /= 6_int32) return
+        do index = 1, item_count
+            if (mir%instructions(6 + 2 * index)%result_id < 7_int32) return
+            if (mir%instructions(7 + 2 * index)%result_id < 7_int32) return
+        end do
+        valid = .true.
+    end function valid_print_variable_seven_to_ten_item
 
     logical function valid_print_variable_expression(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
