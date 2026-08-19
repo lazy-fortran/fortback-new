@@ -2081,6 +2081,8 @@ contains
             (trim(mir%instructions(3)%storage_key) /= 'y' .and. &
              trim(mir%instructions(3)%storage_key) /= 'z') .or. &
             mir%instructions(3)%literal_present) return
+        if (trim(mir%instructions(2)%storage_key) /= &
+                trim(mir%instructions(3)%storage_key)) return
         if (mir%instructions(4)%storage_present .or. mir%instructions(4)%literal_present .or. &
             mir%instructions(5)%storage_present .or. mir%instructions(5)%literal_present) return
         if (mir%instructions(1)%result_id /= 2_int32 .or. &
