@@ -94,9 +94,12 @@ program test_mir_v0_print_variable
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic division instruction-order mutation was accepted')
 
+    input = print_variable_generic_power_two_input()
+    call run_print_generic_power(input, path, output_path, 9)
     input = print_variable_generic_power_input()
-    call run_print_generic_power(input, path, output_path)
-    wrong_literal = replace_text(input, '(literal 2)', '(literal 3)')
+    call run_print_generic_power(input, path, output_path, 27)
+    wrong_literal = replace_text(input, '(literal 3) (source-rule frontend-ast-v2/print-stmt)', &
+        '(literal 4) (source-rule frontend-ast-v2/print-stmt)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic power literal mutation was accepted')
@@ -369,11 +372,12 @@ contains
         call assert_int(io_status, 0, 'generic division output cleanup failed')
     end subroutine run_print_generic_divide
 
-    subroutine run_print_generic_power(input, path, output_path)
+    subroutine run_print_generic_power(input, path, output_path, expected_value)
         character(len=*), intent(in) :: input, path, output_path
+        integer, intent(in) :: expected_value
         type(riscv_linux_artifact_t) :: artifact
         character(len=256) :: diagnostic
-        integer(int8) :: output(6)
+        integer(int8) :: output(7)
         integer(int32) :: status
         integer :: command_status, exit_status, io_status, unit
 
@@ -392,14 +396,28 @@ contains
         open (newunit=unit, file=output_path, access='stream', form='unformatted', &
             status='old', action='read', iostat=io_status)
         call assert_int(io_status, 0, 'generic power output was not written')
-        read (unit, iostat=io_status) output
+        if (expected_value == 27) then
+            read (unit, iostat=io_status) output
+        else
+            read (unit, iostat=io_status) output(:6)
+        end if
         call assert_int(io_status, 0, 'generic power output length changed')
-        call assert_byte(output(1), 57, 'generic power missed 9')
-        call assert_byte(output(2), 10, 'generic power missed first newline')
-        call assert_byte(output(3), 55, 'generic power missed 7')
-        call assert_byte(output(4), 10, 'generic power missed second newline')
-        call assert_byte(output(5), 51, 'generic power missed 3')
-        call assert_byte(output(6), 10, 'generic power missed third newline')
+        if (expected_value == 27) then
+            call assert_byte(output(1), 50, 'generic power missed first 2')
+            call assert_byte(output(2), 55, 'generic power missed second 7')
+            call assert_byte(output(3), 10, 'generic power missed first newline')
+            call assert_byte(output(4), 55, 'generic power missed 7')
+            call assert_byte(output(5), 10, 'generic power missed second newline')
+            call assert_byte(output(6), 51, 'generic power missed 3')
+            call assert_byte(output(7), 10, 'generic power missed third newline')
+        else
+            call assert_byte(output(1), 57, 'generic power missed 9')
+            call assert_byte(output(2), 10, 'generic power missed first newline')
+            call assert_byte(output(3), 55, 'generic power missed 7')
+            call assert_byte(output(4), 10, 'generic power missed second newline')
+            call assert_byte(output(5), 51, 'generic power missed 3')
+            call assert_byte(output(6), 10, 'generic power missed third newline')
+        end if
         read (unit, iostat=io_status) output(1)
         call assert_true(io_status /= 0, 'generic power wrote extra bytes')
         close (unit, status='delete', iostat=io_status)
@@ -665,8 +683,16 @@ contains
         character(len=65536) :: value
 
         value = print_variable_generic_multiply_input()
+        value = replace_text(value, '(literal 2)', '(literal 3)')
         value = replace_text(value, '(opcode mul)', '(opcode pow)')
     end function print_variable_generic_power_input
+
+    function print_variable_generic_power_two_input() result(value)
+        character(len=65536) :: value
+
+        value = print_variable_generic_multiply_input()
+        value = replace_text(value, '(opcode mul)', '(opcode pow)')
+    end function print_variable_generic_power_two_input
 
     function print_variable_multiply_expression_input() result(value)
         character(len=65536) :: value

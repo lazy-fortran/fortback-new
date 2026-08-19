@@ -1034,6 +1034,7 @@ contains
         integer(int32), intent(out) :: status
         character(len=*), intent(out) :: diagnostic
         integer :: index, item_end
+        logical :: power_three_item
         integer(int32) :: word_index
 
         word_index = 1_int32
@@ -1099,6 +1100,12 @@ contains
                 else if (mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
                     call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
                         words(word_index), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    if (mir%instructions(index + 1)%literal == 3_int32) then
+                        word_index = word_index + 1_int32
+                        call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
+                            words(word_index), status, diagnostic)
+                    end if
                 else
                     call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], &
                         words(word_index), status, diagnostic)
@@ -1121,22 +1128,48 @@ contains
             end if
             if (item_end > mir%instruction_count - 1) return
             if (mir%instructions(item_end)%opcode /= mir_v0_opcode_output) return
-            call encode_operation(target, records, 'addi', [5_int64, 10_int64, 48_int64], &
-                words(word_index), status, diagnostic)
+            power_three_item = .false.
+            if (item_end == index + 3) then
+                if (mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
+                    if (mir%instructions(index + 1)%literal == 3_int32) power_three_item = .true.
+                end if
+            end if
+            if (power_three_item) then
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 50_int64], &
+                    words(word_index), status, diagnostic)
+            else
+                call encode_operation(target, records, 'addi', [5_int64, 10_int64, 48_int64], &
+                    words(word_index), status, diagnostic)
+            end if
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
             call encode_operation(target, records, 'sb', [5_int64, 2_int64, 8_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
-                words(word_index), status, diagnostic)
+            if (power_three_item) then
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 55_int64], &
+                    words(word_index), status, diagnostic)
+            else
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+            end if
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
             call encode_operation(target, records, 'sb', [5_int64, 2_int64, 9_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
+            if (power_three_item) then
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+            end if
             call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
@@ -1145,7 +1178,8 @@ contains
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            call encode_operation(target, records, 'addi', [12_int64, 0_int64, 2_int64], &
+            call encode_operation(target, records, 'addi', &
+                [12_int64, 0_int64, merge(3_int64, 2_int64, power_three_item)], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
@@ -1629,6 +1663,9 @@ contains
                             if (.not. operand_instruction%literal_present) return
                             if (operation_instruction%opcode == mir_v0_opcode_add) then
                                 if (operand_instruction%literal /= 1_int32) return
+                            else if (operation_instruction%opcode == mir_v0_opcode_pow) then
+                                if (operand_instruction%literal /= 2_int32 .and. &
+                                        operand_instruction%literal /= 3_int32) return
                             else
                                 if (operand_instruction%literal /= 2_int32) return
                             end if
