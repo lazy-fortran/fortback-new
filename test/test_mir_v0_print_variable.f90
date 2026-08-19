@@ -1,7 +1,8 @@
 program test_mir_v0_print_variable
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
-        mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, riscv_linux_artifact_t, &
+        mir_v0_bridge_malformed, mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, &
+        riscv_linux_artifact_t, &
         write_mir_v0_riscv_linux
     implicit none
 
@@ -20,6 +21,21 @@ program test_mir_v0_print_variable
 
     input = print_variable_input('x', 'x', .false., 23)
     call run_print_variable(input, path, output_path, 50, 51)
+
+    input = print_variable_input('x', 'x', .false., -5)
+    call run_print_variable_signed(input, path, output_path, '-5'//achar(10))
+
+    input = print_variable_input('x', 'x', .false., -100)
+    call run_print_variable_signed(input, path, output_path, '-100'//achar(10))
+    wrong_literal = print_variable_input('y', 'x', .false., -5)
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'signed wrong storage mutation was accepted')
+    wrong_literal = replace_text(print_variable_input('x', 'x', .false., -100), &
+        '(opcode output)', '(opcode return)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'signed wrong opcode mutation was accepted')
 
     input = print_variable_expression_input()
     call run_print_variable(input, path, output_path, 50, 52)
@@ -214,6 +230,13 @@ program test_mir_v0_print_variable
     wrong_literal = print_variable_input('x', 'x', .false., 24)
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'unsupported stored literal was accepted')
+    wrong_literal = print_variable_input('x', 'x', .false., -101)
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'out-of-range negative stored literal was accepted')
+    wrong_literal = print_variable_input('x', 'x', .false., 0)
+    wrong_literal = replace_text(wrong_literal, '(literal 0)', '(literal - 5)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_malformed, 'malformed negative literal was accepted')
     wrong_literal = print_variable_expression_input()
     wrong_literal = replace_text(wrong_literal, '(literal 23)', '(literal 24)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
@@ -299,6 +322,38 @@ contains
         close (unit, status='delete', iostat=io_status)
         call assert_int(io_status, 0, 'stored-variable PRINT output cleanup failed')
     end subroutine run_print_variable
+
+    subroutine run_print_variable_signed(input, path, output_path, expected)
+        character(len=*), intent(in) :: input, path, output_path, expected
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        character(len=len(expected)) :: output
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'signed stored-variable PRINT MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'signed stored-variable PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'signed stored-variable PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'signed stored-variable PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'signed stored-variable PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'signed stored-variable PRINT output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'signed stored-variable PRINT output length changed')
+        call assert_true(output == expected, 'signed stored-variable PRINT output mismatch')
+        read (unit, iostat=io_status) output(1:1)
+        call assert_true(io_status /= 0, 'signed stored-variable PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'signed stored-variable PRINT output cleanup failed')
+    end subroutine run_print_variable_signed
 
     subroutine run_print_generic_expression(input, path, output_path)
         character(len=*), intent(in) :: input, path, output_path
