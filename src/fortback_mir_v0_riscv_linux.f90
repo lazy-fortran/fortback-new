@@ -52,6 +52,8 @@ module fortback_mir_v0_riscv_linux
     integer, parameter :: instruction_capacity = 208
     integer(int32), parameter :: generic_power_minimum = 2_int32
     integer(int32), parameter :: generic_power_maximum = 10_int32
+    integer(int32), parameter :: generic_decimal_minimum = 1_int32
+    integer(int32), parameter :: generic_decimal_maximum = 10_int32
 
     type :: bridge_instruction_t
         integer(int32) :: id = 0_int32
@@ -1864,9 +1866,10 @@ contains
                         if (operation_instruction%storage_present) return
                         if (operand_instruction%opcode == mir_v0_opcode_const) then
                             if (.not. operand_instruction%literal_present) return
-                            if (operation_instruction%opcode == mir_v0_opcode_add) then
-                                if (operand_instruction%literal /= 1_int32 .and. &
-                                    operand_instruction%literal /= 2_int32) return
+                            if (operation_instruction%opcode == mir_v0_opcode_add .or. &
+                                operation_instruction%opcode == mir_v0_opcode_sub) then
+                                if (operand_instruction%literal < generic_decimal_minimum .or. &
+                                    operand_instruction%literal > generic_decimal_maximum) return
                             else if (operation_instruction%opcode == mir_v0_opcode_pow) then
                                 if (operand_instruction%literal < generic_power_minimum .or. &
                                     operand_instruction%literal > generic_power_maximum) return

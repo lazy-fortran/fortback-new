@@ -63,7 +63,7 @@ program test_mir_v0_print_generic_list
     call assert_int(io_status, 0, 'generic x+2 PRINT output was not written')
     read (unit, iostat=io_status) output(1:2)
     call assert_int(io_status, 0, 'generic x+2 PRINT output length changed')
-    call assert_byte(output(1), iachar('5'), 'generic x+2 PRINT output mismatch')
+    call assert_byte(output(1), iachar('7'), 'generic x+2 PRINT output mismatch')
     call assert_byte(output(2), iachar(achar(10)), 'generic x+2 PRINT newline mismatch')
     read (unit, iostat=io_status) output(1)
     call assert_true(io_status /= 0, 'generic x+2 PRINT wrote extra bytes')
@@ -73,8 +73,59 @@ program test_mir_v0_print_generic_list
     input = generic_add_constant_input()
     input(index(input, 'literal 2'):index(input, 'literal 2') + 8) = 'literal 3'
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, &
+        'generic x+3 PRINT MIR was rejected: '//trim(diagnostic))
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'generic x+3 PRINT ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'generic x+3 PRINT chmod failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'generic x+3 PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'generic x+3 PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'generic x+3 PRINT output was not written')
+    read (unit, iostat=io_status) output(1:2)
+    call assert_int(io_status, 0, 'generic x+3 PRINT output length changed')
+    call assert_byte(output(1), iachar('8'), 'generic x+3 PRINT output mismatch')
+    call assert_byte(output(2), iachar(achar(10)), 'generic x+3 PRINT newline mismatch')
+    read (unit, iostat=io_status) output(1)
+    call assert_true(io_status /= 0, 'generic x+3 PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'generic x+3 PRINT output cleanup failed')
+
+    input(index(input, 'literal 3'):index(input, 'literal 3') + 8) = 'literal 4'
+    input(index(input, 'opcode add'):index(input, 'opcode add') + 9) = 'opcode sub '
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, &
+        'generic x-4 PRINT MIR was rejected: '//trim(diagnostic))
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'generic x-4 PRINT ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'generic x-4 PRINT chmod failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'generic x-4 PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'generic x-4 PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'generic x-4 PRINT output was not written')
+    read (unit, iostat=io_status) output(1:2)
+    call assert_int(io_status, 0, 'generic x-4 PRINT output length changed')
+    call assert_byte(output(1), iachar('1'), 'generic x-4 PRINT output mismatch')
+    call assert_byte(output(2), iachar(achar(10)), 'generic x-4 PRINT newline mismatch')
+    read (unit, iostat=io_status) output(1)
+    call assert_true(io_status /= 0, 'generic x-4 PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'generic x-4 PRINT output cleanup failed')
+
+    input(index(input, 'literal 4'):index(input, 'literal 4') + 10) = 'literal 11)'
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'generic x+3 PRINT MIR was accepted')
+        'generic x-11 PRINT MIR was accepted')
     write (*, '(a)') 'MIR-v0 generic literal PRINT QEMU check: ok'
 
 contains
@@ -100,7 +151,7 @@ contains
         character(len=65536) :: value
 
         value = '(mir-function (name main) (entry-block 0) (instruction-count 7) '// &
-            '(instructions (instruction (id 0) (opcode const) (literal 3) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 5) '// &
             '(source-rule frontend-ast-v2/execution-part) (result (id 0) '// &
             '(kind integer) (type i32))) (instruction (id 1) (opcode store) '// &
             '(storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
