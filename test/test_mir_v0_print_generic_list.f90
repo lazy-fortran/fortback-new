@@ -173,64 +173,65 @@ program test_mir_v0_print_generic_list
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'generic x-0 PRINT output cleanup failed')
 
-    input = generic_add_constant_input()
-    input(index(input, 'literal 2'):index(input, 'literal 2') + 10) = 'literal 10)'
+    input = generic_add_constant_input(100)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_ok, &
-        'generic x+10 PRINT MIR was rejected: '//trim(diagnostic))
+        'generic x+100 PRINT MIR was rejected: '//trim(diagnostic))
     call write_mir_v0_riscv_linux(input, path, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_ok, 'generic x+10 PRINT ELF write failed')
+    call assert_status(status, mir_v0_bridge_ok, 'generic x+100 PRINT ELF write failed')
     call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
         cmdstat=command_status)
-    call assert_int(command_status, 0, 'generic x+10 PRINT chmod failed')
+    call assert_int(command_status, 0, 'generic x+100 PRINT chmod failed')
     call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
         exitstat=exit_status, cmdstat=command_status)
-    call assert_int(command_status, 0, 'generic x+10 PRINT qemu command failed')
-    call assert_int(exit_status, 0, 'generic x+10 PRINT artifact did not exit successfully')
+    call assert_int(command_status, 0, 'generic x+100 PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'generic x+100 PRINT artifact did not exit successfully')
     open (newunit=unit, file=output_path, access='stream', form='unformatted', &
         status='old', action='read', iostat=io_status)
-    call assert_int(io_status, 0, 'generic x+10 PRINT output was not written')
-    read (unit, iostat=io_status) output(1:3)
-    call assert_int(io_status, 0, 'generic x+10 PRINT output length changed')
-    call assert_byte(output(1), iachar('1'), 'generic x+10 PRINT output mismatch')
-    call assert_byte(output(2), iachar('5'), 'generic x+10 PRINT output mismatch')
-    call assert_byte(output(3), iachar(achar(10)), 'generic x+10 PRINT newline mismatch')
+    call assert_int(io_status, 0, 'generic x+100 PRINT output was not written')
+    read (unit, iostat=io_status) output(1:4)
+    call assert_int(io_status, 0, 'generic x+100 PRINT output length changed')
+    call assert_byte(output(1), iachar('1'), 'generic x+100 PRINT output mismatch')
+    call assert_byte(output(2), iachar('0'), 'generic x+100 PRINT output mismatch')
+    call assert_byte(output(3), iachar('5'), 'generic x+100 PRINT output mismatch')
+    call assert_byte(output(4), iachar(achar(10)), 'generic x+100 PRINT newline mismatch')
     read (unit, iostat=io_status) output(1)
-    call assert_true(io_status /= 0, 'generic x+10 PRINT wrote extra bytes')
+    call assert_true(io_status /= 0, 'generic x+100 PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
-    call assert_int(io_status, 0, 'generic x+10 PRINT output cleanup failed')
+    call assert_int(io_status, 0, 'generic x+100 PRINT output cleanup failed')
 
+    input = generic_add_constant_input(100)
     input(index(input, 'opcode add'):index(input, 'opcode add') + 9) = 'opcode sub '
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_ok, &
-        'generic x-10 PRINT MIR was rejected: '//trim(diagnostic))
+        'generic x-100 PRINT MIR was rejected: '//trim(diagnostic))
     call write_mir_v0_riscv_linux(input, path, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_ok, 'generic x-10 PRINT ELF write failed')
+    call assert_status(status, mir_v0_bridge_ok, 'generic x-100 PRINT ELF write failed')
     call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
         cmdstat=command_status)
-    call assert_int(command_status, 0, 'generic x-10 PRINT chmod failed')
+    call assert_int(command_status, 0, 'generic x-100 PRINT chmod failed')
     call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
         exitstat=exit_status, cmdstat=command_status)
-    call assert_int(command_status, 0, 'generic x-10 PRINT qemu command failed')
-    call assert_int(exit_status, 0, 'generic x-10 PRINT artifact did not exit successfully')
+    call assert_int(command_status, 0, 'generic x-100 PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'generic x-100 PRINT artifact did not exit successfully')
     open (newunit=unit, file=output_path, access='stream', form='unformatted', &
         status='old', action='read', iostat=io_status)
-    call assert_int(io_status, 0, 'generic x-10 PRINT output was not written')
-    read (unit, iostat=io_status) output(1:3)
-    call assert_int(io_status, 0, 'generic x-10 PRINT output length changed')
-    call assert_byte(output(1), iachar('-'), 'generic x-10 PRINT output mismatch')
-    call assert_byte(output(2), iachar('5'), 'generic x-10 PRINT output mismatch')
-    call assert_byte(output(3), iachar(achar(10)), 'generic x-10 PRINT newline mismatch')
+    call assert_int(io_status, 0, 'generic x-100 PRINT output was not written')
+    read (unit, iostat=io_status) output(1:4)
+    call assert_int(io_status, 0, 'generic x-100 PRINT output length changed')
+    call assert_byte(output(1), iachar('-'), 'generic x-100 PRINT output mismatch')
+    call assert_byte(output(2), iachar('9'), 'generic x-100 PRINT output mismatch')
+    call assert_byte(output(3), iachar('5'), 'generic x-100 PRINT output mismatch')
+    call assert_byte(output(4), iachar(achar(10)), 'generic x-100 PRINT newline mismatch')
     read (unit, iostat=io_status) output(1)
-    call assert_true(io_status /= 0, 'generic x-10 PRINT wrote extra bytes')
+    call assert_true(io_status /= 0, 'generic x-100 PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
-    call assert_int(io_status, 0, 'generic x-10 PRINT output cleanup failed')
+    call assert_int(io_status, 0, 'generic x-100 PRINT output cleanup failed')
 
-    input = generic_add_constant_input()
-    input(index(input, 'literal 2'):index(input, 'literal 2') + 10) = 'literal 11)'
+    input = generic_add_constant_input(101)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'generic x-11 PRINT MIR was accepted')
+        'generic x-101 PRINT MIR was accepted')
     write (*, '(a)') 'MIR-v0 generic literal PRINT QEMU check: ok'
 
 contains
@@ -252,8 +253,13 @@ contains
             '(kind integer) (type i32)))))'
     end function generic_literal_input
 
-    function generic_add_constant_input() result(value)
+    function generic_add_constant_input(constant_value) result(value)
+        integer, intent(in), optional :: constant_value
         character(len=65536) :: value
+        integer :: selected_value
+
+        selected_value = 2
+        if (present(constant_value)) selected_value = constant_value
 
         value = '(mir-function (name main) (entry-block 0) (instruction-count 7) '// &
             '(instructions (instruction (id 0) (opcode const) (literal 5) '// &
@@ -264,7 +270,8 @@ contains
             '(instruction (id 2) (opcode load) (storage-key x) '// &
             '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
             '(kind integer) (type i32))) (instruction (id 3) (opcode const) '// &
-            '(literal 2) (source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(literal '//trim(int_text(selected_value))//') '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
             '(kind integer) (type i32))) (instruction (id 4) (opcode add) '// &
             '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
             '(kind integer) (type i32))) (instruction (id 5) (opcode output) '// &

@@ -53,7 +53,7 @@ module fortback_mir_v0_riscv_linux
     integer(int32), parameter :: generic_power_minimum = 2_int32
     integer(int32), parameter :: generic_power_maximum = 10_int32
     integer(int32), parameter :: generic_decimal_minimum = 0_int32
-    integer(int32), parameter :: generic_decimal_maximum = 10_int32
+    integer(int32), parameter :: generic_decimal_maximum = 100_int32
 
     type :: bridge_instruction_t
         integer(int32) :: id = 0_int32
