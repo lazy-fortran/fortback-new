@@ -2503,15 +2503,8 @@ contains
             trim(mir%instructions(7)%source_rule) == 'frontend-ast-v2/print-stmt'
         initialized_multiplier_route = mir%instruction_count == 9_int32 .and. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .and. &
-            trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
             trim(mir%instructions(2)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
-            trim(mir%instructions(3)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
-            trim(mir%instructions(4)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
-            trim(mir%instructions(5)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
-            trim(mir%instructions(6)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
-            trim(mir%instructions(7)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
-            trim(mir%instructions(8)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
-            trim(mir%instructions(9)%source_rule) == 'frontend-ast-v2/print-stmt'
+            trim(mir%instructions(7)%source_rule) == 'frontend-ast-v2/print-stmt'
         if (initialized_subtraction_route) then
             if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
             if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
@@ -2522,6 +2515,9 @@ contains
             end do
         end if
         if (initialized_multiplier_route) then
+            do index = 3, 9
+                if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+            end do
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
             if (mir%instructions(4)%literal < 1_int32 .or. &
