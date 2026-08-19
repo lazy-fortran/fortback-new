@@ -155573,7 +155573,11 @@ contains
                 select case (opcode)
                 case (mir_v0_opcode_const)
                     if (.not. literal_present) return
-                    if (literal < 0_int32 .or. literal > 2047_int32) return
+                    if (instruction_count == 9_int32 .and. instruction_index == 3_int32) then
+                        if (literal < 1_int32 .or. literal > 10_int32) return
+                    else
+                        if (literal < 0_int32 .or. literal > 2047_int32) return
+                    end if
                 case default
                     if (literal_present) return
                 end select

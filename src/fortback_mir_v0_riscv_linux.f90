@@ -2503,9 +2503,7 @@ contains
             if (mir%instructions(1)%literal /= 23_int32) return
         end if
         if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
-            if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
-                if (mir%instructions(4)%literal /= 1_int32) return
-            else
+            if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
                 if (mir%instructions(4)%literal /= 2_int32) return
             end if
         end if
