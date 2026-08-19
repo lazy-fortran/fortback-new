@@ -100,7 +100,7 @@ contains
         integer(int32) :: power_exponent
         integer(int64) :: power_value
         character(len=32) :: print_digits
-        logical :: storage_route, initialized_variable_y_route
+        logical :: storage_route, initialized_variable_y_or_z_route
         logical :: storage_sequence_route, storage_sequence_3_route
         logical :: storage_sequence_4_route
         logical :: storage_sequence_5_route
@@ -145,10 +145,10 @@ contains
             return
         end if
 
-        initialized_variable_y_route = is_initialized_variable_y_route(mir)
+        initialized_variable_y_or_z_route = is_initialized_variable_y_or_z_route(mir)
         storage_route = mir%instruction_count == 5_int32 .and. &
             (mir%instructions(1)%storage_present .or. mir%instructions(4)%storage_present)
-        storage_route = storage_route .or. initialized_variable_y_route
+        storage_route = storage_route .or. initialized_variable_y_or_z_route
         storage_sequence_route = mir%instruction_count == 7_int32
         storage_sequence_3_route = mir%instruction_count == 11_int32
         storage_sequence_4_route = mir%instruction_count == 15_int32
@@ -784,7 +784,7 @@ contains
                     emitted_count = 22_int32
                 end if
             end if
-        else if (print_variable_route .or. initialized_variable_y_route) then
+        else if (print_variable_route .or. initialized_variable_y_or_z_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -1818,7 +1818,7 @@ contains
         logical :: print_variable_seven_to_eighty_item_route
         logical :: generic_print_route
         logical :: initialized_power_variable_shape
-        logical :: initialized_variable_y_route
+        logical :: initialized_variable_y_or_z_route
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
@@ -1833,7 +1833,7 @@ contains
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
-        initialized_variable_y_route = is_initialized_variable_y_route(mir)
+        initialized_variable_y_or_z_route = is_initialized_variable_y_or_z_route(mir)
         initialized_power_variable_shape = .false.
         if (print_variable_expression_route) then
             if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
@@ -1896,9 +1896,10 @@ contains
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT two-item witness is out of scope')
                 return
             end if
-        else if (initialized_variable_y_route) then
-            if (.not. valid_initialized_variable_y(mir)) then
-                call set_diagnostic(diagnostic, 'mir-v0: initialized variable y witness is out of scope')
+        else if (initialized_variable_y_or_z_route) then
+            if (.not. valid_initialized_variable_y_or_z(mir)) then
+                call set_diagnostic(diagnostic, &
+                    'mir-v0: initialized variable y/z witness is out of scope')
                 return
             end if
         else if (print_variable_route) then
@@ -1964,7 +1965,7 @@ contains
         do index = 1, mir%instruction_count
             if (.not. mir_v0_bridge_policy_storage_matches( &
                 mir%instructions(index)%storage_present, mir%instructions(index)%storage_key)) then
-                if (.not. initialized_variable_y_route) then
+                if (.not. initialized_variable_y_or_z_route) then
                     call set_diagnostic(diagnostic, 'mir-v0: storage identity is out of scope')
                     return
                 end if
@@ -1975,7 +1976,8 @@ contains
                 mir%instructions(index)%result_kind, mir%instructions(index)%result_type, &
                 mir%instructions(index)%source_rule, mir%instructions(index)%literal_present, &
                 mir%instructions(index)%literal)) then
-                if (.not. initialized_power_variable_shape .and. .not. initialized_variable_y_route) then
+                if (.not. initialized_power_variable_shape .and. &
+                        .not. initialized_variable_y_or_z_route) then
                     call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                     return
                 else if (initialized_power_variable_shape .and. index /= 4) then
@@ -2047,7 +2049,7 @@ contains
         candidate = .true.
     end function is_generic_print_list_route
 
-    logical function is_initialized_variable_y_route(mir) result(candidate)
+    logical function is_initialized_variable_y_or_z_route(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
         integer :: index
 
@@ -2072,10 +2074,12 @@ contains
         if (mir%instructions(1)%literal < -100_int32 .or. &
             mir%instructions(1)%literal > 2047_int32) return
         if (.not. mir%instructions(2)%storage_present .or. &
-            trim(mir%instructions(2)%storage_key) /= 'y' .or. &
+            (trim(mir%instructions(2)%storage_key) /= 'y' .and. &
+             trim(mir%instructions(2)%storage_key) /= 'z') .or. &
             mir%instructions(2)%literal_present) return
         if (.not. mir%instructions(3)%storage_present .or. &
-            trim(mir%instructions(3)%storage_key) /= 'y' .or. &
+            (trim(mir%instructions(3)%storage_key) /= 'y' .and. &
+             trim(mir%instructions(3)%storage_key) /= 'z') .or. &
             mir%instructions(3)%literal_present) return
         if (mir%instructions(4)%storage_present .or. mir%instructions(4)%literal_present .or. &
             mir%instructions(5)%storage_present .or. mir%instructions(5)%literal_present) return
@@ -2089,13 +2093,13 @@ contains
                 trim(mir%instructions(index)%result_type) /= 'i32') return
         end do
         candidate = .true.
-    end function is_initialized_variable_y_route
+    end function is_initialized_variable_y_or_z_route
 
-    logical function valid_initialized_variable_y(mir) result(valid)
+    logical function valid_initialized_variable_y_or_z(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
 
-        valid = is_initialized_variable_y_route(mir)
-    end function valid_initialized_variable_y
+        valid = is_initialized_variable_y_or_z_route(mir)
+    end function valid_initialized_variable_y_or_z
 
     logical function valid_generic_print_list(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
