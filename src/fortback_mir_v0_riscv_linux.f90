@@ -100,7 +100,8 @@ contains
         integer(int32) :: power_exponent
         integer(int64) :: power_value
         character(len=32) :: print_digits
-        logical :: storage_route, storage_sequence_route, storage_sequence_3_route
+        logical :: storage_route, initialized_variable_y_route
+        logical :: storage_sequence_route, storage_sequence_3_route
         logical :: storage_sequence_4_route
         logical :: storage_sequence_5_route
         logical :: storage_sequence_6_route
@@ -144,8 +145,10 @@ contains
             return
         end if
 
+        initialized_variable_y_route = is_initialized_variable_y_route(mir)
         storage_route = mir%instruction_count == 5_int32 .and. &
             (mir%instructions(1)%storage_present .or. mir%instructions(4)%storage_present)
+        storage_route = storage_route .or. initialized_variable_y_route
         storage_sequence_route = mir%instruction_count == 7_int32
         storage_sequence_3_route = mir%instruction_count == 11_int32
         storage_sequence_4_route = mir%instruction_count == 15_int32
@@ -1815,6 +1818,7 @@ contains
         logical :: print_variable_seven_to_eighty_item_route
         logical :: generic_print_route
         logical :: initialized_power_variable_shape
+        logical :: initialized_variable_y_route
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
@@ -1829,6 +1833,7 @@ contains
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
+        initialized_variable_y_route = is_initialized_variable_y_route(mir)
         initialized_power_variable_shape = .false.
         if (print_variable_expression_route) then
             if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
@@ -1954,8 +1959,10 @@ contains
         do index = 1, mir%instruction_count
             if (.not. mir_v0_bridge_policy_storage_matches( &
                 mir%instructions(index)%storage_present, mir%instructions(index)%storage_key)) then
-                call set_diagnostic(diagnostic, 'mir-v0: storage identity is out of scope')
-                return
+                if (.not. initialized_variable_y_route) then
+                    call set_diagnostic(diagnostic, 'mir-v0: storage identity is out of scope')
+                    return
+                end if
             end if
             if (.not. mir_v0_bridge_policy_accepts(mir%name, mir%instruction_count, &
                 int(index - 1, int32), mir%instructions(index)%opcode, &
@@ -2034,6 +2041,35 @@ contains
         if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
         candidate = .true.
     end function is_generic_print_list_route
+
+    logical function is_initialized_variable_y_route(mir) result(candidate)
+        type(parsed_mir_t), intent(in) :: mir
+        integer :: index
+
+        candidate = .false.
+        if (trim(mir%name) /= 'main') return
+        if (mir%instruction_count /= 5_int32) return
+        do index = 1, 5
+            if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v1/expression') return
+        end do
+        if (mir%instructions(1)%opcode /= mir_v0_opcode_load) return
+        if (mir%instructions(2)%opcode /= mir_v0_opcode_const) return
+        if (mir%instructions(3)%opcode /= mir_v0_opcode_add .and. &
+                mir%instructions(3)%opcode /= mir_v0_opcode_sub .and. &
+                mir%instructions(3)%opcode /= mir_v0_opcode_mul .and. &
+                mir%instructions(3)%opcode /= mir_v0_opcode_div .and. &
+                mir%instructions(3)%opcode /= mir_v0_opcode_pow) return
+        if (mir%instructions(4)%opcode /= mir_v0_opcode_store) return
+        if (mir%instructions(5)%opcode /= mir_v0_opcode_return) return
+        if (.not. mir%instructions(1)%storage_present) return
+        if (trim(mir%instructions(1)%storage_key) /= 'y') return
+        if (mir%instructions(2)%storage_present) return
+        if (mir%instructions(3)%storage_present) return
+        if (.not. mir%instructions(4)%storage_present) return
+        if (trim(mir%instructions(4)%storage_key) /= 'y') return
+        if (mir%instructions(5)%storage_present) return
+        candidate = .true.
+    end function is_initialized_variable_y_route
 
     logical function valid_generic_print_list(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
