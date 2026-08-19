@@ -22,6 +22,12 @@ program test_mir_v0_print_variable
     input = print_variable_input('x', 'x', .false., 23)
     call run_print_variable(input, path, output_path, 50, 51)
 
+    input = print_variable_input('x', 'x', .false., 0)
+    call run_print_variable_signed(input, path, output_path, '0'//achar(10))
+
+    input = print_variable_input('x', 'x', .false., 2047)
+    call run_print_variable_signed(input, path, output_path, '2047'//achar(10))
+
     input = print_variable_input('x', 'x', .false., -5)
     call run_print_variable_signed(input, path, output_path, '-5'//achar(10))
 
@@ -230,6 +236,9 @@ program test_mir_v0_print_variable
     wrong_literal = print_variable_input('x', 'x', .false., 24)
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'unsupported stored literal was accepted')
+    wrong_literal = print_variable_input('x', 'x', .false., 2048)
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'out-of-range positive stored literal was accepted')
     wrong_literal = print_variable_input('x', 'x', .false., -101)
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'out-of-range negative stored literal was accepted')

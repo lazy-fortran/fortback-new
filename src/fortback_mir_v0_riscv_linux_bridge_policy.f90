@@ -79391,7 +79391,11 @@ contains
                 case default
                     if (literal_present) return
                 end select
-                if (opcode == mir_v0_opcode_const .and. instruction_index == 0_int32 .and. instruction_count == 5_int32 .and. literal /= 17_int32 .and. literal /= 23_int32) return
+                if (opcode == mir_v0_opcode_const .and. &
+                    instruction_index == 0_int32 .and. &
+                    instruction_count == 5_int32 .and. &
+                    literal /= 17_int32 .and. literal /= 23_int32 .and. &
+                    literal /= 0_int32 .and. literal /= 2047_int32) return
             case ('frontend-ast-v2/print-stmt')
                 if (.not. mir_v0_bridge_policy_instruction_count_matches( &
                     function_name, source_rule, instruction_count)) return

@@ -432,7 +432,19 @@ def render(policy):
                                   f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32 .and. instruction_count == 5_int32 .and. literal /= 7_int32 .and. literal /= 17_int32) return"]
                         continue
                 alternatives = ' .and. '.join(f'literal /= {literal}_int32' for literal in literals)
-                lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32{count_guard} .and. {alternatives}) return"]
+                if (function_name == 'main' and source_rule == 'frontend-ast-v2/execution-part' and
+                        instruction_index == 0 and len(literals) > 2):
+                    lines += [f"                if (opcode == {opcode_constant(opcode)} .and. &",
+                              f"                    instruction_index == {instruction_index}_int32 .and. &",
+                              f"                    instruction_count == 5_int32 .and. &"]
+                    for literal_index in range(0, len(literals), 2):
+                        literal_pair = ' .and. '.join(
+                            f'literal /= {literal}_int32'
+                            for literal in literals[literal_index:literal_index + 2])
+                        suffix = ' .and. &' if literal_index + 2 < len(literals) else ') return'
+                        lines.append(f"                    {literal_pair}{suffix}")
+                else:
+                    lines += [f"                if (opcode == {opcode_constant(opcode)} .and. instruction_index == {instruction_index}_int32{count_guard} .and. {alternatives}) return"]
             seen_sequence_lengths = set()
             for values in source_literal_sequences.get(function_name, {}).get(source_rule, []):
                 if len(values) in seen_sequence_lengths:

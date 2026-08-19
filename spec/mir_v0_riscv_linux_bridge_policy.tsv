@@ -487,3 +487,5 @@ source-literal function p source-rule frontend-ast-v2/print-stmt opcode const in
 source-literal function p source-rule frontend-ast-v2/print-stmt opcode const index 18 value 16
 source-literal function main source-rule frontend-ast-v2/execution-part opcode const index 0 value 17
 source-literal function main source-rule frontend-ast-v2/execution-part opcode const index 0 value 23
+source-literal function main source-rule frontend-ast-v2/execution-part opcode const index 0 value 0
+source-literal function main source-rule frontend-ast-v2/execution-part opcode const index 0 value 2047
