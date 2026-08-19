@@ -52,7 +52,6 @@ module fortback_mir_v0_riscv_linux
     integer, parameter :: instruction_capacity = 208
     integer(int32), parameter :: generic_power_minimum = 2_int32
     integer(int32), parameter :: generic_power_maximum = 10_int32
-    integer(int32), parameter :: initialized_power_maximum = 4_int32
     integer(int32), parameter :: generic_decimal_minimum = 0_int32
     integer(int32), parameter :: generic_decimal_maximum = 100_int32
     integer(int32), parameter :: generic_negative_minimum = -100_int32
@@ -2613,7 +2612,7 @@ contains
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
             if (mir%instructions(4)%literal < generic_power_minimum .or. &
-                    mir%instructions(4)%literal > initialized_power_maximum) return
+                    mir%instructions(4)%literal > generic_power_maximum) return
         end if
         if (.not. mir%instructions(2)%storage_present) return
         if (.not. mir%instructions(3)%storage_present) return
