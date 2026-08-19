@@ -1043,7 +1043,7 @@ contains
         integer(int32) :: word_index
         integer(int64) :: power_value
         character(len=32) :: power_digits
-        logical :: variable_power
+        logical :: variable_power, decimal_output
 
         word_index = 1_int32
         call encode_operation(target, records, 'addi', [2_int64, 2_int64, -16_int64], &
@@ -1063,6 +1063,7 @@ contains
         index = 3
         do while (index <= mir%instruction_count - 2)
             variable_power = .false.
+            decimal_output = .false.
             item_end = index + 1
             if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 if (index + 3 <= mir%instruction_count - 1) then
@@ -1279,9 +1280,28 @@ contains
                 index = item_end + 1
                 cycle
             end if
-            if (item_end == index + 1 .and. mir%instructions(index)%opcode == &
-                mir_v0_opcode_const .and. mir%instructions(index)%literal >= 10_int32) then
-                call integer_to_decimal(int(mir%instructions(index)%literal, int64), power_digits, &
+            if (item_end == index + 1) then
+                if (mir%instructions(index)%opcode == mir_v0_opcode_const) then
+                    if (mir%instructions(index)%literal >= 10_int32) then
+                        decimal_output = .true.
+                        power_value = int(mir%instructions(index)%literal, int64)
+                    end if
+                end if
+            else if (item_end == index + 3) then
+                if (mir%instructions(index + 1)%opcode == mir_v0_opcode_const) then
+                    if (mir%instructions(index + 2)%opcode == mir_v0_opcode_add) then
+                        decimal_output = .true.
+                        power_value = int(mir%instructions(1)%literal, int64) + &
+                            int(mir%instructions(index + 1)%literal, int64)
+                    else if (mir%instructions(index + 2)%opcode == mir_v0_opcode_sub) then
+                        decimal_output = .true.
+                        power_value = int(mir%instructions(1)%literal, int64) - &
+                            int(mir%instructions(index + 1)%literal, int64)
+                    end if
+                end if
+            end if
+            if (decimal_output) then
+                call integer_to_decimal(power_value, power_digits, &
                     digit_count)
                 do digit_index = 1, digit_count
                     call encode_operation(target, records, 'addi', [5_int64, 0_int64, &
