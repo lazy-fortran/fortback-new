@@ -569,9 +569,15 @@ contains
                     [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(8), &
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
-                if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
-                    call integer_to_decimal(int(mir%instructions(1)%literal, int64) + &
-                        int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                if (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
+                    mir%instructions(5)%opcode == mir_v0_opcode_sub) then
+                    if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
+                        call integer_to_decimal(int(mir%instructions(1)%literal, int64) + &
+                            int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                    else
+                        call integer_to_decimal(int(mir%instructions(1)%literal, int64) - &
+                            int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                    end if
                     emitted_count = 8_int32
                     print_buffer_offset = 0_int32
                     do print_digit_index = 1, print_digit_count
@@ -630,14 +636,12 @@ contains
                 else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
                     print_digits = '46'
                     print_digit_count = 2_int32
-                else if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
-                    print_digits = '21'
-                    print_digit_count = 2_int32
                 else
                     print_digits = '12'
                     print_digit_count = 2_int32
                 end if
-                if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
+                if (mir%instructions(5)%opcode /= mir_v0_opcode_add .and. &
+                    mir%instructions(5)%opcode /= mir_v0_opcode_sub) then
                     call encode_operation(target, records, 'addi', &
                         [5_int64, 0_int64, int(iachar(print_digits(1:1)), int64)], words(9), &
                         status, diagnostic)
@@ -2185,8 +2189,10 @@ contains
         candidate = .false.
         if (trim(mir%name) /= 'main') return
         if (mir%instruction_count /= 9_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+        if (mir%instructions(5)%opcode /= mir_v0_opcode_sub) then
+            if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
+            if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+        end if
         candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
             mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
@@ -2479,8 +2485,19 @@ contains
 
     logical function valid_print_variable_expression(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
+        integer :: index
+        logical :: initialized_subtraction_route
 
         valid = .false.
+        initialized_subtraction_route = mir%instructions(5)%opcode == mir_v0_opcode_sub .and. &
+            trim(mir%instructions(3)%source_rule) == 'frontend-ast-v2/print-stmt'
+        if (initialized_subtraction_route) then
+            if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
+            if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
+            do index = 3, 9
+                if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
+            end do
+        end if
         if (.not. mir%instructions(2)%storage_present) return
         if (.not. mir%instructions(3)%storage_present) return
         if (.not. mir%instructions(6)%storage_present) return
@@ -2489,22 +2506,24 @@ contains
         if (trim(mir%instructions(3)%storage_key) /= 'x') return
         if (trim(mir%instructions(6)%storage_key) /= 'x') return
         if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
-            if (mir%instructions(1)%literal == 2_int32) then
-                if (mir%instructions(4)%literal /= 3_int32) return
-            else if (mir%instructions(1)%literal == 3_int32) then
-                if (mir%instructions(4)%literal /= 2_int32) return
-            else
-                return
+        if (.not. initialized_subtraction_route) then
+            if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
+                if (mir%instructions(1)%literal == 2_int32) then
+                    if (mir%instructions(4)%literal /= 3_int32) return
+                else if (mir%instructions(1)%literal == 3_int32) then
+                    if (mir%instructions(4)%literal /= 2_int32) return
+                else
+                    return
+                end if
+            else if (mir%instructions(5)%opcode == mir_v0_opcode_div) then
+                if (mir%instructions(1)%literal /= 24_int32) return
+            else if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
+                if (mir%instructions(1)%literal /= 23_int32) return
             end if
-        else if (mir%instructions(5)%opcode == mir_v0_opcode_div) then
-            if (mir%instructions(1)%literal /= 24_int32) return
-        else if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
-            if (mir%instructions(1)%literal /= 23_int32) return
-        end if
-        if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
-            if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
-                if (mir%instructions(4)%literal /= 2_int32) return
+            if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
+                if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
+                    if (mir%instructions(4)%literal /= 2_int32) return
+                end if
             end if
         end if
         if (mir%instructions(8)%storage_present) return
