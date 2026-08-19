@@ -61,22 +61,26 @@ contains
         integer, intent(in) :: initializer
         character(len=8192) :: value
 
-        value = '(mir-function (name main) (entry-block 0) (instruction-count 7) '// &
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 9) '// &
             '(instructions (instruction (id 0) (opcode const) (literal '// &
             int_text(initializer)//') (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 0) (kind integer) (type i32))) (instruction (id 1) '// &
             '(opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 1) (kind integer) (type i32))) (instruction (id 2) '// &
-            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 2) (kind integer) (type i32))) (instruction (id 3) '// &
-            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 3) (kind integer) (type i32))) (instruction (id 4) '// &
-            '(opcode add) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(opcode add) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 5) '// &
-            '(opcode output) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 6) '// &
+            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32))) (instruction (id 7) '// &
+            '(opcode output) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32))) (instruction (id 8) '// &
             '(opcode return) (source-rule frontend-ast-v2/print-stmt) '// &
-            '(result (id 4) (kind integer) (type i32)))))'
+            '(result (id 6) (kind integer) (type i32)))))'
     end function initialized_variable_add_input
 
     function int_text(number) result(value)
