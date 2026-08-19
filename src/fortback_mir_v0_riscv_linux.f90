@@ -571,16 +571,22 @@ contains
                 if (status /= mir_v0_bridge_ok) return
                 if (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
                     mir%instructions(5)%opcode == mir_v0_opcode_sub .or. &
-                    mir%instructions(5)%opcode == mir_v0_opcode_mul) then
+                    mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
+                    mir%instructions(5)%opcode == mir_v0_opcode_div) then
                     if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
                         call integer_to_decimal(int(mir%instructions(1)%literal, int64) + &
                             int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
                     else if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
                         call integer_to_decimal(int(mir%instructions(1)%literal, int64) - &
                             int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
-                    else
+                    else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
                         call integer_to_decimal(int(mir%instructions(1)%literal, int64) * &
                             int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                    else
+                        call integer_to_decimal( &
+                            int(mir%instructions(1)%literal, int64) / &
+                            int(mir%instructions(4)%literal, int64), &
+                            print_digits, print_digit_count)
                     end if
                     emitted_count = 8_int32
                     print_buffer_offset = 0_int32
@@ -643,7 +649,8 @@ contains
                 end if
                 if (mir%instructions(5)%opcode /= mir_v0_opcode_add .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_sub .and. &
-                    mir%instructions(5)%opcode /= mir_v0_opcode_mul) then
+                    mir%instructions(5)%opcode /= mir_v0_opcode_mul .and. &
+                    mir%instructions(5)%opcode /= mir_v0_opcode_div) then
                     call encode_operation(target, records, 'addi', &
                         [5_int64, 0_int64, int(iachar(print_digits(1:1)), int64)], words(9), &
                         status, diagnostic)
@@ -2496,6 +2503,7 @@ contains
         type(parsed_mir_t), intent(in) :: mir
         integer :: index
         logical :: initialized_subtraction_route, initialized_multiplier_route
+        logical :: initialized_division_route
 
         valid = .false.
         initialized_subtraction_route = mir%instruction_count == 9_int32 .and. &
@@ -2504,6 +2512,11 @@ contains
         initialized_multiplier_route = mir%instruction_count == 9_int32 .and. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .and. &
             trim(mir%instructions(2)%source_rule) == 'frontend-ast-v2/execution-part' .and. &
+            trim(mir%instructions(7)%source_rule) == 'frontend-ast-v2/print-stmt'
+        initialized_division_route = mir%instruction_count == 9_int32 .and. &
+            mir%instructions(5)%opcode == mir_v0_opcode_div .and. &
+            trim(mir%instructions(2)%source_rule) == &
+            'frontend-ast-v2/execution-part' .and. &
             trim(mir%instructions(7)%source_rule) == 'frontend-ast-v2/print-stmt'
         if (initialized_subtraction_route) then
             if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
@@ -2523,6 +2536,20 @@ contains
             end do
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
+            if (mir%instructions(4)%literal < 3_int32 .or. &
+                    mir%instructions(4)%literal > 10_int32) return
+        end if
+        if (initialized_division_route) then
+            do index = 3, 6
+                if (trim(mir%instructions(index)%source_rule) /= &
+                    'frontend-ast-v2/execution-part') return
+            end do
+            do index = 7, 9
+                if (trim(mir%instructions(index)%source_rule) /= &
+                    'frontend-ast-v2/print-stmt') return
+            end do
+            if (mir%instructions(1)%literal < -100_int32 .or. &
+                    mir%instructions(1)%literal > 2047_int32) return
             if (mir%instructions(4)%literal < 1_int32 .or. &
                     mir%instructions(4)%literal > 10_int32) return
         end if
@@ -2534,7 +2561,9 @@ contains
         if (trim(mir%instructions(3)%storage_key) /= 'x') return
         if (trim(mir%instructions(6)%storage_key) /= 'x') return
         if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (.not. initialized_subtraction_route .and. .not. initialized_multiplier_route) then
+        if (.not. initialized_subtraction_route .and. &
+                .not. initialized_multiplier_route .and. &
+                .not. initialized_division_route) then
             if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
                 if (mir%instructions(1)%literal == 2_int32) then
                     if (mir%instructions(4)%literal /= 3_int32) return
