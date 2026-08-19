@@ -71,6 +71,25 @@ program test_mir_v0_print_variable
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic multiplication source mutation was accepted')
 
+    input = print_variable_generic_subtract_input()
+    call run_print_generic_subtract(input, path, output_path)
+    wrong_literal = replace_text(input, '(literal 2)', '(literal 3)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic subtraction literal mutation was accepted')
+    wrong_literal = replace_text(input, '(opcode sub)', '(opcode add)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic subtraction opcode mutation was accepted')
+    wrong_literal = replace_text(input, '(storage-key x)', '(storage-key y)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic subtraction storage mutation was accepted')
+    wrong_literal = replace_text(input, 'frontend-ast-v2/print-stmt', 'frontend-ast-v2/write-stmt')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic subtraction source mutation was accepted')
+
     input = print_variable_generic_divide_input()
     call run_print_generic_divide(input, path, output_path)
     wrong_literal = replace_text(input, '(literal 2)', '(literal 3)')
@@ -346,6 +365,39 @@ contains
         close (unit, status='delete', iostat=io_status)
         call assert_int(io_status, 0, 'generic multiplication output cleanup failed')
     end subroutine run_print_generic_multiply
+
+    subroutine run_print_generic_subtract(input, path, output_path)
+        character(len=*), intent(in) :: input, path, output_path
+        type(riscv_linux_artifact_t) :: artifact
+        character(len=256) :: diagnostic
+        integer(int8) :: output(2)
+        integer(int32) :: status
+        integer :: command_status, exit_status, io_status, unit
+
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'generic subtraction MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'generic subtraction ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic subtraction chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic subtraction qemu command failed')
+        call assert_int(exit_status, 0, 'generic subtraction artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'generic subtraction output was not written')
+        read (unit, iostat=io_status) output
+        call assert_int(io_status, 0, 'generic subtraction output length changed')
+        call assert_byte(output(1), 49, 'generic subtraction missed 1')
+        call assert_byte(output(2), 10, 'generic subtraction missed newline')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'generic subtraction wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'generic subtraction output cleanup failed')
+    end subroutine run_print_generic_subtract
 
     subroutine run_print_generic_divide(input, path, output_path)
         character(len=*), intent(in) :: input, path, output_path
@@ -687,6 +739,27 @@ contains
         value = print_variable_generic_multiply_input()
         value = replace_text(value, '(opcode mul)', '(opcode div)')
     end function print_variable_generic_divide_input
+
+    function print_variable_generic_subtract_input() result(value)
+        character(len=65536) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 7) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 3) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) '// &
+            '(type i32))) (instruction (id 1) (opcode store) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 2) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
+            '(type i32))) (instruction (id 3) (opcode const) (literal 2) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 3) (kind integer) '// &
+            '(type i32))) (instruction (id 4) (opcode sub) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 5) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 4) (kind integer) '// &
+            '(type i32))) (instruction (id 6) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 4) (kind integer) '// &
+            '(type i32)))))'
+    end function print_variable_generic_subtract_input
 
     function print_variable_generic_power_input() result(value)
         character(len=65536) :: value
