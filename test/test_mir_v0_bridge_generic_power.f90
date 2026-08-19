@@ -14,6 +14,16 @@ program test_mir_v0_bridge_generic_power
     character(len=*), parameter :: output_path = '/tmp/fortback-mir-v0-generic-power.out'
 
     call assert_qemu(3, 2, '9'//achar(10))
+    call assert_qemu(3, 5, '243'//achar(10))
+    call assert_qemu(-3, 5, '-243'//achar(10))
+    call assert_qemu(3, 10, '59049'//achar(10))
+
+    input = initialized_power_input(3, 0)
+    call assert_rejected(input, 'power exponent 0 was accepted')
+    input = initialized_power_input(3, 1)
+    call assert_rejected(input, 'power exponent 1 was accepted')
+    input = initialized_power_input(3, 11)
+    call assert_rejected(input, 'power exponent 11 was accepted')
 
     input = initialized_power_input(3, 2)
     mutated = input
