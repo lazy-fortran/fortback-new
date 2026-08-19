@@ -503,7 +503,8 @@ contains
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             if (mir%instructions(4)%opcode == mir_v0_opcode_load .and. &
-                    mir%instructions(5)%opcode == mir_v0_opcode_add) then
+                    (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
+                    mir%instructions(5)%opcode == mir_v0_opcode_mul)) then
                 call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
                     [11_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(5), &
                     status, diagnostic)
@@ -1922,6 +1923,7 @@ contains
                 mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
                 mir%instructions(4)%opcode == mir_v0_opcode_load) then
             if (mir%instructions(5)%opcode /= mir_v0_opcode_add .and. &
+                    mir%instructions(5)%opcode /= mir_v0_opcode_mul .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
                 call set_diagnostic(diagnostic, 'mir-v0: initialized load operation is out of scope')
                 return
@@ -2307,6 +2309,7 @@ contains
             (mir%instructions(4)%opcode == mir_v0_opcode_const .or. &
             (mir%instructions(4)%opcode == mir_v0_opcode_load .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
+            mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_pow))) .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
@@ -2642,8 +2645,17 @@ contains
             end do
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
-            if (mir%instructions(4)%literal < 3_int32 .or. &
-                    mir%instructions(4)%literal > 10_int32) return
+            if (mir%instructions(4)%opcode == mir_v0_opcode_const) then
+                if (mir%instructions(4)%literal < 3_int32 .or. &
+                        mir%instructions(4)%literal > 10_int32) return
+            else
+                if (mir%instructions(4)%opcode /= mir_v0_opcode_load) return
+                if (.not. mir%instructions(4)%storage_present) return
+                if (trim(mir%instructions(4)%storage_key) /= 'x') return
+                if (mir%instructions(4)%literal_present) return
+                if (mir%instructions(4)%result_kind /= mir_v0_value_kind_integer) return
+                if (trim(mir%instructions(4)%result_type) /= 'i32') return
+            end if
         end if
         if (initialized_division_route) then
             do index = 3, 6
