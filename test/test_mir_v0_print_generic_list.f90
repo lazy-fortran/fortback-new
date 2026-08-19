@@ -1,7 +1,8 @@
 program test_mir_v0_print_generic_list
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
-        mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, riscv_linux_artifact_t, &
+        mir_v0_bridge_malformed, mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, &
+        riscv_linux_artifact_t, &
         write_mir_v0_riscv_linux
     implicit none
 
@@ -21,6 +22,9 @@ program test_mir_v0_print_generic_list
     call check_literal_list(4, '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10))
     call check_literal_list(10, '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10)// &
         '5'//achar(10)//'6'//achar(10)//'7'//achar(10)//'8'//achar(10)//'9'//achar(10)//'10'//achar(10))
+    call check_negative_literal(-1, '-1'//achar(10))
+    call check_negative_literal(-20, '-20'//achar(10))
+    call check_negative_literal(-100, '-100'//achar(10))
 
     input = generic_literal_input(11)
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -245,6 +249,17 @@ program test_mir_v0_print_generic_list
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic x-101 PRINT MIR was accepted')
+
+    input = generic_literal_input(1, -101)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic -101 PRINT MIR was accepted')
+
+    input = generic_literal_input(1)
+    input(index(input, 'literal 1'):index(input, 'literal 1') + 8) = 'literal -'
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_malformed, &
+        'generic malformed negative PRINT MIR was accepted')
     write (*, '(a)') 'MIR-v0 generic literal PRINT QEMU check: ok'
 
 contains
@@ -280,13 +295,49 @@ contains
         call assert_int(io_status, 0, 'generic literal PRINT output cleanup failed')
     end subroutine check_literal_list
 
-    function generic_literal_input(item_count) result(value)
+    subroutine check_negative_literal(literal, expected_output)
+        integer, intent(in) :: literal
+        character(len=*), intent(in) :: expected_output
+        integer :: index
+
+        input = generic_literal_input(1, literal)
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'generic negative literal PRINT MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'generic negative literal ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic negative literal chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic negative literal qemu command failed')
+        call assert_int(exit_status, 0, 'generic negative literal artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'generic negative literal output was not written')
+        read (unit, iostat=io_status) output(1:len(expected_output))
+        call assert_int(io_status, 0, 'generic negative literal output length changed')
+        do index = 1, len(expected_output)
+            call assert_byte(output(index), iachar(expected_output(index:index)), &
+                'generic negative literal output mismatch')
+        end do
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'generic negative literal wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'generic negative literal output cleanup failed')
+    end subroutine check_negative_literal
+
+    function generic_literal_input(item_count, literal_override) result(value)
         integer, intent(in), optional :: item_count
+        integer, intent(in), optional :: literal_override
         character(len=65536) :: value
-        integer :: count, item, item_id
+        integer :: count, item, item_id, selected_literal
 
         count = 8
         if (present(item_count)) count = item_count
+        selected_literal = 0
+        if (present(literal_override)) selected_literal = literal_override
         value = '(mir-function (name main) (entry-block 0) (instruction-count '// &
             trim(int_text(3 + 2 * count))//') '// &
             '(instructions (instruction (id 0) (opcode const) (literal 0) '// &
@@ -296,7 +347,11 @@ contains
             '(result (id 1) (kind integer) (type i32))) '
         do item = 1, count
             item_id = 2 + 2 * (item - 1)
-            value = trim(value)//literal_output(item_id, item)
+            if (present(literal_override)) then
+                value = trim(value)//literal_output(item_id, selected_literal)
+            else
+                value = trim(value)//literal_output(item_id, item)
+            end if
         end do
         value = trim(value)//'(instruction (id '//trim(int_text(2 + 2 * count))//') (opcode return) '// &
             '(source-rule frontend-ast-v2/print-stmt) (result (id '//trim(int_text(2 * count))//') '// &

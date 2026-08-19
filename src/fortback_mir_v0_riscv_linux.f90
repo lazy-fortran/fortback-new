@@ -54,6 +54,8 @@ module fortback_mir_v0_riscv_linux
     integer(int32), parameter :: generic_power_maximum = 10_int32
     integer(int32), parameter :: generic_decimal_minimum = 0_int32
     integer(int32), parameter :: generic_decimal_maximum = 100_int32
+    integer(int32), parameter :: generic_negative_minimum = -100_int32
+    integer(int32), parameter :: generic_negative_maximum = -1_int32
 
     type :: bridge_instruction_t
         integer(int32) :: id = 0_int32
@@ -1282,7 +1284,8 @@ contains
             end if
             if (item_end == index + 1) then
                 if (mir%instructions(index)%opcode == mir_v0_opcode_const) then
-                    if (mir%instructions(index)%literal >= 10_int32) then
+                    if (mir%instructions(index)%literal >= 10_int32 .or. &
+                        mir%instructions(index)%literal < 0_int32) then
                         decimal_output = .true.
                         power_value = int(mir%instructions(index)%literal, int64)
                     end if
@@ -1941,6 +1944,10 @@ contains
             if (value_instruction%opcode == mir_v0_opcode_const) then
                 if (.not. value_instruction%literal_present) return
                 if (value_instruction%storage_present) return
+                if (value_instruction%literal < 0_int32) then
+                    if (value_instruction%literal < generic_negative_minimum .or. &
+                        value_instruction%literal > generic_negative_maximum) return
+                end if
             else if (value_instruction%opcode == mir_v0_opcode_load) then
                 if (.not. value_instruction%storage_present) return
                 if (trim(value_instruction%storage_key) /= 'x') return
