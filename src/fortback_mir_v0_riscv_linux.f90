@@ -1773,20 +1773,15 @@ contains
     logical function is_generic_print_list_route(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
         integer :: index, item_end
-        logical :: has_load
 
         candidate = .false.
         if (trim(mir%name) /= 'main') return
         if (mir%instruction_count < 7_int32) return
         if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
         if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        has_load = .false.
         index = 3
         do while (index <= mir%instruction_count - 2)
             if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-            if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
-                has_load = .true.
-            end if
             item_end = index + 1
             if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 if (index + 3 < mir%instruction_count) then
@@ -1811,7 +1806,7 @@ contains
         if (trim(mir%instructions(mir%instruction_count)%source_rule) /= &
             'frontend-ast-v2/print-stmt') return
         if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
-        candidate = has_load
+        candidate = .true.
     end function is_generic_print_list_route
 
     logical function valid_generic_print_list(mir) result(valid)

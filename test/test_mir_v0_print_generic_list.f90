@@ -7,13 +7,13 @@ program test_mir_v0_print_generic_list
     type(riscv_linux_artifact_t) :: artifact
     character(len=65536) :: input
     character(len=256) :: diagnostic
-    integer(int8) :: output(31)
+    integer(int8) :: output(29)
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit, index
     character(len=*), parameter :: path = '/tmp/fortback-print-generic-list.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-generic-list.out'
     character(len=*), parameter :: expected = &
-        '0'//achar(10)//'20'//achar(10)//'21'//achar(10)//'22'//achar(10)// &
+        '20'//achar(10)//'21'//achar(10)//'22'//achar(10)// &
         '100'//achar(10)//'200'//achar(10)//'300'//achar(10)// &
         '400'//achar(10)//'500'//achar(10)
 
@@ -50,21 +50,17 @@ contains
     function generic_literal_input() result(value)
         character(len=65536) :: value
 
-        value = '(mir-function (name main) (entry-block 0) (instruction-count 21) '// &
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 19) '// &
             '(instructions (instruction (id 0) (opcode const) (literal 0) '// &
             '(source-rule frontend-ast-v2/execution-part) (result (id 0) '// &
             '(kind integer) (type i32))) (instruction (id 1) (opcode store) '// &
             '(storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
-            '(result (id 1) (kind integer) (type i32))) (instruction (id 2) '// &
-            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
-            '(result (id 2) (kind integer) (type i32))) (instruction (id 3) '// &
-            '(opcode output) (source-rule frontend-ast-v2/print-stmt) '// &
-            '(result (id 2) (kind integer) (type i32))) '// &
-            literal_output(4, 20)//literal_output(6, 21)//literal_output(8, 22)// &
-            literal_output(10, 100)//literal_output(12, 200)//literal_output(14, 300)// &
-            literal_output(16, 400)//literal_output(18, 500)// &
-            '(instruction (id 20) (opcode return) '// &
-            '(source-rule frontend-ast-v2/print-stmt) (result (id 18) '// &
+            '(result (id 1) (kind integer) (type i32))) '// &
+            literal_output(2, 20)//literal_output(4, 21)//literal_output(6, 22)// &
+            literal_output(8, 100)//literal_output(10, 200)//literal_output(12, 300)// &
+            literal_output(14, 400)//literal_output(16, 500)// &
+            '(instruction (id 18) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 16) '// &
             '(kind integer) (type i32)))))'
     end function generic_literal_input
 
