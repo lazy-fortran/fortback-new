@@ -39,6 +39,22 @@ program test_mir_v0_print_variable
 
     input = print_variable_input('x', 'x', .false., -100)
     call run_print_variable_signed(input, path, output_path, '-100'//achar(10))
+    input = print_variable_add_input(42)
+    call run_print_variable_signed(input, path, output_path, '43'//achar(10))
+    input = print_variable_add_input(-42)
+    call run_print_variable_signed(input, path, output_path, '-41'//achar(10))
+    wrong_literal = replace_text(print_variable_add_input(42), '(opcode add)', '(opcode sub)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'initialized x+1 opcode mutation was accepted')
+    wrong_literal = replace_text(print_variable_add_input(42), '(storage-key x)', '(storage-key y)')
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'initialized x+1 storage mutation was accepted')
+    wrong_literal = print_variable_add_input(-101)
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'initialized x+1 lower boundary was accepted')
+    wrong_literal = print_variable_add_input(2048)
+    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'initialized x+1 upper boundary was accepted')
     wrong_literal = print_variable_input('y', 'x', .false., -5)
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
@@ -258,7 +274,7 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_malformed, 'malformed negative literal was accepted')
     wrong_literal = print_variable_expression_input()
-    wrong_literal = replace_text(wrong_literal, '(literal 23)', '(literal 24)')
+    wrong_literal = replace_text(wrong_literal, '(literal 23)', '(literal 2048)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'unsupported expression literal was accepted')
@@ -758,6 +774,16 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_expression_input
+
+    function print_variable_add_input(initializer) result(value)
+        integer, intent(in) :: initializer
+        character(len=65536) :: value
+        character(len=32) :: initializer_text
+
+        write (initializer_text, '(i0)') initializer
+        value = replace_text(print_variable_expression_input(), '(literal 23)', &
+            '(literal '//trim(initializer_text)//')')
+    end function print_variable_add_input
 
     function print_variable_generic_expression_input() result(value)
         character(len=65536) :: value

@@ -570,59 +570,120 @@ contains
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 if (mir%instructions(5)%opcode == mir_v0_opcode_add) then
-                    print_digits = '24'
+                    call integer_to_decimal(int(mir%instructions(1)%literal, int64) + &
+                        int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                    emitted_count = 8_int32
+                    print_buffer_offset = 0_int32
+                    do print_digit_index = 1, print_digit_count
+                        call encode_operation(target, records, 'addi', [5_int64, 0_int64, &
+                            int(iachar(print_digits(print_digit_index:print_digit_index)), int64)], &
+                            words(emitted_count + 1), status, diagnostic)
+                        if (status /= mir_v0_bridge_ok) return
+                        emitted_count = emitted_count + 1_int32
+                        call encode_operation(target, records, 'sb', [5_int64, 2_int64, &
+                            int(print_buffer_offset, int64)], words(emitted_count + 1), status, diagnostic)
+                        if (status /= mir_v0_bridge_ok) return
+                        emitted_count = emitted_count + 1_int32
+                        print_buffer_offset = print_buffer_offset + 1_int32
+                    end do
+                    call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                        words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, 'sb', [5_int64, 2_int64, &
+                        int(print_buffer_offset, int64)], words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
+                        words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], &
+                        words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, 'addi', [12_int64, 0_int64, &
+                        int(print_buffer_offset + 1_int32, int64)], words(emitted_count + 1), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], &
+                        words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                        mir_v0_riscv_linux_ecall_operands, words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
+                        [10_int64, 0_int64, 0_int64], words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
+                        [17_int64, 0_int64, 93_int64], words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
+                    call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                        mir_v0_riscv_linux_ecall_operands, words(emitted_count + 1), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = emitted_count + 1_int32
                 else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
                     print_digits = '46'
+                    print_digit_count = 2_int32
                 else if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
                     print_digits = '21'
+                    print_digit_count = 2_int32
                 else
                     print_digits = '12'
+                    print_digit_count = 2_int32
                 end if
-                call encode_operation(target, records, 'addi', &
-                    [5_int64, 0_int64, int(iachar(print_digits(1:1)), int64)], words(9), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 0_int64], words(10), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', &
-                    [5_int64, 0_int64, int(iachar(print_digits(2:2)), int64)], words(11), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 1_int64], words(12), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], words(13), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 2_int64], words(14), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], words(15), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], words(16), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 3_int64], words(17), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], words(18), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                    mir_v0_riscv_linux_ecall_operands, words(19), status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
-                    [10_int64, 0_int64, 0_int64], words(20), status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
-                    [17_int64, 0_int64, 93_int64], words(21), status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                    mir_v0_riscv_linux_ecall_operands, words(22), status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-                emitted_count = 22_int32
+                if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
+                    call encode_operation(target, records, 'addi', &
+                        [5_int64, 0_int64, int(iachar(print_digits(1:1)), int64)], words(9), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'sb', [5_int64, 2_int64, 0_int64], words(10), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'addi', &
+                        [5_int64, 0_int64, int(iachar(print_digits(2:2)), int64)], words(11), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'sb', [5_int64, 2_int64, 1_int64], words(12), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], words(13), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'sb', [5_int64, 2_int64, 2_int64], words(14), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], words(15), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'addi', [11_int64, 2_int64, 0_int64], words(16), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'addi', [12_int64, 0_int64, 3_int64], words(17), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], words(18), &
+                        status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                        mir_v0_riscv_linux_ecall_operands, words(19), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
+                        [10_int64, 0_int64, 0_int64], words(20), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, trim(mir_v0_bridge_policy_exit_status_operation()), &
+                        [17_int64, 0_int64, 93_int64], words(21), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                        mir_v0_riscv_linux_ecall_operands, words(22), status, diagnostic)
+                    if (status /= mir_v0_bridge_ok) return
+                    emitted_count = 22_int32
+                end if
             end if
         else if (print_variable_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
@@ -2438,7 +2499,7 @@ contains
             end if
         else if (mir%instructions(5)%opcode == mir_v0_opcode_div) then
             if (mir%instructions(1)%literal /= 24_int32) return
-        else
+        else if (mir%instructions(5)%opcode /= mir_v0_opcode_add) then
             if (mir%instructions(1)%literal /= 23_int32) return
         end if
         if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) then

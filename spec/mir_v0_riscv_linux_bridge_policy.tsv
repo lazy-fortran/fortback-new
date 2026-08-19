@@ -210,6 +210,7 @@ route-pattern source-rule frontend-ast-v1/storage-sequence-10 count 39 pattern s
 route-pattern source-rule frontend-ast-v2/print-stmt count 49 pattern stored-variable-print
 literal-range opcode const min 0 max 2047
 literal-range function main source-rule frontend-ast-v2/execution-part count 5 opcode const index 0 min -100 max 2047
+literal-range function main source-rule frontend-ast-v2/execution-part count 9 opcode const index 0 min -100 max 2047
 result-shape integer 1 integer i32
 result-shape integer-loaded 0 integer i32
 result-shape integer-expression 2 integer i32

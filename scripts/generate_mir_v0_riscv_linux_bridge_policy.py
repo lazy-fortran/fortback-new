@@ -440,10 +440,11 @@ def render(policy):
                           "                    if (.not. literal_present) return"]
                 matching_ranges = [item for item in route_ranges if item[0] == opcode]
                 if matching_ranges:
-                    _, count, instruction_index, route_minimum, route_maximum = matching_ranges[0]
-                    lines += [f"                    if (instruction_count == {count}_int32 .and. instruction_index == {instruction_index}_int32) then",
-                              f"                        if (literal < {route_minimum}_int32 .or. literal > {route_maximum}_int32) return",
-                              "                    else",
+                    for range_index, (_, count, instruction_index, route_minimum, route_maximum) in enumerate(matching_ranges):
+                        branch = "if" if range_index == 0 else "else if"
+                        lines += [f"                    {branch} (instruction_count == {count}_int32 .and. instruction_index == {instruction_index}_int32) then",
+                                  f"                        if (literal < {route_minimum}_int32 .or. literal > {route_maximum}_int32) return"]
+                    lines += ["                    else",
                               f"                        if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return",
                               "                    end if"]
                 else:

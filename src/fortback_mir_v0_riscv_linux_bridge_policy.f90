@@ -79389,6 +79389,8 @@ contains
                     if (.not. literal_present) return
                     if (instruction_count == 5_int32 .and. instruction_index == 0_int32) then
                         if (literal < -100_int32 .or. literal > 2047_int32) return
+                    else if (instruction_count == 9_int32 .and. instruction_index == 0_int32) then
+                        if (literal < -100_int32 .or. literal > 2047_int32) return
                     else
                         if (literal < 0_int32 .or. literal > 2047_int32) return
                     end if
