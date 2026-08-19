@@ -649,8 +649,12 @@ contains
                                 int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
                         end if
                     else if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
-                        call integer_to_decimal(int(mir%instructions(1)%literal, int64) - &
-                            int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                        if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                            call integer_to_decimal(0_int64, print_digits, print_digit_count)
+                        else
+                            call integer_to_decimal(int(mir%instructions(1)%literal, int64) - &
+                                int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                        end if
                     else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
                         if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
                             call integer_to_decimal(int(mir%instructions(1)%literal, int64) * &
@@ -1932,6 +1936,7 @@ contains
                 mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
                 mir%instructions(4)%opcode == mir_v0_opcode_load) then
             if (mir%instructions(5)%opcode /= mir_v0_opcode_add .and. &
+                    mir%instructions(5)%opcode /= mir_v0_opcode_sub .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_mul .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_div .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
@@ -2319,6 +2324,7 @@ contains
             (mir%instructions(4)%opcode == mir_v0_opcode_const .or. &
             (mir%instructions(4)%opcode == mir_v0_opcode_load .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
+            mir%instructions(5)%opcode == mir_v0_opcode_sub .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_div .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_pow))) .and. &

@@ -47,7 +47,7 @@ program test_mir_v0_bridge_generic_variable_subtract
     call assert_equal(io_status, 0, 'initialized x-x output cleanup failed')
 
     mutated = input
-    call replace_token(mutated, '(opcode sub)', '(opcode add)')
+    call replace_token(mutated, '(storage-key x)', '(storage-key y)')
     call assert_rejected(mutated, mir_v0_bridge_out_of_scope, &
         'wrong initialized x-x opcode was accepted')
     mutated = input(:len_trim(input) - 1)
