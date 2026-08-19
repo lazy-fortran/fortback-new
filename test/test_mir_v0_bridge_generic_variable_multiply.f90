@@ -9,7 +9,7 @@ program test_mir_v0_bridge_generic_variable_multiply
     character(len=8192) :: input, mutated
     character(len=256) :: diagnostic
     integer(int8) :: bytes(16)
-    character(len=3) :: output
+    character(len=5) :: output
     integer(int32) :: status
     integer :: command_status, exit_status, io_status, unit
     character(len=*), parameter :: elf_path = &
@@ -40,7 +40,7 @@ program test_mir_v0_bridge_generic_variable_multiply
     call assert_equal(io_status, 0, 'initialized x*x output was not written')
     read (unit, iostat=io_status) output
     call assert_equal(io_status, 0, 'initialized x*x output read failed')
-    call assert_true(output == '84'//achar(10), 'initialized x*x value changed')
+    call assert_true(output == '1764'//achar(10), 'initialized x*x value changed')
     read (unit, iostat=io_status) bytes(1:1)
     call assert_true(io_status /= 0, 'initialized x*x wrote extra output')
     close (unit, status='delete', iostat=io_status)

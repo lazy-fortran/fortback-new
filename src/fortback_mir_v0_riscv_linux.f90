@@ -650,8 +650,13 @@ contains
                         call integer_to_decimal(int(mir%instructions(1)%literal, int64) - &
                             int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
                     else if (mir%instructions(5)%opcode == mir_v0_opcode_mul) then
-                        call integer_to_decimal(int(mir%instructions(1)%literal, int64) * &
-                            int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                        if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                            call integer_to_decimal(int(mir%instructions(1)%literal, int64) * &
+                                int(mir%instructions(1)%literal, int64), print_digits, print_digit_count)
+                        else
+                            call integer_to_decimal(int(mir%instructions(1)%literal, int64) * &
+                                int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
+                        end if
                     else
                         call integer_to_decimal( &
                             int(mir%instructions(1)%literal, int64) / &
