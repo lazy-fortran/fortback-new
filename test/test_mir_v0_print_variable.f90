@@ -58,7 +58,8 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic multiplication literal mutation was accepted')
-    wrong_literal = replace_text(input, '(opcode mul)', '(opcode add)')
+    wrong_literal = replace_text(replace_text(input, '(literal 2)', '(literal 3)'), &
+        '(opcode mul)', '(opcode add)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic multiplication opcode mutation was accepted')
@@ -77,7 +78,8 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic subtraction literal mutation was accepted')
-    wrong_literal = replace_text(input, '(opcode sub)', '(opcode add)')
+    wrong_literal = replace_text(replace_text(input, '(literal 2)', '(literal 3)'), &
+        '(opcode sub)', '(opcode add)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic subtraction opcode mutation was accepted')
@@ -96,7 +98,8 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic division literal mutation was accepted')
-    wrong_literal = replace_text(input, '(opcode div)', '(opcode add)')
+    wrong_literal = replace_text(replace_text(input, '(literal 2)', '(literal 3)'), &
+        '(opcode div)', '(opcode add)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic division opcode mutation was accepted')

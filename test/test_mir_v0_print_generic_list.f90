@@ -1,7 +1,8 @@
 program test_mir_v0_print_generic_list
     use iso_fortran_env, only: int8, int32
     use fortback_mir_v0_riscv_linux, only: compile_mir_v0_riscv_linux, &
-        mir_v0_bridge_ok, riscv_linux_artifact_t, write_mir_v0_riscv_linux
+        mir_v0_bridge_ok, mir_v0_bridge_out_of_scope, riscv_linux_artifact_t, &
+        write_mir_v0_riscv_linux
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
@@ -9,7 +10,7 @@ program test_mir_v0_print_generic_list
     character(len=256) :: diagnostic
     integer(int8) :: output(29)
     integer(int32) :: status
-    integer :: command_status, exit_status, io_status, unit, index
+    integer :: command_status, exit_status, io_status, unit, byte_index
     character(len=*), parameter :: path = '/tmp/fortback-print-generic-list.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-generic-list.out'
     character(len=*), parameter :: expected = &
@@ -35,14 +36,45 @@ program test_mir_v0_print_generic_list
     call assert_int(io_status, 0, 'generic literal PRINT output was not written')
     read (unit, iostat=io_status) output
     call assert_int(io_status, 0, 'generic literal PRINT output length changed')
-    do index = 1, size(output)
-        call assert_byte(output(index), iachar(expected(index:index)), &
+    do byte_index = 1, size(output)
+        call assert_byte(output(byte_index), iachar(expected(byte_index:byte_index)), &
             'generic literal PRINT output mismatch')
     end do
     read (unit, iostat=io_status) output(1)
     call assert_true(io_status /= 0, 'generic literal PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'generic literal PRINT output cleanup failed')
+
+    input = generic_add_constant_input()
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, &
+        'generic x+2 PRINT MIR was rejected: '//trim(diagnostic))
+    call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_ok, 'generic x+2 PRINT ELF write failed')
+    call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+        cmdstat=command_status)
+    call assert_int(command_status, 0, 'generic x+2 PRINT chmod failed')
+    call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+        exitstat=exit_status, cmdstat=command_status)
+    call assert_int(command_status, 0, 'generic x+2 PRINT qemu command failed')
+    call assert_int(exit_status, 0, 'generic x+2 PRINT artifact did not exit successfully')
+    open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+        status='old', action='read', iostat=io_status)
+    call assert_int(io_status, 0, 'generic x+2 PRINT output was not written')
+    read (unit, iostat=io_status) output(1:2)
+    call assert_int(io_status, 0, 'generic x+2 PRINT output length changed')
+    call assert_byte(output(1), iachar('5'), 'generic x+2 PRINT output mismatch')
+    call assert_byte(output(2), iachar(achar(10)), 'generic x+2 PRINT newline mismatch')
+    read (unit, iostat=io_status) output(1)
+    call assert_true(io_status /= 0, 'generic x+2 PRINT wrote extra bytes')
+    close (unit, status='delete', iostat=io_status)
+    call assert_int(io_status, 0, 'generic x+2 PRINT output cleanup failed')
+
+    input = generic_add_constant_input()
+    input(index(input, 'literal 2'):index(input, 'literal 2') + 8) = 'literal 3'
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'generic x+3 PRINT MIR was accepted')
     write (*, '(a)') 'MIR-v0 generic literal PRINT QEMU check: ok'
 
 contains
@@ -63,6 +95,28 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 16) '// &
             '(kind integer) (type i32)))))'
     end function generic_literal_input
+
+    function generic_add_constant_input() result(value)
+        character(len=65536) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 7) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 3) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 1) (opcode store) '// &
+            '(storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 1) (kind integer) (type i32))) '// &
+            '(instruction (id 2) (opcode load) (storage-key x) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 3) (opcode const) '// &
+            '(literal 2) (source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 4) (opcode add) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 5) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(kind integer) (type i32))) (instruction (id 6) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(kind integer) (type i32)))))'
+    end function generic_add_constant_input
 
     function literal_output(id, literal) result(value)
         integer, intent(in) :: id, literal

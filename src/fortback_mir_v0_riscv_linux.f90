@@ -1096,7 +1096,8 @@ contains
                         int(mir%instructions(index + 1)%literal, int64)], words(word_index), &
                         status, diagnostic)
                 else
-                    call encode_operation(target, records, 'addi', [11_int64, 0_int64, 1_int64], &
+                    call encode_operation(target, records, 'addi', [11_int64, 0_int64, &
+                        int(mir%instructions(index + 1)%literal, int64)], &
                         words(word_index), status, diagnostic)
                 end if
                 if (status /= mir_v0_bridge_ok) return
@@ -1864,7 +1865,8 @@ contains
                         if (operand_instruction%opcode == mir_v0_opcode_const) then
                             if (.not. operand_instruction%literal_present) return
                             if (operation_instruction%opcode == mir_v0_opcode_add) then
-                                if (operand_instruction%literal /= 1_int32) return
+                                if (operand_instruction%literal /= 1_int32 .and. &
+                                    operand_instruction%literal /= 2_int32) return
                             else if (operation_instruction%opcode == mir_v0_opcode_pow) then
                                 if (operand_instruction%literal < generic_power_minimum .or. &
                                     operand_instruction%literal > generic_power_maximum) return
