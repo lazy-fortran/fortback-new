@@ -17,6 +17,8 @@ program test_mir_v0_bridge_generic_power
     call assert_qemu(3, 5, '243'//achar(10))
     call assert_qemu(-3, 5, '-243'//achar(10))
     call assert_qemu(3, 10, '59049'//achar(10))
+    call assert_variable_qemu(3, '27'//achar(10))
+    call assert_variable_qemu(4, '256'//achar(10))
 
     input = initialized_power_input(3, 0)
     call assert_rejected(input, 'power exponent 0 was accepted')
@@ -24,6 +26,16 @@ program test_mir_v0_bridge_generic_power
     call assert_rejected(input, 'power exponent 1 was accepted')
     input = initialized_power_input(3, 11)
     call assert_rejected(input, 'power exponent 11 was accepted')
+
+    input = initialized_variable_power_input(-3)
+    call assert_rejected(input, 'negative initialized variable power was accepted')
+    input = initialized_variable_power_input(3)
+    mutated = input
+    call replace_nth_token(mutated, '(opcode load)', '(opcode add)', 2)
+    call assert_rejected(mutated, 'variable power load shape mutation was accepted')
+    mutated = input
+    call replace_nth_token(mutated, 'storage-key x', 'storage-key y', 3)
+    call assert_rejected(mutated, 'variable power load storage mutation was accepted')
 
     input = initialized_power_input(3, 2)
     mutated = input
@@ -51,41 +63,55 @@ contains
     subroutine assert_qemu(base, exponent, expected)
         integer, intent(in) :: base, exponent
         character(len=*), intent(in) :: expected
+
+        input = initialized_power_input(base, exponent)
+        call assert_qemu_input(input, expected, 'initialized power')
+    end subroutine assert_qemu
+
+    subroutine assert_variable_qemu(initializer, expected)
+        integer, intent(in) :: initializer
+        character(len=*), intent(in) :: expected
+
+        input = initialized_variable_power_input(initializer)
+        call assert_qemu_input(input, expected, 'initialized variable power')
+    end subroutine assert_variable_qemu
+
+    subroutine assert_qemu_input(value, expected, label)
+        character(len=*), intent(in) :: value, expected, label
         character(len=16) :: bytes
         integer :: byte_index
 
-        input = initialized_power_input(base, exponent)
-        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call compile_mir_v0_riscv_linux(value, artifact, status, diagnostic)
         call assert_equal(status, mir_v0_bridge_ok, &
-            'accepted initialized power was rejected: '//trim(diagnostic))
+            'accepted '//trim(label)//' was rejected: '//trim(diagnostic))
         call assert_true(len_trim(diagnostic) == 0, &
-            'accepted initialized power returned a diagnostic')
+            trim(label)//' returned a diagnostic')
         call assert_true(riscv_linux_artifact_provenance_valid(artifact), &
-            'initialized power artifact provenance is invalid')
-        call write_mir_v0_riscv_linux(input, elf_path, status, diagnostic)
-        call assert_equal(status, mir_v0_bridge_ok, 'initialized power ELF write failed')
+            trim(label)//' artifact provenance is invalid')
+        call write_mir_v0_riscv_linux(value, elf_path, status, diagnostic)
+        call assert_equal(status, mir_v0_bridge_ok, trim(label)//' ELF write failed')
         call execute_command_line('chmod 755 -- '//elf_path, wait=.true., &
             exitstat=exit_status, cmdstat=command_status)
-        call assert_equal(command_status, 0, 'initialized power chmod failed')
-        call assert_equal(exit_status, 0, 'initialized power chmod returned failure')
+        call assert_equal(command_status, 0, trim(label)//' chmod failed')
+        call assert_equal(exit_status, 0, trim(label)//' chmod returned failure')
         call execute_command_line('qemu-riscv64 '//elf_path//' > '//output_path, wait=.true., &
             exitstat=exit_status, cmdstat=command_status)
-        call assert_equal(command_status, 0, 'initialized power QEMU command failed')
-        call assert_equal(exit_status, 0, 'initialized power QEMU returned failure')
+        call assert_equal(command_status, 0, trim(label)//' QEMU command failed')
+        call assert_equal(exit_status, 0, trim(label)//' QEMU returned failure')
         open (newunit=unit, file=output_path, access='stream', form='unformatted', &
             status='old', action='read', iostat=io_status)
-        call assert_equal(io_status, 0, 'initialized power output was not written')
+        call assert_equal(io_status, 0, trim(label)//' output was not written')
         read (unit, iostat=io_status) bytes(1:len(expected))
-        call assert_equal(io_status, 0, 'initialized power output read failed')
+        call assert_equal(io_status, 0, trim(label)//' output read failed')
         do byte_index = 1, len(expected)
             call assert_byte(bytes(byte_index:byte_index), expected(byte_index:byte_index), &
-                'initialized power output changed')
+                trim(label)//' output changed')
         end do
         read (unit, iostat=io_status) bytes(1:1)
-        call assert_true(io_status /= 0, 'initialized power wrote extra output')
+        call assert_true(io_status /= 0, trim(label)//' wrote extra output')
         close (unit, status='delete', iostat=io_status)
-        call assert_equal(io_status, 0, 'initialized power output cleanup failed')
-    end subroutine assert_qemu
+        call assert_equal(io_status, 0, trim(label)//' output cleanup failed')
+    end subroutine assert_qemu_input
 
     subroutine assert_rejected(value, message)
         character(len=*), intent(in) :: value, message
@@ -155,6 +181,32 @@ contains
             '(instruction (id 8) (opcode return) (source-rule frontend-ast-v2/print-stmt) '// &
             '(result (id 6) (kind integer) (type i32)))))'
     end function initialized_power_input
+
+    function initialized_variable_power_input(initializer) result(value)
+        integer, intent(in) :: initializer
+        character(len=8192) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 9) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal '// &
+            int_text(initializer)//') (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 0) (kind integer) (type i32))) (instruction (id 1) '// &
+            '(opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 1) (kind integer) (type i32))) (instruction (id 2) '// &
+            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 2) (kind integer) (type i32))) (instruction (id 3) '// &
+            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 3) (kind integer) (type i32))) (instruction (id 4) '// &
+            '(opcode pow) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 4) (kind integer) (type i32))) (instruction (id 5) '// &
+            '(opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 4) (kind integer) (type i32))) (instruction (id 6) '// &
+            '(opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32))) (instruction (id 7) '// &
+            '(opcode output) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32))) (instruction (id 8) '// &
+            '(opcode return) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32)))))'
+    end function initialized_variable_power_input
 
     function int_text(number) result(value)
         integer, intent(in) :: number
