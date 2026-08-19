@@ -504,7 +504,8 @@ contains
             if (status /= mir_v0_bridge_ok) return
             if (mir%instructions(4)%opcode == mir_v0_opcode_load .and. &
                     (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
-                    mir%instructions(5)%opcode == mir_v0_opcode_mul)) then
+                    mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
+                    mir%instructions(5)%opcode == mir_v0_opcode_div)) then
                 call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
                     [11_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(5), &
                     status, diagnostic)
@@ -657,6 +658,8 @@ contains
                             call integer_to_decimal(int(mir%instructions(1)%literal, int64) * &
                                 int(mir%instructions(4)%literal, int64), print_digits, print_digit_count)
                         end if
+                    else if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                        call integer_to_decimal(1_int64, print_digits, print_digit_count)
                     else
                         call integer_to_decimal( &
                             int(mir%instructions(1)%literal, int64) / &
@@ -2663,7 +2666,7 @@ contains
             end if
         end if
         if (initialized_division_route) then
-            do index = 3, 6
+            do index = 1, 6
                 if (trim(mir%instructions(index)%source_rule) /= &
                     'frontend-ast-v2/execution-part') return
             end do
@@ -2673,8 +2676,19 @@ contains
             end do
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
-            if (mir%instructions(4)%literal < 1_int32 .or. &
-                    mir%instructions(4)%literal > 10_int32) return
+            if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                if (mir%instructions(1)%literal == 0_int32) return
+                if (.not. mir%instructions(4)%storage_present) return
+                if (trim(mir%instructions(4)%storage_key) /= 'x') return
+                if (mir%instructions(4)%literal_present) return
+                if (mir%instructions(4)%result_kind /= mir_v0_value_kind_integer) return
+                if (trim(mir%instructions(4)%result_type) /= 'i32') return
+            else
+                if (mir%instructions(4)%opcode /= mir_v0_opcode_const) return
+                if (.not. mir%instructions(4)%literal_present) return
+                if (mir%instructions(4)%literal < 1_int32 .or. &
+                        mir%instructions(4)%literal > 10_int32) return
+            end if
         end if
         if (initialized_power_route) then
             do index = 1, 6
