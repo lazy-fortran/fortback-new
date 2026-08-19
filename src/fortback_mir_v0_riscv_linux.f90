@@ -1034,7 +1034,7 @@ contains
         integer(int32), intent(out) :: status
         character(len=*), intent(out) :: diagnostic
         integer :: index, item_end
-        logical :: power_three_item
+        integer(int32) :: power_exponent
         integer(int32) :: word_index
 
         word_index = 1_int32
@@ -1101,7 +1101,13 @@ contains
                     call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
                         words(word_index), status, diagnostic)
                     if (status /= mir_v0_bridge_ok) return
-                    if (mir%instructions(index + 1)%literal == 3_int32) then
+                    if (mir%instructions(index + 1)%literal == 3_int32 .or. &
+                        mir%instructions(index + 1)%literal == 4_int32) then
+                        word_index = word_index + 1_int32
+                        call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
+                            words(word_index), status, diagnostic)
+                    end if
+                    if (mir%instructions(index + 1)%literal == 4_int32) then
                         word_index = word_index + 1_int32
                         call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
                             words(word_index), status, diagnostic)
@@ -1128,14 +1134,17 @@ contains
             end if
             if (item_end > mir%instruction_count - 1) return
             if (mir%instructions(item_end)%opcode /= mir_v0_opcode_output) return
-            power_three_item = .false.
+            power_exponent = 0_int32
             if (item_end == index + 3) then
                 if (mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
-                    if (mir%instructions(index + 1)%literal == 3_int32) power_three_item = .true.
+                    power_exponent = mir%instructions(index + 1)%literal
                 end if
             end if
-            if (power_three_item) then
+            if (power_exponent == 3_int32) then
                 call encode_operation(target, records, 'addi', [5_int64, 0_int64, 50_int64], &
+                    words(word_index), status, diagnostic)
+            else if (power_exponent == 4_int32) then
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 56_int64], &
                     words(word_index), status, diagnostic)
             else
                 call encode_operation(target, records, 'addi', [5_int64, 10_int64, 48_int64], &
@@ -1147,8 +1156,11 @@ contains
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            if (power_three_item) then
+            if (power_exponent == 3_int32) then
                 call encode_operation(target, records, 'addi', [5_int64, 0_int64, 55_int64], &
+                    words(word_index), status, diagnostic)
+            else if (power_exponent == 4_int32) then
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 49_int64], &
                     words(word_index), status, diagnostic)
             else
                 call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
@@ -1160,7 +1172,7 @@ contains
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
-            if (power_three_item) then
+            if (power_exponent == 3_int32 .or. power_exponent == 4_int32) then
                 call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
@@ -1179,7 +1191,8 @@ contains
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
             call encode_operation(target, records, 'addi', &
-                [12_int64, 0_int64, merge(3_int64, 2_int64, power_three_item)], &
+                [12_int64, 0_int64, merge(3_int64, 2_int64, &
+                power_exponent == 3_int32 .or. power_exponent == 4_int32)], &
                 words(word_index), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             word_index = word_index + 1_int32
@@ -1665,7 +1678,8 @@ contains
                                 if (operand_instruction%literal /= 1_int32) return
                             else if (operation_instruction%opcode == mir_v0_opcode_pow) then
                                 if (operand_instruction%literal /= 2_int32 .and. &
-                                        operand_instruction%literal /= 3_int32) return
+                                    operand_instruction%literal /= 3_int32 .and. &
+                                    operand_instruction%literal /= 4_int32) return
                             else
                                 if (operand_instruction%literal /= 2_int32) return
                             end if

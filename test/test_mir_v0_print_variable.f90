@@ -98,8 +98,10 @@ program test_mir_v0_print_variable
     call run_print_generic_power(input, path, output_path, 9)
     input = print_variable_generic_power_input()
     call run_print_generic_power(input, path, output_path, 27)
-    wrong_literal = replace_text(input, '(literal 3) (source-rule frontend-ast-v2/print-stmt)', &
-        '(literal 4) (source-rule frontend-ast-v2/print-stmt)')
+    input = print_variable_generic_power_four_input()
+    call run_print_generic_power(input, path, output_path, 81)
+    wrong_literal = replace_text(input, '(literal 4) (source-rule frontend-ast-v2/print-stmt)', &
+        '(literal 5) (source-rule frontend-ast-v2/print-stmt)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic power literal mutation was accepted')
@@ -396,7 +398,7 @@ contains
         open (newunit=unit, file=output_path, access='stream', form='unformatted', &
             status='old', action='read', iostat=io_status)
         call assert_int(io_status, 0, 'generic power output was not written')
-        if (expected_value == 27) then
+        if (expected_value == 27 .or. expected_value == 81) then
             read (unit, iostat=io_status) output
         else
             read (unit, iostat=io_status) output(:6)
@@ -405,6 +407,14 @@ contains
         if (expected_value == 27) then
             call assert_byte(output(1), 50, 'generic power missed first 2')
             call assert_byte(output(2), 55, 'generic power missed second 7')
+            call assert_byte(output(3), 10, 'generic power missed first newline')
+            call assert_byte(output(4), 55, 'generic power missed 7')
+            call assert_byte(output(5), 10, 'generic power missed second newline')
+            call assert_byte(output(6), 51, 'generic power missed 3')
+            call assert_byte(output(7), 10, 'generic power missed third newline')
+        else if (expected_value == 81) then
+            call assert_byte(output(1), 56, 'generic power missed first 8')
+            call assert_byte(output(2), 49, 'generic power missed second 1')
             call assert_byte(output(3), 10, 'generic power missed first newline')
             call assert_byte(output(4), 55, 'generic power missed 7')
             call assert_byte(output(5), 10, 'generic power missed second newline')
@@ -686,6 +696,14 @@ contains
         value = replace_text(value, '(literal 2)', '(literal 3)')
         value = replace_text(value, '(opcode mul)', '(opcode pow)')
     end function print_variable_generic_power_input
+
+    function print_variable_generic_power_four_input() result(value)
+        character(len=65536) :: value
+
+        value = print_variable_generic_power_input()
+        value = replace_text(value, '(literal 3) (source-rule frontend-ast-v2/print-stmt)', &
+            '(literal 4) (source-rule frontend-ast-v2/print-stmt)')
+    end function print_variable_generic_power_four_input
 
     function print_variable_generic_power_two_input() result(value)
         character(len=65536) :: value
