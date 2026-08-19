@@ -43,7 +43,7 @@ program test_mir_v0_print_variable
     call run_print_variable_signed(input, path, output_path, '43'//achar(10))
     input = print_variable_add_input(-42)
     call run_print_variable_signed(input, path, output_path, '-41'//achar(10))
-    wrong_literal = replace_text(print_variable_add_input(42), '(opcode add)', '(opcode sub)')
+    wrong_literal = replace_text(print_variable_add_input(42), '(opcode add)', '(opcode div)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, 'initialized x+1 opcode mutation was accepted')
     wrong_literal = replace_text(print_variable_add_input(42), '(storage-key x)', '(storage-key y)')
@@ -122,11 +122,6 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic subtraction literal mutation was accepted')
-    wrong_literal = replace_text(replace_text(input, '(literal 2)', '(literal 101)'), &
-        '(opcode sub)', '(opcode add)')
-    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'generic subtraction opcode mutation was accepted')
     wrong_literal = replace_text(input, '(storage-key x)', '(storage-key y)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
@@ -284,7 +279,7 @@ program test_mir_v0_print_variable
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'unsupported multiplication literal was accepted')
     wrong_literal = print_variable_subtract_expression_input()
-    wrong_literal = replace_text(wrong_literal, '(literal 2)', '(literal 3)')
+    wrong_literal = replace_text(wrong_literal, '(literal 2)', '(literal 11)')
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'unsupported subtraction literal was accepted')

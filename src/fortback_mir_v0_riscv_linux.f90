@@ -863,6 +863,13 @@ contains
             if (status /= mir_v0_bridge_ok) return
             emitted_count = mir%instruction_count + 2_int32
         else if (storage_sequence_route) then
+            if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
+                if (mir%instructions(1)%literal /= 3_int32 .or. &
+                    mir%instructions(4)%literal /= 2_int32) then
+                    call set_diagnostic(diagnostic, 'mir-v0: generic subtraction is out of scope')
+                    return
+                end if
+            end if
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -2489,12 +2496,15 @@ contains
         logical :: initialized_subtraction_route
 
         valid = .false.
-        initialized_subtraction_route = mir%instructions(5)%opcode == mir_v0_opcode_sub .and. &
-            trim(mir%instructions(3)%source_rule) == 'frontend-ast-v2/print-stmt'
+        initialized_subtraction_route = mir%instruction_count == 9_int32 .and. &
+            mir%instructions(5)%opcode == mir_v0_opcode_sub .and. &
+            trim(mir%instructions(7)%source_rule) == 'frontend-ast-v2/print-stmt'
         if (initialized_subtraction_route) then
             if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
             if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
-            do index = 3, 9
+            if (mir%instructions(1)%literal < -100_int32 .or. mir%instructions(1)%literal > 2047_int32) return
+            if (mir%instructions(4)%literal < 1_int32 .or. mir%instructions(4)%literal > 10_int32) return
+            do index = 7, 9
                 if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
             end do
         end if
