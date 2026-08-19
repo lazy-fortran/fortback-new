@@ -33,7 +33,7 @@ program test_mir_v0_bridge_generic_multiplier
     call assert_rejected(mutated, 'multiplier storage key mutation was accepted')
     mutated = input
     call replace_nth_token(mutated, 'source-rule frontend-ast-v2/print-stmt', &
-        'source-rule frontend-ast-v2/unknown', 6)
+        'source-rule frontend-ast-v2/unknown', 2)
     call assert_rejected(mutated, 'multiplier source-rule mutation was accepted')
     write (*, '(a)') 'MIR-v0 generic initialized multiplier QEMU checks: ok'
 
@@ -133,12 +133,12 @@ contains
             '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) (type i32))) '// &
             '(instruction (id 1) (opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 1) (kind integer) (type i32))) (instruction (id 2) (opcode load) '// &
-            '(storage-key x) (source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) (type i32))) '// &
+            '(storage-key x) (source-rule frontend-ast-v2/execution-part) (result (id 2) (kind integer) (type i32))) '// &
             '(instruction (id 3) (opcode const) (literal '//int_text(multiplier)//') '// &
-            '(source-rule frontend-ast-v2/print-stmt) (result (id 3) (kind integer) (type i32))) '// &
-            '(instruction (id 4) (opcode mul) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 3) (kind integer) (type i32))) '// &
+            '(instruction (id 4) (opcode mul) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 5) (opcode store) '// &
-            '(storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 6) (opcode load) '// &
             '(storage-key x) (source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) (type i32))) '// &
             '(instruction (id 7) (opcode output) (source-rule frontend-ast-v2/print-stmt) '// &

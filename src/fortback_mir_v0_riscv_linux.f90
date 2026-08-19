@@ -2515,7 +2515,10 @@ contains
             end do
         end if
         if (initialized_multiplier_route) then
-            do index = 3, 9
+            do index = 3, 6
+                if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/execution-part') return
+            end do
+            do index = 7, 9
                 if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
             end do
             if (mir%instructions(1)%literal < -100_int32 .or. &
