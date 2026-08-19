@@ -97,6 +97,7 @@ contains
         integer(int32) :: print_buffer_offset
         integer(int32) :: print_syscall_word
         integer(int32) :: power_index
+        integer(int32) :: power_exponent
         integer(int64) :: power_value
         character(len=32) :: print_digits
         logical :: storage_route, storage_sequence_route, storage_sequence_3_route
@@ -507,7 +508,16 @@ contains
             if (status /= mir_v0_bridge_ok) return
             operation = mir_v0_bridge_policy_machine_operation_for(mir%instructions(5)%opcode)
             if (mir%instructions(5)%opcode == mir_v0_opcode_pow) then
-                if (mir%instructions(4)%literal == 2_int32) then
+                if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                    emitted_count = 5_int32
+                    do power_index = generic_power_minimum, mir%instructions(1)%literal
+                        call encode_operation(target, records, 'mul', &
+                            [10_int64, 10_int64, 10_int64], words(emitted_count + 1), &
+                            status, diagnostic)
+                        if (status /= mir_v0_bridge_ok) return
+                        emitted_count = emitted_count + 1_int32
+                    end do
+                else if (mir%instructions(4)%literal == 2_int32) then
                     call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], words(6), &
                         status, diagnostic)
                     if (status /= mir_v0_bridge_ok) return
@@ -541,7 +551,12 @@ contains
                 if (status /= mir_v0_bridge_ok) return
                 emitted_count = emitted_count + 1_int32
                 power_value = int(mir%instructions(1)%literal, int64)
-                do power_index = 2, mir%instructions(4)%literal
+                if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                    power_exponent = mir%instructions(1)%literal
+                else
+                    power_exponent = mir%instructions(4)%literal
+                end if
+                do power_index = 2, power_exponent
                     power_value = power_value * int(mir%instructions(1)%literal, int64)
                 end do
                 call integer_to_decimal(power_value, print_digits, print_digit_count)
@@ -1773,6 +1788,7 @@ contains
         logical :: print_variable_six_item_route
         logical :: print_variable_seven_to_eighty_item_route
         logical :: generic_print_route
+        logical :: initialized_power_variable_shape
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
@@ -1787,6 +1803,12 @@ contains
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
+        initialized_power_variable_shape = .false.
+        if (print_variable_expression_route) then
+            if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
+                initialized_power_variable_shape = .true.
+            end if
+        end if
         if (.not. mir_v0_bridge_policy_function_supported(mir%name)) then
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
@@ -1901,8 +1923,13 @@ contains
                 mir%instructions(index)%result_kind, mir%instructions(index)%result_type, &
                 mir%instructions(index)%source_rule, mir%instructions(index)%literal_present, &
                 mir%instructions(index)%literal)) then
-                call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
-                return
+                if (.not. initialized_power_variable_shape) then
+                    call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
+                    return
+                else if (index /= 4) then
+                    call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
+                    return
+                end if
             end if
         end do
         ok = .true.
@@ -2254,7 +2281,9 @@ contains
         candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
             mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
             mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
+            (mir%instructions(4)%opcode == mir_v0_opcode_const .or. &
+            (mir%instructions(4)%opcode == mir_v0_opcode_load .and. &
+            mir%instructions(5)%opcode == mir_v0_opcode_pow)) .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_div .or. &
@@ -2611,8 +2640,23 @@ contains
             end do
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
-            if (mir%instructions(4)%literal < generic_power_minimum .or. &
-                    mir%instructions(4)%literal > generic_power_maximum) return
+            select case (mir%instructions(4)%opcode)
+            case (mir_v0_opcode_const)
+                if (.not. mir%instructions(4)%literal_present) return
+                if (mir%instructions(4)%storage_present) return
+                if (mir%instructions(4)%literal < generic_power_minimum .or. &
+                        mir%instructions(4)%literal > generic_power_maximum) return
+            case (mir_v0_opcode_load)
+                if (.not. mir%instructions(4)%storage_present) return
+                if (trim(mir%instructions(4)%storage_key) /= 'x') return
+                if (mir%instructions(4)%literal_present) return
+                if (mir%instructions(4)%result_kind /= mir_v0_value_kind_integer) return
+                if (trim(mir%instructions(4)%result_type) /= 'i32') return
+                if (mir%instructions(1)%literal < generic_power_minimum .or. &
+                        mir%instructions(1)%literal > generic_power_maximum) return
+            case default
+                return
+            end select
         end if
         if (.not. mir%instructions(2)%storage_present) return
         if (.not. mir%instructions(3)%storage_present) return
