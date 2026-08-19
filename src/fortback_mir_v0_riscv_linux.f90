@@ -1778,10 +1778,6 @@ contains
                 mir%instructions(index)%result_kind, mir%instructions(index)%result_type, &
                 mir%instructions(index)%source_rule, mir%instructions(index)%literal_present, &
                 mir%instructions(index)%literal)) then
-                if (print_variable_route .and. index == 1 .and. &
-                    mir%instructions(index)%literal_present .and. &
-                    mir%instructions(index)%literal >= -100_int32 .and. &
-                    mir%instructions(index)%literal <= -1_int32) cycle
                 call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                 return
             end if

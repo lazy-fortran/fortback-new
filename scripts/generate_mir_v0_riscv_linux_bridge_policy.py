@@ -66,16 +66,34 @@ def read_policy():
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
             shape_names.add(fields[1])
             policy["result-shapes"].append(tuple(fields[1:]))
-        elif (fields[0] == "literal-range" and len(fields) == 7 and
-              fields[1] == "opcode" and fields[3] == "min" and fields[5] == "max"):
-            opcode = fields[2]
-            minimum = int(fields[4])
-            maximum = int(fields[6])
+        elif (fields[0] == "literal-range" and len(fields) in (7, 15) and
+              ((len(fields) == 7 and fields[1] == "opcode" and fields[3] == "min" and
+                fields[5] == "max") or
+               (len(fields) == 15 and fields[1] == "function" and
+                fields[3] == "source-rule" and fields[5] == "count" and
+                fields[7] == "opcode" and fields[9] == "index" and
+                fields[11] == "min" and fields[13] == "max"))):
+            if len(fields) == 7:
+                function_name, source_rule, instruction_count, instruction_index = (None,) * 4
+                opcode = fields[2]
+                minimum = int(fields[4])
+                maximum = int(fields[6])
+            else:
+                function_name = fields[2]
+                source_rule = fields[4]
+                instruction_count = int(fields[6])
+                opcode = fields[8]
+                instruction_index = int(fields[10])
+                minimum = int(fields[12])
+                maximum = int(fields[14])
             if minimum > maximum:
                 raise SystemExit(f"{INPUT}:{line_number}: literal range minimum exceeds maximum")
-            if any(existing_opcode == opcode for existing_opcode, _, _ in policy["literal-ranges"]):
+            if any(existing[0:5] == (function_name, source_rule, instruction_count, opcode,
+                                     instruction_index)
+                   for existing in policy["literal-ranges"]):
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate literal range")
-            policy["literal-ranges"].append((opcode, minimum, maximum))
+            policy["literal-ranges"].append((function_name, source_rule, instruction_count,
+                                              opcode, instruction_index, minimum, maximum))
         elif (fields[0] == "source-literal" and len(fields) in (9, 11) and
               fields[1] == "function" and fields[3] == "source-rule" and
               fields[5] == "opcode"):
@@ -411,10 +429,25 @@ def render(policy):
                 lines += ["                    case default", "                        return", "                    end select"]
             lines += ["                case default", "                    return", "                end select",
                       "                select case (opcode)"]
-            for opcode, minimum, maximum in policy["literal-ranges"]:
+            global_ranges = [(opcode, minimum, maximum) for function, rule, count, opcode, index, minimum, maximum
+                             in policy["literal-ranges"] if function is None]
+            route_ranges = [(opcode, count, index, minimum, maximum)
+                            for function, rule, count, opcode, index, minimum, maximum
+                            in policy["literal-ranges"]
+                            if function == function_name and rule == source_rule]
+            for opcode, minimum, maximum in global_ranges:
                 lines += [f"                case ({opcode_constant(opcode)})",
-                          "                    if (.not. literal_present) return",
-                          f"                    if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return"]
+                          "                    if (.not. literal_present) return"]
+                matching_ranges = [item for item in route_ranges if item[0] == opcode]
+                if matching_ranges:
+                    _, count, instruction_index, route_minimum, route_maximum = matching_ranges[0]
+                    lines += [f"                    if (instruction_count == {count}_int32 .and. instruction_index == {instruction_index}_int32) then",
+                              f"                        if (literal < {route_minimum}_int32 .or. literal > {route_maximum}_int32) return",
+                              "                    else",
+                              f"                        if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return",
+                              "                    end if"]
+                else:
+                    lines += [f"                    if (literal < {minimum}_int32 .or. literal > {maximum}_int32) return"]
             lines += ["                case default", "                    if (literal_present) return", "                end select"]
             literal_alternatives = {}
             for opcode, instruction_index, literal in source_literals.get(function_name, {}).get(source_rule, []):
