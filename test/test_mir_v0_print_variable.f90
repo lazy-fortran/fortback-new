@@ -127,6 +127,8 @@ program test_mir_v0_print_variable
     call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'generic power instruction-order mutation was accepted')
+    input = print_variable_generic_variable_power_input()
+    call run_print_generic_power(input, path, output_path, 27)
 
     input = print_variable_power_expression_input()
     call run_print_variable_power(input, path, output_path, 56)
@@ -725,6 +727,14 @@ contains
         value = print_variable_generic_multiply_input()
         value = replace_text(value, '(opcode mul)', '(opcode pow)')
     end function print_variable_generic_power_two_input
+
+    function print_variable_generic_variable_power_input() result(value)
+        character(len=65536) :: value
+
+        value = print_variable_generic_power_input()
+        value = replace_text(value, '(instruction (id 3) (opcode const) (literal 3)', &
+            '(instruction (id 3) (opcode load) (storage-key x)')
+    end function print_variable_generic_variable_power_input
 
     function print_variable_multiply_expression_input() result(value)
         character(len=65536) :: value

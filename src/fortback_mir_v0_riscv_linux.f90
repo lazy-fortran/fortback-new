@@ -1040,6 +1040,7 @@ contains
         integer(int32) :: word_index
         integer(int64) :: power_value
         character(len=32) :: power_digits
+        logical :: variable_power
 
         word_index = 1_int32
         call encode_operation(target, records, 'addi', [2_int64, 2_int64, -16_int64], &
@@ -1058,6 +1059,7 @@ contains
         word_index = word_index + 1_int32
         index = 3
         do while (index <= mir%instruction_count - 2)
+            variable_power = .false.
             item_end = index + 1
             if (mir%instructions(index)%opcode == mir_v0_opcode_load) then
                 if (index + 3 <= mir%instruction_count - 1) then
@@ -1067,7 +1069,8 @@ contains
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_div .or. &
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_pow)) .or. &
                         (mir%instructions(index + 1)%opcode == mir_v0_opcode_load .and. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add)) .and. &
+                        (mir%instructions(index + 2)%opcode == mir_v0_opcode_add .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_pow))) .and. &
                         mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
                         item_end = index + 3
                     end if
@@ -1102,15 +1105,20 @@ contains
                     call encode_operation(target, records, 'div', [10_int64, 10_int64, 11_int64], &
                         words(word_index), status, diagnostic)
                 else if (mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
-                    do power_index = generic_power_minimum, &
-                            mir%instructions(index + 1)%literal
-                        call encode_operation(target, records, 'mul', [10_int64, 10_int64, 10_int64], &
-                            words(word_index), status, diagnostic)
-                        if (status /= mir_v0_bridge_ok) return
-                        if (power_index < mir%instructions(index + 1)%literal) then
-                            word_index = word_index + 1_int32
-                        end if
-                    end do
+                    if (mir%instructions(index + 1)%opcode == mir_v0_opcode_load) then
+                        call encode_operation(target, records, 'mul', &
+                            [10_int64, 10_int64, 11_int64], words(word_index), status, diagnostic)
+                    else
+                        do power_index = generic_power_minimum, &
+                                mir%instructions(index + 1)%literal
+                            call encode_operation(target, records, 'mul', &
+                                [10_int64, 10_int64, 10_int64], words(word_index), status, diagnostic)
+                            if (status /= mir_v0_bridge_ok) return
+                            if (power_index < mir%instructions(index + 1)%literal) then
+                                word_index = word_index + 1_int32
+                            end if
+                        end do
+                    end if
                 else
                     call encode_operation(target, records, 'add', [10_int64, 10_int64, 11_int64], &
                         words(word_index), status, diagnostic)
@@ -1133,6 +1141,79 @@ contains
             end if
             if (item_end > mir%instruction_count - 1) return
             if (mir%instructions(item_end)%opcode /= mir_v0_opcode_output) return
+            if (item_end == index + 3 .and. mir%instructions(index + 1)%opcode == &
+                mir_v0_opcode_load .and. mir%instructions(index + 2)%opcode == &
+                mir_v0_opcode_pow) then
+                variable_power = .true.
+            end if
+            if (variable_power) then
+                call encode_operation(target, records, 'mul', [10_int64, 10_int64, 11_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'div', [13_int64, 10_int64, 12_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'mul', [14_int64, 13_int64, 12_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sub', [15_int64, 10_int64, 14_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [5_int64, 13_int64, 48_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 8_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [5_int64, 15_int64, 48_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 9_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sb', [5_int64, 2_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [11_int64, 2_int64, 8_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 3_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [17_int64, 0_int64, 64_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
+                    mir_v0_riscv_linux_ecall_operands, words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                index = item_end + 1
+                cycle
+            end if
             power_exponent = 0_int32
             if (item_end == index + 3) then
                 if (mir%instructions(index + 2)%opcode == mir_v0_opcode_pow) then
@@ -1611,7 +1692,8 @@ contains
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_div .or. &
                         mir%instructions(index + 2)%opcode == mir_v0_opcode_pow)) .or. &
                         (mir%instructions(index + 1)%opcode == mir_v0_opcode_load .and. &
-                        mir%instructions(index + 2)%opcode == mir_v0_opcode_add)) .and. &
+                        (mir%instructions(index + 2)%opcode == mir_v0_opcode_add .or. &
+                        mir%instructions(index + 2)%opcode == mir_v0_opcode_pow))) .and. &
                         mir%instructions(index + 3)%opcode == mir_v0_opcode_output) then
                         item_end = index + 3
                     end if
@@ -1665,7 +1747,8 @@ contains
                         operation_instruction%opcode == mir_v0_opcode_div .or. &
                         operation_instruction%opcode == mir_v0_opcode_pow)) .or. &
                         (operand_instruction%opcode == mir_v0_opcode_load .and. &
-                        operation_instruction%opcode == mir_v0_opcode_add)) .and. &
+                        (operation_instruction%opcode == mir_v0_opcode_add .or. &
+                        operation_instruction%opcode == mir_v0_opcode_pow))) .and. &
                         output_instruction%opcode == mir_v0_opcode_output) then
                         if (.not. value_instruction%storage_present) return
                         if (trim(value_instruction%storage_key) /= 'x') return
@@ -1683,6 +1766,15 @@ contains
                                 if (operand_instruction%literal /= 2_int32) return
                             end if
                             if (operand_instruction%storage_present) return
+                        else if (operation_instruction%opcode == mir_v0_opcode_pow) then
+                            if (operand_instruction%opcode == mir_v0_opcode_load) then
+                                if (.not. operand_instruction%storage_present) return
+                                if (trim(operand_instruction%storage_key) /= 'x') return
+                                if (operand_instruction%literal_present) return
+                            else
+                                if (operand_instruction%literal < generic_power_minimum .or. &
+                                    operand_instruction%literal > generic_power_maximum) return
+                            end if
                         else
                             if (.not. operand_instruction%storage_present) return
                             if (trim(operand_instruction%storage_key) /= 'x') return

@@ -5,7 +5,7 @@
     (result (id 1) (kind integer) (type i32)))
   (instruction (id 2) (opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt)
     (result (id 2) (kind integer) (type i32)))
-  (instruction (id 3) (opcode const) (literal 5) (source-rule frontend-ast-v2/print-stmt)
+  (instruction (id 3) (opcode load) (storage-key x) (source-rule frontend-ast-v2/print-stmt)
     (result (id 3) (kind integer) (type i32)))
   (instruction (id 4) (opcode pow) (source-rule frontend-ast-v2/print-stmt)
     (result (id 4) (kind integer) (type i32)))
