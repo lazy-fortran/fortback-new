@@ -23,7 +23,7 @@ program test_mir_v0_bridge_generic_variable_y_initializer
     call replace_token(mutated, '(storage-key y)', '(storage-key x)')
     call assert_rejected(mutated, 'wrong initialized y storage key was accepted')
     mutated = input
-    call replace_token(mutated, '(name main)', '(name other)')
+    call replace_token(mutated, '(name main)', '(name test)')
     call assert_rejected(mutated, 'wrong initialized y function name was accepted')
 
     write (*, '(a)') 'MIR-v0 generic initialized variable y checks: ok'
@@ -72,15 +72,15 @@ contains
         value = '(mir-function (name main) (entry-block 0) (instruction-count 5) '// &
             '(instructions (instruction (id 0) (opcode const) (literal '// &
             int_text(initializer)//') (source-rule frontend-ast-v2/execution-part) '// &
-            '(result (id 0) (kind integer) (type i32))) (instruction (id 1) '// &
+            '(result (id 2) (kind integer) (type i32))) (instruction (id 1) '// &
             '(opcode store) (storage-key y) (source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 1) (kind integer) (type i32))) (instruction (id 2) '// &
             '(opcode load) (storage-key y) (source-rule frontend-ast-v2/print-stmt) '// &
-            '(result (id 2) (kind integer) (type i32))) (instruction (id 3) '// &
+            '(result (id 1) (kind integer) (type i32))) (instruction (id 3) '// &
             '(opcode output) (source-rule frontend-ast-v2/print-stmt) '// &
-            '(result (id 2) (kind integer) (type i32))) (instruction (id 4) '// &
+            '(result (id 1) (kind integer) (type i32))) (instruction (id 4) '// &
             '(opcode return) (source-rule frontend-ast-v2/print-stmt) '// &
-            '(result (id 2) (kind integer) (type i32)))))'
+            '(result (id 1) (kind integer) (type i32)))))'
     end function initialized_variable_y_input
 
     function int_text(number) result(value)

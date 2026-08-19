@@ -784,7 +784,7 @@ contains
                     emitted_count = 22_int32
                 end if
             end if
-        else if (print_variable_route) then
+        else if (print_variable_route .or. initialized_variable_y_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -1896,6 +1896,11 @@ contains
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT two-item witness is out of scope')
                 return
             end if
+        else if (initialized_variable_y_route) then
+            if (.not. valid_initialized_variable_y(mir)) then
+                call set_diagnostic(diagnostic, 'mir-v0: initialized variable y witness is out of scope')
+                return
+            end if
         else if (print_variable_route) then
             if (.not. valid_print_variable(mir)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT variable witness is out of scope')
@@ -1970,10 +1975,10 @@ contains
                 mir%instructions(index)%result_kind, mir%instructions(index)%result_type, &
                 mir%instructions(index)%source_rule, mir%instructions(index)%literal_present, &
                 mir%instructions(index)%literal)) then
-                if (.not. initialized_power_variable_shape) then
+                if (.not. initialized_power_variable_shape .and. .not. initialized_variable_y_route) then
                     call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                     return
-                else if (index /= 4) then
+                else if (initialized_power_variable_shape .and. index /= 4) then
                     call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                     return
                 end if
@@ -2049,27 +2054,48 @@ contains
         candidate = .false.
         if (trim(mir%name) /= 'main') return
         if (mir%instruction_count /= 5_int32) return
-        do index = 1, 5
-            if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v1/expression') return
+        if (mir%instructions(1)%opcode /= mir_v0_opcode_const .or. &
+            mir%instructions(2)%opcode /= mir_v0_opcode_store .or. &
+            mir%instructions(3)%opcode /= mir_v0_opcode_load .or. &
+            mir%instructions(4)%opcode /= mir_v0_opcode_output .or. &
+            mir%instructions(5)%opcode /= mir_v0_opcode_return) return
+        do index = 1, 2
+            if (trim(mir%instructions(index)%source_rule) /= &
+                'frontend-ast-v2/execution-part') return
         end do
-        if (mir%instructions(1)%opcode /= mir_v0_opcode_load) return
-        if (mir%instructions(2)%opcode /= mir_v0_opcode_const) return
-        if (mir%instructions(3)%opcode /= mir_v0_opcode_add .and. &
-                mir%instructions(3)%opcode /= mir_v0_opcode_sub .and. &
-                mir%instructions(3)%opcode /= mir_v0_opcode_mul .and. &
-                mir%instructions(3)%opcode /= mir_v0_opcode_div .and. &
-                mir%instructions(3)%opcode /= mir_v0_opcode_pow) return
-        if (mir%instructions(4)%opcode /= mir_v0_opcode_store) return
-        if (mir%instructions(5)%opcode /= mir_v0_opcode_return) return
-        if (.not. mir%instructions(1)%storage_present) return
-        if (trim(mir%instructions(1)%storage_key) /= 'y') return
-        if (mir%instructions(2)%storage_present) return
-        if (mir%instructions(3)%storage_present) return
-        if (.not. mir%instructions(4)%storage_present) return
-        if (trim(mir%instructions(4)%storage_key) /= 'y') return
-        if (mir%instructions(5)%storage_present) return
+        do index = 3, 5
+            if (trim(mir%instructions(index)%source_rule) /= &
+                'frontend-ast-v2/print-stmt') return
+        end do
+        if (.not. mir%instructions(1)%literal_present .or. &
+            mir%instructions(1)%storage_present) return
+        if (mir%instructions(1)%literal < -100_int32 .or. &
+            mir%instructions(1)%literal > 2047_int32) return
+        if (.not. mir%instructions(2)%storage_present .or. &
+            trim(mir%instructions(2)%storage_key) /= 'y' .or. &
+            mir%instructions(2)%literal_present) return
+        if (.not. mir%instructions(3)%storage_present .or. &
+            trim(mir%instructions(3)%storage_key) /= 'y' .or. &
+            mir%instructions(3)%literal_present) return
+        if (mir%instructions(4)%storage_present .or. mir%instructions(4)%literal_present .or. &
+            mir%instructions(5)%storage_present .or. mir%instructions(5)%literal_present) return
+        if (mir%instructions(1)%result_id /= 2_int32 .or. &
+            mir%instructions(2)%result_id /= 1_int32 .or. &
+            mir%instructions(3)%result_id /= 1_int32 .or. &
+            mir%instructions(4)%result_id /= 1_int32 .or. &
+            mir%instructions(5)%result_id /= 1_int32) return
+        do index = 1, 5
+            if (mir%instructions(index)%result_kind /= mir_v0_value_kind_integer .or. &
+                trim(mir%instructions(index)%result_type) /= 'i32') return
+        end do
         candidate = .true.
     end function is_initialized_variable_y_route
+
+    logical function valid_initialized_variable_y(mir) result(valid)
+        type(parsed_mir_t), intent(in) :: mir
+
+        valid = is_initialized_variable_y_route(mir)
+    end function valid_initialized_variable_y
 
     logical function valid_generic_print_list(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
