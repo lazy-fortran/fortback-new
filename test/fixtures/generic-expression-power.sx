@@ -1,5 +1,5 @@
 (mir-function (name main) (entry-block 0) (instruction-count 11) (instructions
-  (instruction (id 0) (opcode const) (literal 3) (source-rule frontend-ast-v2/execution-part)
+  (instruction (id 0) (opcode const) (literal 4) (source-rule frontend-ast-v2/execution-part)
     (result (id 0) (kind integer) (type i32)))
   (instruction (id 1) (opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part)
     (result (id 1) (kind integer) (type i32)))

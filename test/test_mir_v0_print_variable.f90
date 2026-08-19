@@ -129,6 +129,8 @@ program test_mir_v0_print_variable
         'generic power instruction-order mutation was accepted')
     input = print_variable_generic_variable_power_input()
     call run_print_generic_power(input, path, output_path, 27)
+    input = print_variable_generic_variable_power_four_input()
+    call run_print_generic_power(input, path, output_path, 256, 4)
 
     input = print_variable_power_expression_input()
     call run_print_variable_power(input, path, output_path, 56)
@@ -382,15 +384,20 @@ contains
         call assert_int(io_status, 0, 'generic division output cleanup failed')
     end subroutine run_print_generic_divide
 
-    subroutine run_print_generic_power(input, path, output_path, expected_value)
+    subroutine run_print_generic_power(input, path, output_path, expected_value, expected_tail)
         character(len=*), intent(in) :: input, path, output_path
         integer, intent(in) :: expected_value
+        integer, intent(in), optional :: expected_tail
         type(riscv_linux_artifact_t) :: artifact
         character(len=256) :: diagnostic
         integer(int8) :: output(64)
         integer(int32) :: status
         integer :: command_status, exit_status, io_status, unit, expected_length, index
         character(len=32) :: expected_text
+        integer :: tail_value
+
+        tail_value = 3
+        if (present(expected_tail)) tail_value = expected_tail
 
         call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
         call assert_status(status, mir_v0_bridge_ok, &
@@ -418,7 +425,7 @@ contains
         call assert_byte(output(len_trim(expected_text) + 1), 10, 'generic power missed first newline')
         call assert_byte(output(len_trim(expected_text) + 2), 55, 'generic power missed 7')
         call assert_byte(output(len_trim(expected_text) + 3), 10, 'generic power missed second newline')
-        call assert_byte(output(len_trim(expected_text) + 4), 51, 'generic power missed 3')
+        call assert_byte(output(len_trim(expected_text) + 4), 48 + tail_value, 'generic power missed stored value')
         call assert_byte(output(len_trim(expected_text) + 5), 10, 'generic power missed third newline')
         read (unit, iostat=io_status) output(1)
         call assert_true(io_status /= 0, 'generic power wrote extra bytes')
@@ -735,6 +742,14 @@ contains
         value = replace_text(value, '(instruction (id 3) (opcode const) (literal 3)', &
             '(instruction (id 3) (opcode load) (storage-key x)')
     end function print_variable_generic_variable_power_input
+
+    function print_variable_generic_variable_power_four_input() result(value)
+        character(len=65536) :: value
+
+        value = print_variable_generic_variable_power_input()
+        value = replace_text(value, '(literal 3) (source-rule frontend-ast-v2/execution-part)', &
+            '(literal 4) (source-rule frontend-ast-v2/execution-part)')
+    end function print_variable_generic_variable_power_four_input
 
     function print_variable_multiply_expression_input() result(value)
         character(len=65536) :: value

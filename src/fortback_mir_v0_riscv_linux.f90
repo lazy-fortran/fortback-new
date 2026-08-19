@@ -82,7 +82,7 @@ contains
         type(source_ref_t) :: opcode_source, target_source
         type(target_ir_t) :: target
         type(elf64_target_t) :: metadata
-        type(riscv_opcode_record_t) :: records(9)
+        type(riscv_opcode_record_t) :: records(10)
         integer(int64) :: words(512), values(3)
         integer(int32) :: count, index, source_status
         character(len=16) :: operation
@@ -124,13 +124,14 @@ contains
             new_line('a')//'mul rd rs1 rs2 31..25=1 14..12=0 6..2=0x0c 1..0=3'// &
             new_line('a')//'div rd rs1 rs2 31..25=1 14..12=4 6..2=0x0c 1..0=3'// &
             new_line('a')//'sub rd rs1 rs2 31..25=0x20 14..12=0 6..2=0x0c 1..0=3'// &
+            new_line('a')//'sltiu rd rs1 imm12 14..12=3 6..2=0x04 1..0=3'// &
             new_line('a')//'ld rd rs1 imm12 14..12=3 6..2=0x00 1..0=3'// &
             new_line('a')//'sd rs2 rs1 imm12 14..12=3 6..2=0x08 1..0=3'// &
             new_line('a')//'sb rs2 rs1 imm12 14..12=0 6..2=0x08 1..0=3'// &
             new_line('a')//trim(mir_v0_riscv_linux_ecall_operation)// &
             ' rd rs1 imm12 '//trim(mir_v0_riscv_linux_ecall_encoding)
         call import_riscv_opcodes(opcode_text, opcode_source, records, count, source_status)
-        if (source_status /= riscv_source_ok .or. count /= 9_int32) then
+        if (source_status /= riscv_source_ok .or. count /= 10_int32) then
             call set_diagnostic(diagnostic, 'mir-v0: machine record import failed')
             status = mir_v0_bridge_malformed
             return
@@ -1151,7 +1152,19 @@ contains
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
-                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 10_int64], &
+                call encode_operation(target, records, 'addi', [12_int64, 11_int64, -2_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'mul', [12_int64, 12_int64, 12_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'mul', [10_int64, 10_int64, 12_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 100_int64], &
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
@@ -1163,7 +1176,23 @@ contains
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
-                call encode_operation(target, records, 'sub', [15_int64, 10_int64, 14_int64], &
+                call encode_operation(target, records, 'sub', [14_int64, 10_int64, 14_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'div', [15_int64, 14_int64, 12_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'mul', [16_int64, 15_int64, 12_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sub', [16_int64, 14_int64, 16_int64], &
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
@@ -1183,7 +1212,7 @@ contains
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
-                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                call encode_operation(target, records, 'addi', [5_int64, 16_int64, 48_int64], &
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
@@ -1191,7 +1220,7 @@ contains
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
-                call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
+                call encode_operation(target, records, 'sltiu', [13_int64, 13_int64, 1_int64], &
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
@@ -1199,7 +1228,35 @@ contains
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
-                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 3_int64], &
+                call encode_operation(target, records, 'add', [11_int64, 11_int64, 13_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [12_int64, 0_int64, 4_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sub', [12_int64, 12_int64, 13_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [14_int64, 0_int64, 11_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'add', [14_int64, 2_int64, 14_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [5_int64, 0_int64, 10_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'sb', [5_int64, 14_int64, 0_int64], &
+                    words(word_index), status, diagnostic)
+                if (status /= mir_v0_bridge_ok) return
+                word_index = word_index + 1_int32
+                call encode_operation(target, records, 'addi', [10_int64, 0_int64, 1_int64], &
                     words(word_index), status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 word_index = word_index + 1_int32
