@@ -1804,9 +1804,13 @@ contains
 
         candidate = .false.
         if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count < 7_int32) return
+        if (mir%instruction_count < 5_int32) return
         if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
         if (trim(mir%instructions(2)%source_rule) /= 'frontend-ast-v2/execution-part') return
+        if (mir%instruction_count == 5_int32) then
+            if (mir%instructions(3)%opcode /= mir_v0_opcode_const) return
+            if (mir%instructions(4)%opcode /= mir_v0_opcode_output) return
+        end if
         index = 3
         do while (index <= mir%instruction_count - 2)
             if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
@@ -1840,7 +1844,7 @@ contains
 
     logical function valid_generic_print_list(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
-        integer :: index, item_end
+        integer :: index, item_end, item_count
         type(bridge_instruction_t) :: value_instruction, output_instruction
         type(bridge_instruction_t) :: operand_instruction, operation_instruction
 
@@ -1860,6 +1864,7 @@ contains
             mir_v0_value_kind_integer) return
         if (trim(mir%instructions(mir%instruction_count)%result_type) /= 'i32') return
         index = 3
+        item_count = 0
         do while (index <= mir%instruction_count - 2)
             value_instruction = mir%instructions(index)
             if (value_instruction%opcode == mir_v0_opcode_load) then
@@ -1948,8 +1953,11 @@ contains
                 if (trim(operand_instruction%result_type) /= 'i32') return
                 if (trim(operation_instruction%result_type) /= 'i32') return
             end if
+            item_count = item_count + 1
+            if (item_count > 10) return
             index = item_end + 1
         end do
+        if (item_count < 1) return
         valid = .true.
     end function valid_generic_print_list
 

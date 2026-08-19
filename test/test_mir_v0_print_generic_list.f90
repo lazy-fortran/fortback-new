@@ -14,9 +14,22 @@ program test_mir_v0_print_generic_list
     character(len=*), parameter :: path = '/tmp/fortback-print-generic-list.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-generic-list.out'
     character(len=*), parameter :: expected = &
-        '20'//achar(10)//'21'//achar(10)//'22'//achar(10)// &
-        '100'//achar(10)//'200'//achar(10)//'300'//achar(10)// &
-        '400'//achar(10)//'500'//achar(10)
+        '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10)// &
+        '5'//achar(10)//'6'//achar(10)//'7'//achar(10)//'8'//achar(10)
+
+    call check_literal_list(1, '1'//achar(10))
+    call check_literal_list(4, '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10))
+    call check_literal_list(10, '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10)// &
+        '5'//achar(10)//'6'//achar(10)//'7'//achar(10)//'8'//achar(10)//'9'//achar(10)//'10'//achar(10))
+
+    input = generic_literal_input(11)
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'generic eleven-item PRINT was accepted')
+
+    input = generic_literal_input(4)
+    input(index(input, 'opcode output'):index(input, 'opcode output') + 12) = 'opcode store  '
+    call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, 'generic malformed PRINT was accepted')
 
     input = generic_literal_input()
     call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
@@ -34,9 +47,9 @@ program test_mir_v0_print_generic_list
     open (newunit=unit, file=output_path, access='stream', form='unformatted', &
         status='old', action='read', iostat=io_status)
     call assert_int(io_status, 0, 'generic literal PRINT output was not written')
-    read (unit, iostat=io_status) output
+    read (unit, iostat=io_status) output(1:len(expected))
     call assert_int(io_status, 0, 'generic literal PRINT output length changed')
-    do byte_index = 1, size(output)
+    do byte_index = 1, len(expected)
         call assert_byte(output(byte_index), iachar(expected(byte_index:byte_index)), &
             'generic literal PRINT output mismatch')
     end do
@@ -236,20 +249,57 @@ program test_mir_v0_print_generic_list
 
 contains
 
-    function generic_literal_input() result(value)
-        character(len=65536) :: value
+    subroutine check_literal_list(item_count, expected_output)
+        integer, intent(in) :: item_count
+        character(len=*), intent(in) :: expected_output
+        integer :: index
 
-        value = '(mir-function (name main) (entry-block 0) (instruction-count 19) '// &
+        input = generic_literal_input(item_count)
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'generic literal PRINT MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'generic literal PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic literal PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'generic literal PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'generic literal PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'generic literal PRINT output was not written')
+        read (unit, iostat=io_status) output(1:len(expected_output))
+        call assert_int(io_status, 0, 'generic literal PRINT output length changed')
+        do index = 1, len(expected_output)
+            call assert_byte(output(index), iachar(expected_output(index:index)), &
+                'generic literal PRINT output mismatch')
+        end do
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'generic literal PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'generic literal PRINT output cleanup failed')
+    end subroutine check_literal_list
+
+    function generic_literal_input(item_count) result(value)
+        integer, intent(in), optional :: item_count
+        character(len=65536) :: value
+        integer :: count, item, item_id
+
+        count = 8
+        if (present(item_count)) count = item_count
+        value = '(mir-function (name main) (entry-block 0) (instruction-count '// &
+            trim(int_text(3 + 2 * count))//') '// &
             '(instructions (instruction (id 0) (opcode const) (literal 0) '// &
             '(source-rule frontend-ast-v2/execution-part) (result (id 0) '// &
             '(kind integer) (type i32))) (instruction (id 1) (opcode store) '// &
             '(storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
-            '(result (id 1) (kind integer) (type i32))) '// &
-            literal_output(2, 20)//literal_output(4, 21)//literal_output(6, 22)// &
-            literal_output(8, 100)//literal_output(10, 200)//literal_output(12, 300)// &
-            literal_output(14, 400)//literal_output(16, 500)// &
-            '(instruction (id 18) (opcode return) '// &
-            '(source-rule frontend-ast-v2/print-stmt) (result (id 16) '// &
+            '(result (id 1) (kind integer) (type i32))) '
+        do item = 1, count
+            item_id = 2 + 2 * (item - 1)
+            value = trim(value)//literal_output(item_id, item)
+        end do
+        value = trim(value)//'(instruction (id '//trim(int_text(2 + 2 * count))//') (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id '//trim(int_text(2 * count))//') '// &
             '(kind integer) (type i32)))))'
     end function generic_literal_input
 
