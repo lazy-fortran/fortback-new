@@ -1932,6 +1932,7 @@ contains
                 mir%instructions(4)%opcode == mir_v0_opcode_load) then
             if (mir%instructions(5)%opcode /= mir_v0_opcode_add .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_mul .and. &
+                    mir%instructions(5)%opcode /= mir_v0_opcode_div .and. &
                     mir%instructions(5)%opcode /= mir_v0_opcode_pow) then
                 call set_diagnostic(diagnostic, 'mir-v0: initialized load operation is out of scope')
                 return
@@ -2318,6 +2319,7 @@ contains
             (mir%instructions(4)%opcode == mir_v0_opcode_load .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
+            mir%instructions(5)%opcode == mir_v0_opcode_div .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_pow))) .and. &
             (mir%instructions(5)%opcode == mir_v0_opcode_add .or. &
             mir%instructions(5)%opcode == mir_v0_opcode_mul .or. &
