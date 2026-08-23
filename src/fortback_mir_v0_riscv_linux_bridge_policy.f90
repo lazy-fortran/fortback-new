@@ -908,6 +908,17 @@ contains
         character(len=16) :: operation
         operation = ''
         select case (trim(source_rule))
+        end select
+        if (trim(source_rule) == 'frontend-ast-v2/print-stmt') then
+            if (index < 0_int32 .or. index > 53_int32) return
+            if (index <= 1_int32 .or. mod(index / 2_int32, 2_int32) == 0_int32) then
+                operation = 'addi'
+            else
+                operation = 'sb'
+            end if
+            return
+        end if
+        select case (trim(source_rule))
         case ('frontend-ast-v1/storage-sequence')
             select case (index)
             case (0_int32)
@@ -924,117 +935,6 @@ contains
                 operation = 'sd'
             case (6_int32)
                 operation = 'addi'
-            end select
-        case ('frontend-ast-v2/print-stmt')
-            select case (index)
-            case (0_int32)
-                operation = 'addi'
-            case (1_int32)
-                operation = 'addi'
-            case (2_int32)
-                operation = 'sb'
-            case (3_int32)
-                operation = 'sb'
-            case (4_int32)
-                operation = 'addi'
-            case (5_int32)
-                operation = 'addi'
-            case (6_int32)
-                operation = 'sb'
-            case (7_int32)
-                operation = 'sb'
-            case (8_int32)
-                operation = 'addi'
-            case (9_int32)
-                operation = 'addi'
-            case (10_int32)
-                operation = 'sb'
-            case (11_int32)
-                operation = 'sb'
-            case (12_int32)
-                operation = 'addi'
-            case (13_int32)
-                operation = 'sb'
-            case (14_int32)
-                operation = 'addi'
-            case (15_int32)
-                operation = 'sb'
-            case (16_int32)
-                operation = 'addi'
-            case (17_int32)
-                operation = 'sb'
-            case (18_int32)
-                operation = 'addi'
-            case (19_int32)
-                operation = 'sb'
-            case (20_int32)
-                operation = 'addi'
-            case (21_int32)
-                operation = 'sb'
-            case (22_int32)
-                operation = 'addi'
-            case (23_int32)
-                operation = 'sb'
-            case (24_int32)
-                operation = 'addi'
-            case (25_int32)
-                operation = 'sb'
-            case (26_int32)
-                operation = 'addi'
-            case (27_int32)
-                operation = 'sb'
-            case (28_int32)
-                operation = 'addi'
-            case (29_int32)
-                operation = 'sb'
-            case (30_int32)
-                operation = 'addi'
-            case (31_int32)
-                operation = 'sb'
-            case (32_int32)
-                operation = 'addi'
-            case (33_int32)
-                operation = 'sb'
-            case (34_int32)
-                operation = 'addi'
-            case (35_int32)
-                operation = 'sb'
-            case (36_int32)
-                operation = 'addi'
-            case (37_int32)
-                operation = 'sb'
-            case (38_int32)
-                operation = 'addi'
-            case (39_int32)
-                operation = 'sb'
-            case (40_int32)
-                operation = 'addi'
-            case (41_int32)
-                operation = 'sb'
-            case (42_int32)
-                operation = 'addi'
-            case (43_int32)
-                operation = 'sb'
-            case (44_int32)
-                operation = 'addi'
-            case (45_int32)
-                operation = 'sb'
-            case (46_int32)
-                operation = 'addi'
-            case (47_int32)
-                operation = 'sb'
-            case (48_int32)
-                operation = 'addi'
-            case (49_int32)
-                operation = 'sb'
-            case (50_int32)
-                operation = 'addi'
-            case (51_int32)
-                operation = 'sb'
-            case (52_int32)
-                operation = 'addi'
-            case (53_int32)
-                operation = 'sb'
             end select
         case ('frontend-ast-v2/execution-part')
             select case (index)

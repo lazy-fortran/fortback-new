@@ -359,7 +359,22 @@ def render(policy):
         "        operation = ''",
         "        select case (trim(source_rule))",
     ]
+    lines += [
+        "        end select",
+        "        if (trim(source_rule) == 'frontend-ast-v2/print-stmt') then",
+        "            if (index < 0_int32 .or. index > 53_int32) return",
+        "            if (index <= 1_int32 .or. mod(index / 2_int32, 2_int32) == 0_int32) then",
+        "                operation = 'addi'",
+        "            else",
+        "                operation = 'sb'",
+        "            end if",
+        "            return",
+        "        end if",
+    ]
+    lines += ["        select case (trim(source_rule))"]
     for source_rule, operations in route_operations.items():
+        if source_rule == "frontend-ast-v2/print-stmt":
+            continue
         lines += [f"        case ('{source_rule}')", "            select case (index)"]
         for index, operation in sorted(operations.items()):
             lines += [f"            case ({index}_int32)", f"                operation = '{operation}'"]
