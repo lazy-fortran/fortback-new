@@ -19,6 +19,18 @@ program test_mir_v0_bridge_generic_subtrahend
     call assert_qemu(-42, 10, '-52'//achar(10))
 
     call assert_mul_qemu('84'//achar(10))
+    call assert_div_qemu('21'//achar(10))
+
+    input = initialized_div_counter2_input()
+    mutated = input
+    call replace_token(mutated, 'opcode store', 'opcode add')
+    call assert_rejected(mutated, 'wrong division opcode mutation was accepted')
+    mutated = input
+    call replace_token(mutated, 'storage-key counter_2', 'storage-key x')
+    call assert_rejected(mutated, 'division storage key mutation was accepted')
+    mutated = input
+    call replace_token(mutated, 'literal 2', 'literal 0')
+    call assert_rejected(mutated, 'division literal mutation was accepted')
 
     input = initialized_sub_input(42, 0)
     call assert_rejected(input, 'sub literal below the accepted bound was accepted')
@@ -135,6 +147,41 @@ contains
         call assert_equal(io_status, 0, 'initialized counter_2 multiplication output cleanup failed')
     end subroutine assert_mul_qemu
 
+    subroutine assert_div_qemu(expected)
+        character(len=*), intent(in) :: expected
+        character(len=16) :: bytes
+        integer :: byte_index
+
+        input = initialized_div_counter2_input()
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_equal(status, mir_v0_bridge_ok, &
+            'initialized counter_2 division was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, elf_path, status, diagnostic)
+        call assert_equal(status, mir_v0_bridge_ok, &
+            'initialized counter_2 division ELF write failed')
+        call execute_command_line('chmod 755 -- '//elf_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_equal(command_status, 0, 'initialized counter_2 division chmod failed')
+        call assert_equal(exit_status, 0, 'initialized counter_2 division chmod returned failure')
+        call execute_command_line('qemu-riscv64 '//elf_path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_equal(command_status, 0, 'initialized counter_2 division QEMU command failed')
+        call assert_equal(exit_status, 0, 'initialized counter_2 division QEMU returned failure')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_equal(io_status, 0, 'initialized counter_2 division output was not written')
+        read (unit, iostat=io_status) bytes(1:len(expected))
+        call assert_equal(io_status, 0, 'initialized counter_2 division output read failed')
+        do byte_index = 1, len(expected)
+            call assert_byte(bytes(byte_index:byte_index), expected(byte_index:byte_index), &
+                'initialized counter_2 division output changed')
+        end do
+        read (unit, iostat=io_status) bytes(1:1)
+        call assert_true(io_status /= 0, 'initialized counter_2 division wrote extra output')
+        close (unit, status='delete', iostat=io_status)
+        call assert_equal(io_status, 0, 'initialized counter_2 division output cleanup failed')
+    end subroutine assert_div_qemu
+
     subroutine assert_rejected(value, message)
         character(len=*), intent(in) :: value, message
 
@@ -221,6 +268,29 @@ contains
             '(instruction (id 8) (opcode return) (source-rule frontend-ast-v2/print-stmt) '// &
             '(result (id 6) (kind integer) (type i32)))))'
     end function initialized_mul_counter2_input
+
+    function initialized_div_counter2_input() result(value)
+        character(len=8192) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 9) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 42) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) (type i32))) '// &
+            '(instruction (id 1) (opcode store) (storage-key counter_2) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) (type i32))) '// &
+            '(instruction (id 2) (opcode load) (storage-key counter_2) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 2) (kind integer) (type i32))) '// &
+            '(instruction (id 3) (opcode const) (literal 2) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 3) (kind integer) (type i32))) '// &
+            '(instruction (id 4) (opcode div) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 4) (kind integer) (type i32))) (instruction (id 5) (opcode store) '// &
+            '(storage-key counter_2) (source-rule frontend-ast-v2/execution-part) '// &
+            '(result (id 4) (kind integer) (type i32))) (instruction (id 6) (opcode load) '// &
+            '(storage-key counter_2) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32))) (instruction (id 7) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) (type i32))) '// &
+            '(instruction (id 8) (opcode return) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(result (id 6) (kind integer) (type i32)))))'
+    end function initialized_div_counter2_input
 
     function int_text(number) result(value)
         integer, intent(in) :: number
