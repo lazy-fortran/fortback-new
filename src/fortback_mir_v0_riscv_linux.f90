@@ -1995,7 +1995,8 @@ contains
                 mir%instructions(index)%storage_present, mir%instructions(index)%storage_key)) then
                 if (.not. initialized_variable_y_or_z_route .and. &
                         .not. initialized_variable_z_addition_route .and. &
-                        .not. print_variable_route) then
+                        .not. print_variable_route .and. &
+                        .not. print_variable_expression_route) then
                     call set_diagnostic(diagnostic, 'mir-v0: storage identity is out of scope')
                     return
                 end if
@@ -2739,17 +2740,15 @@ contains
         if (.not. mir%instructions(3)%storage_present) return
         if (.not. mir%instructions(6)%storage_present) return
         if (.not. mir%instructions(7)%storage_present) return
-        if (initialized_z_addition_route) then
-            if (trim(mir%instructions(2)%storage_key) /= 'z') return
-            if (trim(mir%instructions(3)%storage_key) /= 'z') return
-            if (trim(mir%instructions(6)%storage_key) /= 'z') return
-            if (trim(mir%instructions(7)%storage_key) /= 'z') return
-        else
-            if (trim(mir%instructions(2)%storage_key) /= 'x') return
-            if (trim(mir%instructions(3)%storage_key) /= 'x') return
-            if (trim(mir%instructions(6)%storage_key) /= 'x') return
-            if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        end if
+        if (.not. legal_storage_identifier(mir%instructions(2)%storage_key)) return
+        if (trim(mir%instructions(2)%storage_key) /= &
+                trim(mir%instructions(3)%storage_key)) return
+        if (trim(mir%instructions(2)%storage_key) /= &
+                trim(mir%instructions(6)%storage_key)) return
+        if (trim(mir%instructions(2)%storage_key) /= &
+                trim(mir%instructions(7)%storage_key)) return
+        if (initialized_z_addition_route .and. &
+                trim(mir%instructions(2)%storage_key) /= 'z') return
         if (.not. initialized_addition_route .and. .not. initialized_subtraction_route .and. &
                 .not. initialized_multiplier_route .and. &
                 .not. initialized_division_route .and. .not. initialized_power_route) then

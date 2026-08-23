@@ -48,6 +48,16 @@ program test_mir_v0_print_variable
     call run_print_variable_signed(input, path, output_path, '-100'//achar(10))
     input = print_variable_add_input(42)
     call run_print_variable_signed(input, path, output_path, '43'//achar(10))
+    input = print_variable_add_input(42)
+    input = replace_text(input, 'storage-key x', 'storage-key counter_2')
+    input = replace_text(input, 'storage-key x', 'storage-key counter_2')
+    input = replace_text(input, 'storage-key x', 'storage-key counter_2')
+    input = replace_text(input, 'storage-key x', 'storage-key counter_2')
+    call run_print_variable_signed(input, path, output_path, '43'//achar(10))
+    wrong_storage = replace_text(input, 'storage-key counter_2', 'storage-key 2counter')
+    call compile_mir_v0_riscv_linux(wrong_storage, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'malformed generic expression storage key was accepted')
     input = print_variable_add_input(-42)
     call run_print_variable_signed(input, path, output_path, '-41'//achar(10))
     wrong_literal = replace_text(print_variable_add_input(42), &
