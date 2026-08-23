@@ -23,8 +23,8 @@ program test_mir_v0_bridge_generic_divisor
 
     input = initialized_div_input(42, 2)
     mutated = input
-    call replace_token(mutated, 'opcode div', 'opcode mul')
-    call assert_rejected(mutated, 'unsupported divisor opcode mutation was accepted')
+    call replace_token(mutated, 'literal 2', 'literal 0')
+    call assert_rejected(mutated, 'out-of-range divisor literal mutation was accepted')
     mutated = input
     call replace_token(mutated, 'opcode store', 'opcode add')
     call assert_rejected(mutated, 'divisor storage opcode mutation was accepted')

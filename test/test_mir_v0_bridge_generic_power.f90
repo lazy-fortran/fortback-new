@@ -39,8 +39,8 @@ program test_mir_v0_bridge_generic_power
 
     input = initialized_power_input(3, 2)
     mutated = input
-    call replace_token(mutated, 'opcode pow', 'opcode mul')
-    call assert_rejected(mutated, 'power opcode mutation was accepted')
+    call replace_token(mutated, 'literal 2', 'literal 0')
+    call assert_rejected(mutated, 'out-of-range power exponent mutation was accepted')
     mutated = input
     call replace_token(mutated, 'opcode store', 'opcode add')
     call assert_rejected(mutated, 'power storage opcode mutation was accepted')
