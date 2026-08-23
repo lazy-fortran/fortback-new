@@ -2768,7 +2768,7 @@ contains
             if (mir%instructions(1)%literal < -100_int32 .or. &
                     mir%instructions(1)%literal > 2047_int32) return
             if (mir%instructions(4)%opcode == mir_v0_opcode_const) then
-                if (mir%instructions(4)%literal < 3_int32 .or. &
+                if (mir%instructions(4)%literal < 1_int32 .or. &
                         mir%instructions(4)%literal > 10_int32) return
             else
                 if (mir%instructions(4)%opcode /= mir_v0_opcode_load) return

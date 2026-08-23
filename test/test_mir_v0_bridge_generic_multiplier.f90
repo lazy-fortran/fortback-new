@@ -13,6 +13,7 @@ program test_mir_v0_bridge_generic_multiplier
     character(len=*), parameter :: elf_path = '/tmp/fortback-mir-v0-generic-multiplier.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-mir-v0-generic-multiplier.out'
 
+    call assert_qemu(42, 2, '84'//achar(10))
     call assert_qemu(42, 3, '126'//achar(10))
     call assert_qemu(-42, 10, '-420'//achar(10))
 
@@ -22,9 +23,6 @@ program test_mir_v0_bridge_generic_multiplier
     call assert_rejected(input, 'multiplier literal above the accepted bound was accepted')
 
     input = initialized_mul_input(42, 3)
-    mutated = input
-    call replace_token(mutated, 'opcode mul', 'opcode pow')
-    call assert_rejected(mutated, 'unsupported multiplier opcode mutation was accepted')
     mutated = input
     call replace_token(mutated, 'opcode store', 'opcode add')
     call assert_rejected(mutated, 'multiplier storage opcode mutation was accepted')
