@@ -179,6 +179,11 @@ source-dir = "test"
 main = "test_mir_v0_bridge_generic_addend.f90"
 
 [[test]]
+name = "test_mir_v0_bridge_generic_variable_z_add"
+source-dir = "test"
+main = "test_mir_v0_bridge_generic_variable_z_add.f90"
+
+[[test]]
 name = "test_mir_v0_storage_x"
 source-dir = "test"
 main = "test_mir_v0_storage_x.f90"
