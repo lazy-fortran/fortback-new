@@ -104,6 +104,11 @@ source-dir = "test"
 main = "test_targetir_source_batch.f90"
 
 [[test]]
+name = "test_targetir_source_batch_codec"
+source-dir = "test"
+main = "test_targetir_source_batch_codec.f90"
+
+[[test]]
 name = "test_targetir_encoding_sx"
 source-dir = "test"
 main = "test_targetir_encoding_sx.f90"
