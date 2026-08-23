@@ -31,6 +31,13 @@ program test_mir_v0_print_variable
     input = print_variable_input('x', 'x', .false., 42)
     call run_print_variable_signed(input, path, output_path, '42'//achar(10))
 
+    input = raw_scalar_print_variable_input()
+    call run_print_variable_signed(input, path, output_path, '42'//achar(10))
+    wrong_storage = replace_text(input, '(storage-key counter_2)', '(storage-key 2counter)')
+    call compile_mir_v0_riscv_linux(wrong_storage, artifact, status, diagnostic)
+    call assert_status(status, mir_v0_bridge_out_of_scope, &
+        'malformed generic storage key was accepted')
+
     input = print_variable_input('x', 'x', .false., -42)
     call run_print_variable_signed(input, path, output_path, '-42'//achar(10))
 
@@ -744,6 +751,23 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) '// &
             '(type i32)))))'
     end function print_variable_input
+
+    function raw_scalar_print_variable_input() result(value)
+        character(len=4096) :: value
+
+        value = '(mir-function (name main) (entry-block 0) (instruction-count 5) '// &
+            '(instructions (instruction (id 0) (opcode const) (literal 42) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 2) (kind integer) '// &
+            '(type i32))) (instruction (id 1) (opcode store) (storage-key counter_2) '// &
+            '(source-rule frontend-ast-v2/execution-part) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 2) (opcode load) (storage-key counter_2) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 3) (opcode output) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+            '(type i32))) (instruction (id 4) (opcode return) '// &
+            '(source-rule frontend-ast-v2/print-stmt) (result (id 1) (kind integer) '// &
+            '(type i32)))))'
+    end function raw_scalar_print_variable_input
 
     function print_variable_expression_input() result(value)
         character(len=65536) :: value

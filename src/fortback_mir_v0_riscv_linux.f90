@@ -1830,11 +1830,13 @@ contains
         logical :: initialized_power_variable_shape
         logical :: initialized_variable_y_or_z_route
         logical :: initialized_variable_z_addition_route
+        logical :: generic_scalar_print_variable_route
 
         ok = .false.
         status = mir_v0_bridge_out_of_scope
         call set_diagnostic(diagnostic, '')
         print_variable_route = is_print_variable_candidate(mir)
+        generic_scalar_print_variable_route = is_generic_scalar_print_variable_route(mir)
         print_variable_expression_route = is_print_variable_expression_candidate(mir)
         print_variable_two_item_route = is_print_variable_two_item_candidate(mir)
         print_variable_three_item_route = is_print_variable_three_item_candidate(mir)
@@ -1924,7 +1926,12 @@ contains
                 return
             end if
         else if (print_variable_route) then
-            if (.not. valid_print_variable(mir)) then
+            if (generic_scalar_print_variable_route) then
+                if (.not. valid_generic_scalar_print_variable(mir)) then
+                    call set_diagnostic(diagnostic, 'mir-v0: generic PRINT variable witness is out of scope')
+                    return
+                end if
+            else if (.not. valid_print_variable(mir)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT variable witness is out of scope')
                 return
             end if
@@ -1987,7 +1994,8 @@ contains
             if (.not. mir_v0_bridge_policy_storage_matches( &
                 mir%instructions(index)%storage_present, mir%instructions(index)%storage_key)) then
                 if (.not. initialized_variable_y_or_z_route .and. &
-                        .not. initialized_variable_z_addition_route) then
+                        .not. initialized_variable_z_addition_route .and. &
+                        .not. print_variable_route) then
                     call set_diagnostic(diagnostic, 'mir-v0: storage identity is out of scope')
                     return
                 end if
@@ -2000,7 +2008,8 @@ contains
                 mir%instructions(index)%literal)) then
                 if (.not. initialized_power_variable_shape .and. &
                         .not. initialized_variable_y_or_z_route .and. &
-                        .not. initialized_variable_z_addition_route) then
+                        .not. initialized_variable_z_addition_route .and. &
+                        .not. generic_scalar_print_variable_route) then
                     call set_diagnostic(diagnostic, 'mir-v0: witness is out of scope')
                     return
                 else if (initialized_power_variable_shape .and. index /= 4) then
@@ -2027,6 +2036,18 @@ contains
             mir%instructions(4)%opcode == mir_v0_opcode_output .and. &
             mir%instructions(5)%opcode == mir_v0_opcode_return
     end function is_print_variable_candidate
+
+    logical function is_generic_scalar_print_variable_route(mir) result(candidate)
+        type(parsed_mir_t), intent(in) :: mir
+
+        candidate = is_print_variable_candidate(mir)
+        if (.not. candidate) return
+        candidate = mir%instructions(1)%result_id == 2_int32 .and. &
+            mir%instructions(2)%result_id == 1_int32 .and. &
+            mir%instructions(3)%result_id == 1_int32 .and. &
+            mir%instructions(4)%result_id == 1_int32 .and. &
+            mir%instructions(5)%result_id == 1_int32
+    end function is_generic_scalar_print_variable_route
 
     logical function is_generic_print_list_route(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
@@ -2501,6 +2522,55 @@ contains
         if (mir%instructions(5)%result_id /= 2_int32) return
         valid = .true.
     end function valid_print_variable
+
+    logical function valid_generic_scalar_print_variable(mir) result(valid)
+        type(parsed_mir_t), intent(in) :: mir
+        integer :: index
+
+        valid = .false.
+        if (.not. is_generic_scalar_print_variable_route(mir)) return
+        if (.not. mir%instructions(2)%storage_present .or. &
+                .not. mir%instructions(3)%storage_present) return
+        if (.not. legal_storage_identifier(mir%instructions(2)%storage_key)) return
+        if (trim(mir%instructions(2)%storage_key) /= &
+                trim(mir%instructions(3)%storage_key)) return
+        if (mir%instructions(4)%storage_present .or. mir%instructions(5)%storage_present) return
+        if (.not. mir%instructions(1)%literal_present .or. &
+                mir%instructions(1)%storage_present) return
+        if (mir%instructions(1)%literal < -100_int32 .or. &
+                mir%instructions(1)%literal > 2047_int32) return
+        do index = 1, mir%instruction_count
+            if (mir%instructions(index)%result_kind /= mir_v0_value_kind_integer) return
+            if (trim(mir%instructions(index)%result_type) /= 'i32') return
+            if (index > 1 .and. mir%instructions(index)%literal_present) return
+        end do
+        valid = .true.
+    end function valid_generic_scalar_print_variable
+
+    pure logical function legal_storage_identifier(value) result(valid)
+        character(len=*), intent(in) :: value
+        integer :: index, code, name_length
+
+        name_length = len_trim(value)
+        valid = name_length > 0
+        if (.not. valid) return
+        code = iachar(value(1:1))
+        if (.not. ((code >= iachar('a') .and. code <= iachar('z')) .or. &
+            (code >= iachar('A') .and. code <= iachar('Z')))) then
+            valid = .false.
+            return
+        end if
+        do index = 2, name_length
+            code = iachar(value(index:index))
+            if (.not. ((code >= iachar('a') .and. code <= iachar('z')) .or. &
+                (code >= iachar('A') .and. code <= iachar('Z')) .or. &
+                (code >= iachar('0') .and. code <= iachar('9')) .or. &
+                code == iachar('_'))) then
+                valid = .false.
+                return
+            end if
+        end do
+    end function legal_storage_identifier
 
     logical function valid_print_variable_items(mir, item_count) result(valid)
         type(parsed_mir_t), intent(in) :: mir
