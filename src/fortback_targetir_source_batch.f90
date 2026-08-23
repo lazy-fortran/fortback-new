@@ -5,6 +5,7 @@ module fortback_targetir_source_batch
     use fortback_target_ir, only: target_ir_t
     use fortback_targetir_encoding, only: normalize_aarch64_record, &
         normalize_riscv_i_record, &
+        normalize_riscv_r_record, &
         targetir_encoding_invalid_target, targetir_encoding_malformed, &
         targetir_encoding_ok, targetir_encoding_record_t, targetir_encoding_unsupported
     use fortback_targetir_table, only: targetir_encoding_table_append, &
@@ -26,16 +27,19 @@ module fortback_targetir_source_batch
 
     integer(int32), parameter, public :: targetir_source_batch_riscv_i = 1_int32
     integer(int32), parameter, public :: targetir_source_batch_aarch64 = 2_int32
+    integer(int32), parameter, public :: targetir_source_batch_riscv_r = 3_int32
 
     type, public :: targetir_source_batch_item_t
         integer(int32) :: kind = 0_int32
         type(target_ir_t) :: target
         type(riscv_opcode_record_t) :: riscv_i
+        type(riscv_opcode_record_t) :: riscv_r
         type(aarch64_encoding_record_t) :: aarch64
     end type targetir_source_batch_item_t
 
     public :: make_aarch64_source_batch_item
     public :: make_riscv_i_source_batch_item
+    public :: make_riscv_r_source_batch_item
     public :: normalize_targetir_source_batch
 
 contains
@@ -50,6 +54,17 @@ contains
         item%target = target
         item%riscv_i = record
     end function make_riscv_i_source_batch_item
+
+    pure function make_riscv_r_source_batch_item(target, record) result(item)
+        type(target_ir_t), intent(in) :: target
+        type(riscv_opcode_record_t), intent(in) :: record
+        type(targetir_source_batch_item_t) :: item
+
+        item = targetir_source_batch_item_t()
+        item%kind = targetir_source_batch_riscv_r
+        item%target = target
+        item%riscv_r = record
+    end function make_riscv_r_source_batch_item
 
     pure function make_aarch64_source_batch_item(target, record) result(item)
         type(target_ir_t), intent(in) :: target
@@ -99,6 +114,8 @@ contains
         select case (item%kind)
         case (targetir_source_batch_riscv_i)
             call normalize_riscv_i_record(item%target, item%riscv_i, normalized, status)
+        case (targetir_source_batch_riscv_r)
+            call normalize_riscv_r_record(item%target, item%riscv_r, normalized, status)
         case (targetir_source_batch_aarch64)
             call normalize_aarch64_record(item%target, item%aarch64, normalized, status)
         case default

@@ -7,7 +7,8 @@ program test_targetir_source_batch
     use fortback_targetir_encoding, only: normalize_aarch64_record, &
         normalize_riscv_i_record, targetir_encoding_record_t
     use fortback_targetir_source_batch, only: make_aarch64_source_batch_item, &
-        make_riscv_i_source_batch_item, normalize_targetir_source_batch, &
+        make_riscv_i_source_batch_item, make_riscv_r_source_batch_item, &
+        normalize_targetir_source_batch, &
         targetir_source_batch_aarch64, targetir_source_batch_capacity, &
         targetir_source_batch_duplicate, targetir_source_batch_invalid_target, &
         targetir_source_batch_item_t, targetir_source_batch_malformed, &
@@ -19,9 +20,11 @@ program test_targetir_source_batch
     type(source_ref_t) :: riscv_source, riscv_target_source
     type(source_ref_t) :: aarch_source, aarch_target_source
     type(target_ir_t) :: riscv_target, aarch_target, bad_target
-    type(riscv_opcode_record_t) :: riscv_addi, riscv_xori, bad_riscv
+    type(riscv_opcode_record_t) :: riscv_addi, riscv_xori, riscv_add, riscv_sub, &
+        bad_riscv
     type(aarch64_encoding_record_t) :: aarch_add, aarch_sub, bad_aarch
     type(targetir_source_batch_item_t) :: riscv_items(2), aarch_items(2)
+    type(targetir_source_batch_item_t) :: r_items(2)
     type(targetir_source_batch_item_t) :: mixed_items(4)
     type(targetir_source_batch_item_t) :: controls(2)
     type(targetir_source_batch_item_t) :: capacity_items(targetir_table_capacity + 1)
@@ -32,11 +35,14 @@ program test_targetir_source_batch
 
     call make_witnesses(riscv_source, riscv_target_source, riscv_target, &
         riscv_addi, riscv_xori)
+    call make_r_witnesses(riscv_source, riscv_target, riscv_add, riscv_sub)
     call make_aarch_witnesses(aarch_source, aarch_target_source, aarch_target, &
         aarch_add, aarch_sub)
 
     riscv_items(1) = make_riscv_i_source_batch_item(riscv_target, riscv_addi)
     riscv_items(2) = make_riscv_i_source_batch_item(riscv_target, riscv_xori)
+    r_items(1) = make_riscv_r_source_batch_item(riscv_target, riscv_add)
+    r_items(2) = make_riscv_r_source_batch_item(riscv_target, riscv_sub)
     aarch_items(1) = make_aarch64_source_batch_item(aarch_target, aarch_add)
     aarch_items(2) = make_aarch64_source_batch_item(aarch_target, aarch_sub)
     mixed_items(1) = riscv_items(1)
@@ -52,6 +58,16 @@ program test_targetir_source_batch
     call assert_riscv_record(table%records(2), 'xori', riscv_target, riscv_source, &
         int(z'00004013', int64), int(z'0000707F', int64), &
         'RISC-V second record changed')
+
+    call normalize_targetir_source_batch(r_items, table, status)
+    call assert_status(status, targetir_source_batch_ok, 'R-format batch rejected')
+    call assert_int(table%count, 2_int32, 'R-format batch count changed')
+    call assert_riscv_r_record(table%records(1), 'add', riscv_target, riscv_source, &
+        int(z'00000033', int64), int(z'FE00707F', int64), &
+        int(z'00C58533', int64), 'R-format ADD changed')
+    call assert_riscv_r_record(table%records(2), 'sub', riscv_target, riscv_source, &
+        int(z'40000033', int64), int(z'FE00707F', int64), &
+        int(z'40C58533', int64), 'R-format SUB changed')
 
     call normalize_targetir_source_batch(aarch_items, table, status)
     call assert_status(status, targetir_source_batch_ok, 'AArch64 batch rejected')
@@ -96,6 +112,24 @@ program test_targetir_source_batch
     call assert_status(status, targetir_source_batch_unsupported, &
         'unsupported RISC-V source shape accepted')
     call assert_table_empty(table, 'unsupported RISC-V batch retained a prefix')
+
+    bad_riscv = riscv_add
+    bad_riscv%format = 'I'
+    controls(1) = make_riscv_r_source_batch_item(riscv_target, riscv_add)
+    controls(2) = make_riscv_r_source_batch_item(riscv_target, bad_riscv)
+    call normalize_targetir_source_batch(controls, table, status)
+    call assert_status(status, targetir_source_batch_unsupported, &
+        'wrong R-format record accepted')
+    call assert_table_empty(table, 'wrong-format batch retained a prefix')
+
+    bad_riscv = riscv_add
+    bad_riscv%mask = ior(bad_riscv%mask, int(z'00000080', int64))
+    controls(1) = make_riscv_r_source_batch_item(riscv_target, riscv_add)
+    controls(2) = make_riscv_r_source_batch_item(riscv_target, bad_riscv)
+    call normalize_targetir_source_batch(controls, table, status)
+    call assert_status(status, targetir_source_batch_malformed, &
+        'fixed/operand overlap accepted')
+    call assert_table_empty(table, 'overlap batch retained a prefix')
 
     bad_target = make_target_ir('aarch64', 32_int32, .true., aarch_target_source)
     controls(2) = make_riscv_i_source_batch_item(bad_target, riscv_addi)
@@ -154,6 +188,17 @@ contains
         xori = riscv_opcode_record_t('xori', 'I', int(z'00004013', int64), &
             int(z'0000707F', int64), source)
     end subroutine make_witnesses
+
+    subroutine make_r_witnesses(source, target, add, sub)
+        type(source_ref_t), intent(in) :: source
+        type(target_ir_t), intent(in) :: target
+        type(riscv_opcode_record_t), intent(out) :: add, sub
+
+        add = riscv_opcode_record_t('add', 'R', int(z'00000033', int64), &
+            int(z'FE00707F', int64), source)
+        sub = riscv_opcode_record_t('sub', 'R', int(z'40000033', int64), &
+            int(z'FE00707F', int64), source)
+    end subroutine make_r_witnesses
 
     subroutine make_aarch_witnesses(source, target_source, target, add, sub)
         type(source_ref_t), intent(out) :: source, target_source
@@ -219,6 +264,31 @@ contains
         call assert_field(actual, 2_int32, 15_int32, 5_int32, message)
         call assert_field(actual, 3_int32, 20_int32, 12_int32, message)
     end subroutine assert_riscv_record
+
+    subroutine assert_riscv_r_record(actual, operation, target, source, match, mask, &
+            expected_word, message)
+        type(targetir_encoding_record_t), intent(in) :: actual
+        character(len=*), intent(in) :: operation, message
+        type(target_ir_t), intent(in) :: target
+        type(source_ref_t), intent(in) :: source
+        integer(int64), intent(in) :: match, mask, expected_word
+        integer(int64) :: word
+
+        if (trim(actual%operation_id) /= operation) error stop message
+        if (trim(actual%target%architecture) /= trim(target%architecture)) error stop message
+        if (actual%fixed_match /= match .or. actual%fixed_mask /= mask) error stop message
+        if (actual%word_bits /= 32_int32 .or. actual%variable_field_count /= 3_int32) &
+            error stop message
+        call assert_source(actual%target%source, target%source, message)
+        call assert_source(actual%source, source, message)
+        call assert_field(actual, 1_int32, 7_int32, 5_int32, message)
+        call assert_field(actual, 2_int32, 15_int32, 5_int32, message)
+        call assert_field(actual, 3_int32, 20_int32, 5_int32, message)
+        word = ior(match, ishft(10_int64, 7))
+        word = ior(word, ishft(11_int64, 15))
+        word = ior(word, ishft(12_int64, 20))
+        if (word /= expected_word) error stop message
+    end subroutine assert_riscv_r_record
 
     subroutine assert_aarch_record(actual, operation, target, source, match, mask, message)
         type(targetir_encoding_record_t), intent(in) :: actual
