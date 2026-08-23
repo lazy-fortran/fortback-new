@@ -110,6 +110,7 @@ contains
         logical :: storage_sequence_6_route
         logical :: storage_sequence_generated_route
         logical :: print_route, generic_print_route
+        logical :: pure_literal_print_route
         logical :: print_variable_route, print_variable_expression_route
         logical :: print_variable_two_item_route
         logical :: print_variable_three_item_route
@@ -170,10 +171,11 @@ contains
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
+        pure_literal_print_route = is_pure_literal_print_list_route(mir)
         print_route = trim(mir%name) == 'p' .and. &
             trim(mir%instructions(1)%source_rule) == 'frontend-ast-v2/print-stmt' .and. &
             .not. print_variable_route .and. .not. generic_print_route
-        if (generic_print_route) then
+        if (generic_print_route .or. pure_literal_print_route) then
             call encode_generic_print_list(target, records, mir, words, emitted_count, &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
@@ -1218,21 +1220,25 @@ contains
         logical :: variable_power, decimal_output
 
         word_index = 1_int32
-        call encode_operation(target, records, 'addi', [2_int64, 2_int64, -16_int64], &
-            words(word_index), status, diagnostic)
-        if (status /= mir_v0_bridge_ok) return
-        word_index = word_index + 1_int32
-        call encode_operation(target, records, 'addi', &
-            [10_int64, 0_int64, int(mir%instructions(1)%literal, int64)], &
-            words(word_index), status, diagnostic)
-        if (status /= mir_v0_bridge_ok) return
-        word_index = word_index + 1_int32
-        call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
-            [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
-            words(word_index), status, diagnostic)
-        if (status /= mir_v0_bridge_ok) return
-        word_index = word_index + 1_int32
-        index = 3
+        if (.not. is_pure_literal_print_list_route(mir)) then
+            call encode_operation(target, records, 'addi', [2_int64, 2_int64, -16_int64], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+            call encode_operation(target, records, 'addi', &
+                [10_int64, 0_int64, int(mir%instructions(1)%literal, int64)], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+            call encode_operation(target, records, trim(mir_v0_bridge_policy_store_operation), &
+                [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], &
+                words(word_index), status, diagnostic)
+            if (status /= mir_v0_bridge_ok) return
+            word_index = word_index + 1_int32
+            index = 3
+        else
+            index = 1
+        end if
         do while (index <= mir%instruction_count - 2)
             variable_power = .false.
             decimal_output = .false.
@@ -1820,6 +1826,7 @@ contains
         logical :: print_variable_six_item_route
         logical :: print_variable_seven_to_eighty_item_route
         logical :: generic_print_route
+        logical :: pure_literal_print_route
         logical :: initialized_power_variable_shape
         logical :: initialized_variable_y_or_z_route
         logical :: initialized_variable_z_addition_route
@@ -1837,6 +1844,7 @@ contains
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
+        pure_literal_print_route = is_pure_literal_print_list_route(mir)
         initialized_variable_y_or_z_route = is_initialized_variable_y_or_z_route(mir)
         initialized_variable_z_addition_route = .false.
         if (print_variable_expression_route) then
@@ -1864,7 +1872,7 @@ contains
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
-        if (generic_print_route) then
+        if (generic_print_route .or. pure_literal_print_route) then
             if (.not. valid_generic_print_list(mir)) then
                 call set_diagnostic(diagnostic, 'mir-v0: generic PRINT list is out of scope')
                 return
@@ -2063,6 +2071,26 @@ contains
         candidate = .true.
     end function is_generic_print_list_route
 
+    logical function is_pure_literal_print_list_route(mir) result(candidate)
+        type(parsed_mir_t), intent(in) :: mir
+        integer :: index
+
+        candidate = .false.
+        if (trim(mir%name) /= 'main') then
+            if (trim(mir%name) /= 'p') return
+        end if
+        if (mir%instruction_count < 3_int32) return
+        if (mod(mir%instruction_count - 1_int32, 2_int32) /= 0_int32) return
+        if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
+        if (trim(mir%instructions(mir%instruction_count)%source_rule) /= &
+            'frontend-ast-v2/print-stmt') return
+        do index = 1, mir%instruction_count - 1, 2
+            if (mir%instructions(index)%opcode /= mir_v0_opcode_const) return
+            if (mir%instructions(index + 1)%opcode /= mir_v0_opcode_output) return
+        end do
+        candidate = .true.
+    end function is_pure_literal_print_list_route
+
     logical function is_initialized_variable_y_or_z_route(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
         integer :: index
@@ -2124,6 +2152,10 @@ contains
         type(bridge_instruction_t) :: operand_instruction, operation_instruction
 
         valid = .false.
+        if (is_pure_literal_print_list_route(mir)) then
+            valid = valid_pure_literal_print_list(mir)
+            return
+        end if
         if (.not. is_generic_print_list_route(mir)) return
         if (mir%instructions(1)%opcode /= mir_v0_opcode_const) return
         if (mir%instructions(2)%opcode /= mir_v0_opcode_store) return
@@ -2239,6 +2271,36 @@ contains
         if (item_count < 1) return
         valid = .true.
     end function valid_generic_print_list
+
+    logical function valid_pure_literal_print_list(mir) result(valid)
+        type(parsed_mir_t), intent(in) :: mir
+        integer :: index, item_count
+
+        valid = .false.
+        if (.not. is_pure_literal_print_list_route(mir)) return
+        item_count = (mir%instruction_count - 1_int32) / 2_int32
+        if (item_count > 10) return
+        do index = 1, mir%instruction_count - 1, 2
+            if (trim(mir%instructions(index)%source_rule) /= &
+                'frontend-ast-v2/print-stmt') return
+            if (trim(mir%instructions(index + 1)%source_rule) /= &
+                'frontend-ast-v2/print-stmt') return
+            if (.not. mir%instructions(index)%literal_present) return
+            if (mir%instructions(index)%storage_present) return
+            if (mir%instructions(index)%literal < generic_negative_minimum .or. &
+                mir%instructions(index)%literal > generic_decimal_maximum) return
+            if (mir%instructions(index)%result_kind /= mir_v0_value_kind_integer) return
+            if (mir%instructions(index + 1)%result_kind /= mir_v0_value_kind_integer) return
+            if (trim(mir%instructions(index)%result_type) /= 'i32') return
+            if (trim(mir%instructions(index + 1)%result_type) /= 'i32') return
+            if (mir%instructions(index + 1)%literal_present) return
+            if (mir%instructions(index + 1)%storage_present) return
+        end do
+        if (mir%instructions(mir%instruction_count)%result_kind /= &
+            mir_v0_value_kind_integer) return
+        if (trim(mir%instructions(mir%instruction_count)%result_type) /= 'i32') return
+        valid = .true.
+    end function valid_pure_literal_print_list
 
     logical function is_print_variable_two_item_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir

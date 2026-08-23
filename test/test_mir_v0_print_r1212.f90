@@ -7,16 +7,16 @@ program test_mir_v0_print_r1212
 
     character(len=4096) :: input, input_two, input_three, input_novel, input_four, input_five, input_six
     character(len=4096) :: input_seven, input_eight, input_nine, input_ten
-    character(len=4096) :: wrong_literal, wrong_shape, wrong_opcode
-    character(len=4096) :: wrong_two_literal, wrong_two_shape, wrong_two_opcode
-    character(len=4096) :: wrong_three_literal, wrong_three_shape, wrong_three_opcode
-    character(len=4096) :: wrong_four_literal, wrong_four_shape, wrong_four_opcode
-    character(len=4096) :: wrong_five_literal, wrong_five_shape, wrong_five_opcode
-    character(len=4096) :: wrong_six_literal, wrong_six_shape, wrong_six_opcode
-    character(len=4096) :: wrong_seven_literal, wrong_seven_shape, wrong_seven_opcode
-    character(len=4096) :: wrong_eight_literal, wrong_eight_shape, wrong_eight_opcode
-    character(len=4096) :: wrong_nine_literal, wrong_nine_shape, wrong_nine_opcode
-    character(len=4096) :: wrong_ten_literal, wrong_ten_shape, wrong_ten_opcode
+    character(len=4096) :: wrong_shape, wrong_opcode
+    character(len=4096) :: wrong_two_shape, wrong_two_opcode
+    character(len=4096) :: wrong_three_shape, wrong_three_opcode
+    character(len=4096) :: wrong_four_shape, wrong_four_opcode
+    character(len=4096) :: wrong_five_shape, wrong_five_opcode
+    character(len=4096) :: wrong_six_shape, wrong_six_opcode
+    character(len=4096) :: wrong_seven_shape, wrong_seven_opcode
+    character(len=4096) :: wrong_eight_shape, wrong_eight_opcode
+    character(len=4096) :: wrong_nine_shape, wrong_nine_opcode
+    character(len=4096) :: wrong_ten_shape, wrong_ten_opcode
     character(len=256) :: diagnostic
     character(len=*), parameter :: path = '/tmp/fortback-print-r1212.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-print-r1212.out'
@@ -94,13 +94,6 @@ program test_mir_v0_print_r1212
     call assert_true(io_status /= 0, 'two-item PRINT wrote extra bytes')
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'two-item PRINT output cleanup failed')
-
-    wrong_two_literal = input_two
-    wrong_two_literal(index(wrong_two_literal, 'literal 8'):index(wrong_two_literal, 'literal 8') + 8) = &
-        'literal 9'
-    call compile_mir_v0_riscv_linux(wrong_two_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'two-item PRINT literal mutation was accepted')
 
     wrong_two_shape = input_two
     wrong_two_shape(index(wrong_two_shape, 'type i32', back=.true.): &
@@ -553,13 +546,6 @@ program test_mir_v0_print_r1212
     close (unit, status='delete', iostat=io_status)
     call assert_int(io_status, 0, 'ten-item PRINT output cleanup failed')
 
-    wrong_ten_literal = input_ten
-    wrong_ten_literal(index(wrong_ten_literal, 'literal 16'): &
-        index(wrong_ten_literal, 'literal 16') + 9) = 'literal 17'
-    call compile_mir_v0_riscv_linux(wrong_ten_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'ten-item PRINT literal mutation was accepted')
-
     wrong_ten_shape = input_ten
     wrong_ten_shape(index(wrong_ten_shape, 'type i32', back=.true.): &
         index(wrong_ten_shape, 'type i32', back=.true.) + 7) = 'type real'
@@ -573,13 +559,6 @@ program test_mir_v0_print_r1212
     call compile_mir_v0_riscv_linux(wrong_ten_opcode, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'ten-item PRINT opcode mutation was accepted')
-
-    wrong_nine_literal = input_nine
-    wrong_nine_literal(index(wrong_nine_literal, 'literal 15'): &
-        index(wrong_nine_literal, 'literal 15') + 9) = 'literal 16'
-    call compile_mir_v0_riscv_linux(wrong_nine_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'nine-item PRINT literal mutation was accepted')
 
     wrong_nine_shape = input_nine
     wrong_nine_shape(index(wrong_nine_shape, 'type i32', back=.true.): &
@@ -595,13 +574,6 @@ program test_mir_v0_print_r1212
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'nine-item PRINT opcode mutation was accepted')
 
-    wrong_eight_literal = input_eight
-    wrong_eight_literal(index(wrong_eight_literal, 'literal 14'): &
-        index(wrong_eight_literal, 'literal 14') + 9) = 'literal 15'
-    call compile_mir_v0_riscv_linux(wrong_eight_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'eight-item PRINT literal mutation was accepted')
-
     wrong_eight_shape = input_eight
     wrong_eight_shape(index(wrong_eight_shape, 'type i32', back=.true.): &
         index(wrong_eight_shape, 'type i32', back=.true.) + 7) = 'type real'
@@ -615,13 +587,6 @@ program test_mir_v0_print_r1212
     call compile_mir_v0_riscv_linux(wrong_eight_opcode, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'eight-item PRINT opcode mutation was accepted')
-
-    wrong_seven_literal = input_seven
-    wrong_seven_literal(index(wrong_seven_literal, 'literal 13'): &
-        index(wrong_seven_literal, 'literal 13') + 9) = 'literal 14'
-    call compile_mir_v0_riscv_linux(wrong_seven_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'seven-item PRINT literal mutation was accepted')
 
     wrong_seven_shape = input_seven
     wrong_seven_shape(index(wrong_seven_shape, 'type i32', back=.true.): &
@@ -637,13 +602,6 @@ program test_mir_v0_print_r1212
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'seven-item PRINT opcode mutation was accepted')
 
-    wrong_six_literal = input_six
-    wrong_six_literal(index(wrong_six_literal, 'literal 12'): &
-        index(wrong_six_literal, 'literal 12') + 9) = 'literal 13'
-    call compile_mir_v0_riscv_linux(wrong_six_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'six-item PRINT literal mutation was accepted')
-
     wrong_six_shape = input_six
     wrong_six_shape(index(wrong_six_shape, 'type i32', back=.true.): &
         index(wrong_six_shape, 'type i32', back=.true.) + 7) = 'type real'
@@ -657,13 +615,6 @@ program test_mir_v0_print_r1212
     call compile_mir_v0_riscv_linux(wrong_six_opcode, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'six-item PRINT opcode mutation was accepted')
-
-    wrong_five_literal = input_five
-    wrong_five_literal(index(wrong_five_literal, 'literal 11'): &
-        index(wrong_five_literal, 'literal 11') + 9) = 'literal 12'
-    call compile_mir_v0_riscv_linux(wrong_five_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'five-item PRINT literal mutation was accepted')
 
     wrong_five_shape = input_five
     wrong_five_shape(index(wrong_five_shape, 'type i32', back=.true.): &
@@ -679,13 +630,6 @@ program test_mir_v0_print_r1212
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'five-item PRINT opcode mutation was accepted')
 
-    wrong_four_literal = input_four
-    wrong_four_literal(index(wrong_four_literal, 'literal 10'): &
-        index(wrong_four_literal, 'literal 10') + 9) = 'literal 11'
-    call compile_mir_v0_riscv_linux(wrong_four_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'four-item PRINT literal mutation was accepted')
-
     wrong_four_shape = input_four
     wrong_four_shape(index(wrong_four_shape, 'type i32', back=.true.): &
         index(wrong_four_shape, 'type i32', back=.true.) + 7) = 'type real'
@@ -700,13 +644,6 @@ program test_mir_v0_print_r1212
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'four-item PRINT opcode mutation was accepted')
 
-    wrong_three_literal = input_three
-    wrong_three_literal(index(wrong_three_literal, 'literal 9'): &
-        index(wrong_three_literal, 'literal 9') + 8) = 'literal 6'
-    call compile_mir_v0_riscv_linux(wrong_three_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, &
-        'three-item PRINT literal mutation was accepted')
-
     wrong_three_shape = input_three
     wrong_three_shape(index(wrong_three_shape, 'type i32', back=.true.): &
         index(wrong_three_shape, 'type i32', back=.true.) + 7) = 'type real'
@@ -720,12 +657,6 @@ program test_mir_v0_print_r1212
     call compile_mir_v0_riscv_linux(wrong_three_opcode, artifact, status, diagnostic)
     call assert_status(status, mir_v0_bridge_out_of_scope, &
         'three-item PRINT opcode mutation was accepted')
-
-    wrong_literal = input
-    wrong_literal(index(wrong_literal, 'literal 7'):index(wrong_literal, 'literal 7') + 8) = &
-        'literal 6'
-    call compile_mir_v0_riscv_linux(wrong_literal, artifact, status, diagnostic)
-    call assert_status(status, mir_v0_bridge_out_of_scope, 'PRINT literal mutation was accepted')
 
     wrong_shape = input
     wrong_shape(index(wrong_shape, 'type i32'):index(wrong_shape, 'type i32') + 7) = &

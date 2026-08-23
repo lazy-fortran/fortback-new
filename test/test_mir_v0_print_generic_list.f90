@@ -18,6 +18,7 @@ program test_mir_v0_print_generic_list
         '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10)// &
         '5'//achar(10)//'6'//achar(10)//'7'//achar(10)//'8'//achar(10)
 
+    call check_pure_literal_list()
     call check_literal_list(1, '1'//achar(10))
     call check_literal_list(4, '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10))
     call check_literal_list(10, '1'//achar(10)//'2'//achar(10)//'3'//achar(10)//'4'//achar(10)// &
@@ -264,6 +265,44 @@ program test_mir_v0_print_generic_list
 
 contains
 
+    subroutine check_pure_literal_list()
+        input = pure_literal_input()
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, &
+            'pure literal PRINT MIR was rejected: '//trim(diagnostic))
+        call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_ok, 'pure literal PRINT ELF write failed')
+        call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+            cmdstat=command_status)
+        call assert_int(command_status, 0, 'pure literal PRINT chmod failed')
+        call execute_command_line('qemu-riscv64 '//path//' > '//output_path, wait=.true., &
+            exitstat=exit_status, cmdstat=command_status)
+        call assert_int(command_status, 0, 'pure literal PRINT qemu command failed')
+        call assert_int(exit_status, 0, 'pure literal PRINT artifact did not exit successfully')
+        open (newunit=unit, file=output_path, access='stream', form='unformatted', &
+            status='old', action='read', iostat=io_status)
+        call assert_int(io_status, 0, 'pure literal PRINT output was not written')
+        read (unit, iostat=io_status) output(1:6)
+        call assert_int(io_status, 0, 'pure literal PRINT output length changed')
+        call assert_byte(output(1), iachar('7'), 'pure literal PRINT output mismatch')
+        call assert_byte(output(2), iachar(achar(10)), 'pure literal PRINT newline mismatch')
+        call assert_byte(output(3), iachar('8'), 'pure literal PRINT output mismatch')
+        call assert_byte(output(4), iachar(achar(10)), 'pure literal PRINT newline mismatch')
+        call assert_byte(output(5), iachar('9'), 'pure literal PRINT output mismatch')
+        call assert_byte(output(6), iachar(achar(10)), 'pure literal PRINT newline mismatch')
+        read (unit, iostat=io_status) output(1)
+        call assert_true(io_status /= 0, 'pure literal PRINT wrote extra bytes')
+        close (unit, status='delete', iostat=io_status)
+        call assert_int(io_status, 0, 'pure literal PRINT output cleanup failed')
+
+        input = pure_literal_input(11)
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_out_of_scope, 'pure eleven-item PRINT was accepted')
+        input = pure_literal_input(1, 101)
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_status(status, mir_v0_bridge_out_of_scope, 'pure out-of-range PRINT was accepted')
+    end subroutine check_pure_literal_list
+
     subroutine check_literal_list(item_count, expected_output)
         integer, intent(in) :: item_count
         character(len=*), intent(in) :: expected_output
@@ -357,6 +396,29 @@ contains
             '(source-rule frontend-ast-v2/print-stmt) (result (id '//trim(int_text(2 * count))//') '// &
             '(kind integer) (type i32)))))'
     end function generic_literal_input
+
+    function pure_literal_input(item_count, literal_override) result(value)
+        integer, intent(in), optional :: item_count, literal_override
+        character(len=65536) :: value
+        integer :: count, item, selected_literal
+
+        count = 3
+        if (present(item_count)) count = item_count
+        selected_literal = 0
+        if (present(literal_override)) selected_literal = literal_override
+        value = '(mir-function (name p) (entry-block 0) (instruction-count '// &
+            trim(int_text(2 * count + 1))//') (instructions '
+        do item = 1, count
+            if (present(literal_override)) then
+                value = trim(value)//literal_output(2 * (item - 1), selected_literal)
+            else
+                value = trim(value)//literal_output(2 * (item - 1), item + 6)
+            end if
+        end do
+        value = trim(value)//'(instruction (id '//trim(int_text(2 * count))//') '// &
+            '(opcode return) (source-rule frontend-ast-v2/print-stmt) (result (id 0) '// &
+            '(kind integer) (type i32)))))'
+    end function pure_literal_input
 
     function generic_add_constant_input(constant_value) result(value)
         integer, intent(in), optional :: constant_value
