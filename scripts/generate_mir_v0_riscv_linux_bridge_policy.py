@@ -181,6 +181,15 @@ def opcode_constant(name):
     return "mir_v0_opcode_" + name.replace("-", "_")
 
 
+def render_parameter_array(lines, declaration, values, formatter):
+    lines.extend(declaration.splitlines())
+    for index in range(len(values)):
+        chunk = values[index:index + 1]
+        suffix = ", &" if index + 1 < len(values) else " &"
+        lines.append("        " + ", ".join(formatter(value) for value in chunk) + suffix)
+    lines.append("    ]")
+
+
 def render(policy):
     storage_key, storage_offset, frame_size, initialization, load_operation, store_operation = policy["storage-policy"]
     source_rules_by_function = {}
@@ -228,11 +237,36 @@ def render(policy):
         f"    character(len=16), parameter, public :: mir_v0_bridge_policy_load_operation = '{load_operation}'",
         f"    character(len=16), parameter, public :: mir_v0_bridge_policy_store_operation = '{store_operation}'",
         "",
+    ]
+    shape_name_length = max(len(shape[0]) for shape in policy["result-shapes"])
+    shape_type_length = max(len(shape[3]) for shape in policy["result-shapes"])
+    lines += [
+        "    type :: mir_v0_bridge_policy_result_shape_fact_t",
+        f"        character(len={shape_name_length}) :: name",
+        "        integer(int32) :: id, kind",
+        f"        character(len={shape_type_length}) :: result_type",
+        "    end type mir_v0_bridge_policy_result_shape_fact_t",
+        "",
+    ]
+    render_parameter_array(
+        lines,
+        "    type(mir_v0_bridge_policy_result_shape_fact_t), parameter :: &\n" +
+        "        mir_v0_bridge_policy_result_shape_facts(mir_v0_bridge_policy_result_shape_count) = [ &",
+        policy["result-shapes"],
+        lambda shape: ("mir_v0_bridge_policy_result_shape_fact_t(&\n"
+                      f"            '{shape[0]}', &\n"
+                      f"            {shape[1]}_int32, &\n"
+                      f"            mir_v0_value_kind_{shape[2]}, &\n"
+                      f"            '{shape[3]}')"),
+    )
+    lines += [
+        "",
         "    public :: mir_v0_bridge_policy_accepts",
         "    public :: mir_v0_bridge_policy_function_supported",
         "    public :: mir_v0_bridge_policy_opcode_supported",
         "    public :: mir_v0_bridge_policy_instruction_count_for",
         "    public :: mir_v0_bridge_policy_instruction_count_matches",
+        "    public :: mir_v0_bridge_policy_result_shape_matches",
         "    public :: mir_v0_bridge_policy_machine_operation_for",
         "    public :: mir_v0_bridge_policy_frame_operation",
         "    public :: mir_v0_bridge_policy_exit_status_operation",
@@ -254,17 +288,19 @@ def render(policy):
         "            result_id, result_kind, result_type)",
         "        character(len=*), intent(in) :: shape_name, result_type",
         "        integer(int32), intent(in) :: result_id, result_kind",
+        "        integer :: shape_index",
         "",
         "        mir_v0_bridge_policy_result_shape_matches = .false.",
-        "        select case (trim(shape_name))",
     ]
-    for shape_name, result_id, result_kind, result_type in policy["result-shapes"]:
-        kind_constant = "mir_v0_value_kind_" + result_kind
-        lines += [f"        case ('{shape_name}')", f"            if (result_id /= {result_id}_int32) return", f"            if (result_kind /= {kind_constant}) return", f"            if (trim(result_type) /= '{result_type}') return", "            mir_v0_bridge_policy_result_shape_matches = .true."]
     lines += [
-        "        case default",
+        "        do shape_index = 1, mir_v0_bridge_policy_result_shape_count",
+        "            if (trim(shape_name) /= trim(mir_v0_bridge_policy_result_shape_facts(shape_index)%name)) cycle",
+        "            if (result_id /= mir_v0_bridge_policy_result_shape_facts(shape_index)%id) return",
+        "            if (result_kind /= mir_v0_bridge_policy_result_shape_facts(shape_index)%kind) return",
+        "            if (trim(result_type) /= trim(mir_v0_bridge_policy_result_shape_facts(shape_index)%result_type)) return",
+        "            mir_v0_bridge_policy_result_shape_matches = .true.",
         "            return",
-        "        end select",
+        "        end do",
         "    end function mir_v0_bridge_policy_result_shape_matches",
         "",
         "    pure logical function mir_v0_bridge_policy_function_supported(function_name)",

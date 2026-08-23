@@ -7,7 +7,8 @@ program test_mir_v0_bridge_generated
     use fortback_mir_v0_riscv_linux_bridge_policy, only: &
         mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_shape_count, &
         mir_v0_bridge_policy_instruction_count_for, &
-        mir_v0_bridge_policy_instruction_count_matches
+        mir_v0_bridge_policy_instruction_count_matches, &
+        mir_v0_bridge_policy_result_shape_matches
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
@@ -57,6 +58,16 @@ program test_mir_v0_bridge_generated
         'generated character value kind changed')
     call assert_equal(mir_v0_bridge_policy_result_shape_count, 149_int32, &
         'generated bridge result-shape policy changed')
+    call assert_true(mir_v0_bridge_policy_result_shape_matches('integer', 1_int32, &
+        mir_v0_value_kind_value('integer'), 'i32'), 'generic result-shape lookup rejected integer')
+    call assert_true(.not. mir_v0_bridge_policy_result_shape_matches('integer', 0_int32, &
+        mir_v0_value_kind_value('integer'), 'i32'), 'generic result-shape lookup accepted wrong id')
+    call assert_true(mir_v0_bridge_policy_result_shape_matches( &
+        'integer-variable-print-value-actual-100', 100_int32, &
+        mir_v0_value_kind_value('integer'), 'i32'), &
+        'generic result-shape lookup rejected generated variable fact')
+    call assert_true(.not. mir_v0_bridge_policy_result_shape_matches('unknown', 1_int32, &
+        mir_v0_value_kind_value('integer'), 'i32'), 'generic result-shape lookup accepted unknown fact')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &

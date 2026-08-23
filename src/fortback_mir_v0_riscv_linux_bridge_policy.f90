@@ -26,11 +26,767 @@ module fortback_mir_v0_riscv_linux_bridge_policy
     character(len=16), parameter, public :: mir_v0_bridge_policy_load_operation = 'ld'
     character(len=16), parameter, public :: mir_v0_bridge_policy_store_operation = 'sd'
 
+    type :: mir_v0_bridge_policy_result_shape_fact_t
+        character(len=39) :: name
+        integer(int32) :: id, kind
+        character(len=9) :: result_type
+    end type mir_v0_bridge_policy_result_shape_fact_t
+
+    type(mir_v0_bridge_policy_result_shape_fact_t), parameter :: &
+        mir_v0_bridge_policy_result_shape_facts(mir_v0_bridge_policy_result_shape_count) = [ &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer', &
+            1_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-loaded', &
+            0_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-expression', &
+            2_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-literal-left', &
+            0_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-stop-code', &
+            0_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-print-value', &
+            0_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value', &
+            8_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual', &
+            7_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-9', &
+            9_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-10', &
+            10_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-11', &
+            11_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-12', &
+            12_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-13', &
+            13_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-14', &
+            14_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-15', &
+            15_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-16', &
+            16_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-17', &
+            17_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-18', &
+            18_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-19', &
+            19_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-20', &
+            20_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-21', &
+            21_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-22', &
+            22_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-23', &
+            23_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-24', &
+            24_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-25', &
+            25_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-26', &
+            26_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-27', &
+            27_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-28', &
+            28_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-29', &
+            29_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-30', &
+            30_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-31', &
+            31_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-32', &
+            32_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-33', &
+            33_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-34', &
+            34_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-35', &
+            35_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-36', &
+            36_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-37', &
+            37_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-38', &
+            38_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-39', &
+            39_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-40', &
+            40_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-41', &
+            41_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-42', &
+            42_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-43', &
+            43_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-44', &
+            44_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-45', &
+            45_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-46', &
+            46_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-47', &
+            47_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-48', &
+            48_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-49', &
+            49_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-50', &
+            50_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-51', &
+            51_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-52', &
+            52_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-53', &
+            53_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-54', &
+            54_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-55', &
+            55_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-56', &
+            56_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-57', &
+            57_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-58', &
+            58_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-59', &
+            59_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-60', &
+            60_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-61', &
+            61_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-62', &
+            62_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-63', &
+            63_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-64', &
+            64_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-65', &
+            65_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-66', &
+            66_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-67', &
+            67_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-68', &
+            68_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-69', &
+            69_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-70', &
+            70_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-71', &
+            71_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-72', &
+            72_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-73', &
+            73_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-74', &
+            74_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-75', &
+            75_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-76', &
+            76_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-77', &
+            77_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-78', &
+            78_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-79', &
+            79_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-80', &
+            80_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-81', &
+            81_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-82', &
+            82_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-83', &
+            83_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-84', &
+            84_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-85', &
+            85_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-86', &
+            86_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-87', &
+            87_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-88', &
+            88_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-89', &
+            89_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-90', &
+            90_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-91', &
+            91_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-92', &
+            92_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-93', &
+            93_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-94', &
+            94_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-95', &
+            95_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-96', &
+            96_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-97', &
+            97_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-98', &
+            98_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-99', &
+            99_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-100', &
+            100_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-101', &
+            101_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-102', &
+            102_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-103', &
+            103_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-104', &
+            104_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-variable-print-value-actual-105', &
+            105_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-literal-right', &
+            1_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-expression-result', &
+            2_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-store-literal', &
+            1_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-loaded', &
+            2_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-literal-right', &
+            3_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-expression', &
+            4_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-expression-result', &
+            4_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-3-loaded', &
+            6_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-3-literal-right', &
+            7_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-3-expression', &
+            8_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-3-expression-result', &
+            8_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-4-loaded', &
+            10_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-4-literal-right', &
+            11_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-4-expression', &
+            12_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-4-expression-result', &
+            12_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-5-loaded', &
+            14_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-5-literal-right', &
+            15_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-5-expression', &
+            16_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-5-expression-result', &
+            16_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-6-loaded', &
+            18_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-6-literal-right', &
+            19_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-6-expression', &
+            20_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-6-expression-result', &
+            20_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-7-loaded', &
+            22_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-7-literal-right', &
+            23_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-7-expression', &
+            24_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-7-expression-result', &
+            24_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-8-loaded', &
+            26_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-8-literal-right', &
+            27_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-8-expression', &
+            28_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-8-expression-result', &
+            28_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-9-loaded', &
+            30_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-9-literal-right', &
+            31_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-9-expression', &
+            32_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-9-expression-result', &
+            32_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-10-loaded', &
+            34_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-10-literal-right', &
+            35_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-10-expression', &
+            36_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'integer-sequence-10-expression-result', &
+            36_int32, &
+            mir_v0_value_kind_integer, &
+            'i32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'real', &
+            1_int32, &
+            mir_v0_value_kind_real, &
+            'f32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'double', &
+            1_int32, &
+            mir_v0_value_kind_real, &
+            'f64'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'complex', &
+            1_int32, &
+            mir_v0_value_kind_complex, &
+            'c32'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'character', &
+            1_int32, &
+            mir_v0_value_kind_character, &
+            'character'), &
+        mir_v0_bridge_policy_result_shape_fact_t(&
+            'logical', &
+            1_int32, &
+            mir_v0_value_kind_logical, &
+            'logical') &
+    ]
+
     public :: mir_v0_bridge_policy_accepts
     public :: mir_v0_bridge_policy_function_supported
     public :: mir_v0_bridge_policy_opcode_supported
     public :: mir_v0_bridge_policy_instruction_count_for
     public :: mir_v0_bridge_policy_instruction_count_matches
+    public :: mir_v0_bridge_policy_result_shape_matches
     public :: mir_v0_bridge_policy_machine_operation_for
     public :: mir_v0_bridge_policy_frame_operation
     public :: mir_v0_bridge_policy_exit_status_operation
@@ -52,757 +808,17 @@ contains
             result_id, result_kind, result_type)
         character(len=*), intent(in) :: shape_name, result_type
         integer(int32), intent(in) :: result_id, result_kind
+        integer :: shape_index
 
         mir_v0_bridge_policy_result_shape_matches = .false.
-        select case (trim(shape_name))
-        case ('integer')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
+        do shape_index = 1, mir_v0_bridge_policy_result_shape_count
+            if (trim(shape_name) /= trim(mir_v0_bridge_policy_result_shape_facts(shape_index)%name)) cycle
+            if (result_id /= mir_v0_bridge_policy_result_shape_facts(shape_index)%id) return
+            if (result_kind /= mir_v0_bridge_policy_result_shape_facts(shape_index)%kind) return
+            if (trim(result_type) /= trim(mir_v0_bridge_policy_result_shape_facts(shape_index)%result_type)) return
             mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-loaded')
-            if (result_id /= 0_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-expression')
-            if (result_id /= 2_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-literal-left')
-            if (result_id /= 0_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-stop-code')
-            if (result_id /= 0_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-print-value')
-            if (result_id /= 0_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value')
-            if (result_id /= 8_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual')
-            if (result_id /= 7_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-9')
-            if (result_id /= 9_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-10')
-            if (result_id /= 10_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-11')
-            if (result_id /= 11_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-12')
-            if (result_id /= 12_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-13')
-            if (result_id /= 13_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-14')
-            if (result_id /= 14_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-15')
-            if (result_id /= 15_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-16')
-            if (result_id /= 16_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-17')
-            if (result_id /= 17_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-18')
-            if (result_id /= 18_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-19')
-            if (result_id /= 19_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-20')
-            if (result_id /= 20_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-21')
-            if (result_id /= 21_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-22')
-            if (result_id /= 22_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-23')
-            if (result_id /= 23_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-24')
-            if (result_id /= 24_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-25')
-            if (result_id /= 25_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-26')
-            if (result_id /= 26_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-27')
-            if (result_id /= 27_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-28')
-            if (result_id /= 28_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-29')
-            if (result_id /= 29_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-30')
-            if (result_id /= 30_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-31')
-            if (result_id /= 31_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-32')
-            if (result_id /= 32_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-33')
-            if (result_id /= 33_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-34')
-            if (result_id /= 34_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-35')
-            if (result_id /= 35_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-36')
-            if (result_id /= 36_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-37')
-            if (result_id /= 37_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-38')
-            if (result_id /= 38_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-39')
-            if (result_id /= 39_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-40')
-            if (result_id /= 40_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-41')
-            if (result_id /= 41_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-42')
-            if (result_id /= 42_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-43')
-            if (result_id /= 43_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-44')
-            if (result_id /= 44_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-45')
-            if (result_id /= 45_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-46')
-            if (result_id /= 46_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-47')
-            if (result_id /= 47_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-48')
-            if (result_id /= 48_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-49')
-            if (result_id /= 49_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-50')
-            if (result_id /= 50_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-51')
-            if (result_id /= 51_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-52')
-            if (result_id /= 52_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-53')
-            if (result_id /= 53_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-54')
-            if (result_id /= 54_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-55')
-            if (result_id /= 55_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-56')
-            if (result_id /= 56_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-57')
-            if (result_id /= 57_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-58')
-            if (result_id /= 58_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-59')
-            if (result_id /= 59_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-60')
-            if (result_id /= 60_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-61')
-            if (result_id /= 61_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-62')
-            if (result_id /= 62_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-63')
-            if (result_id /= 63_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-64')
-            if (result_id /= 64_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-65')
-            if (result_id /= 65_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-66')
-            if (result_id /= 66_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-67')
-            if (result_id /= 67_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-68')
-            if (result_id /= 68_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-69')
-            if (result_id /= 69_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-70')
-            if (result_id /= 70_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-71')
-            if (result_id /= 71_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-72')
-            if (result_id /= 72_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-73')
-            if (result_id /= 73_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-74')
-            if (result_id /= 74_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-75')
-            if (result_id /= 75_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-76')
-            if (result_id /= 76_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-77')
-            if (result_id /= 77_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-78')
-            if (result_id /= 78_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-79')
-            if (result_id /= 79_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-80')
-            if (result_id /= 80_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-81')
-            if (result_id /= 81_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-82')
-            if (result_id /= 82_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-83')
-            if (result_id /= 83_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-84')
-            if (result_id /= 84_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-85')
-            if (result_id /= 85_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-86')
-            if (result_id /= 86_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-87')
-            if (result_id /= 87_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-88')
-            if (result_id /= 88_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-89')
-            if (result_id /= 89_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-90')
-            if (result_id /= 90_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-91')
-            if (result_id /= 91_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-92')
-            if (result_id /= 92_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-93')
-            if (result_id /= 93_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-94')
-            if (result_id /= 94_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-95')
-            if (result_id /= 95_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-96')
-            if (result_id /= 96_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-97')
-            if (result_id /= 97_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-98')
-            if (result_id /= 98_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-99')
-            if (result_id /= 99_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-100')
-            if (result_id /= 100_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-101')
-            if (result_id /= 101_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-102')
-            if (result_id /= 102_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-103')
-            if (result_id /= 103_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-104')
-            if (result_id /= 104_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-variable-print-value-actual-105')
-            if (result_id /= 105_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-literal-right')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-expression-result')
-            if (result_id /= 2_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-store-literal')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-loaded')
-            if (result_id /= 2_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-literal-right')
-            if (result_id /= 3_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-expression')
-            if (result_id /= 4_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-expression-result')
-            if (result_id /= 4_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-3-loaded')
-            if (result_id /= 6_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-3-literal-right')
-            if (result_id /= 7_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-3-expression')
-            if (result_id /= 8_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-3-expression-result')
-            if (result_id /= 8_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-4-loaded')
-            if (result_id /= 10_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-4-literal-right')
-            if (result_id /= 11_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-4-expression')
-            if (result_id /= 12_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-4-expression-result')
-            if (result_id /= 12_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-5-loaded')
-            if (result_id /= 14_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-5-literal-right')
-            if (result_id /= 15_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-5-expression')
-            if (result_id /= 16_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-5-expression-result')
-            if (result_id /= 16_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-6-loaded')
-            if (result_id /= 18_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-6-literal-right')
-            if (result_id /= 19_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-6-expression')
-            if (result_id /= 20_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-6-expression-result')
-            if (result_id /= 20_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-7-loaded')
-            if (result_id /= 22_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-7-literal-right')
-            if (result_id /= 23_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-7-expression')
-            if (result_id /= 24_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-7-expression-result')
-            if (result_id /= 24_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-8-loaded')
-            if (result_id /= 26_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-8-literal-right')
-            if (result_id /= 27_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-8-expression')
-            if (result_id /= 28_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-8-expression-result')
-            if (result_id /= 28_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-9-loaded')
-            if (result_id /= 30_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-9-literal-right')
-            if (result_id /= 31_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-9-expression')
-            if (result_id /= 32_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-9-expression-result')
-            if (result_id /= 32_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-10-loaded')
-            if (result_id /= 34_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-10-literal-right')
-            if (result_id /= 35_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-10-expression')
-            if (result_id /= 36_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('integer-sequence-10-expression-result')
-            if (result_id /= 36_int32) return
-            if (result_kind /= mir_v0_value_kind_integer) return
-            if (trim(result_type) /= 'i32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('real')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_real) return
-            if (trim(result_type) /= 'f32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('double')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_real) return
-            if (trim(result_type) /= 'f64') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('complex')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_complex) return
-            if (trim(result_type) /= 'c32') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('character')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_character) return
-            if (trim(result_type) /= 'character') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case ('logical')
-            if (result_id /= 1_int32) return
-            if (result_kind /= mir_v0_value_kind_logical) return
-            if (trim(result_type) /= 'logical') return
-            mir_v0_bridge_policy_result_shape_matches = .true.
-        case default
             return
-        end select
+        end do
     end function mir_v0_bridge_policy_result_shape_matches
 
     pure logical function mir_v0_bridge_policy_function_supported(function_name)
