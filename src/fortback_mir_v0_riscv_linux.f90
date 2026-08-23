@@ -2607,14 +2607,7 @@ contains
             end if
         end if
         if (initialized_multiplier_route) then
-            do index = 3, 6
-                if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/execution-part') return
-            end do
-            do index = 7, 9
-                if (trim(mir%instructions(index)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-            end do
-            if (mir%instructions(1)%literal < -100_int32 .or. &
-                    mir%instructions(1)%literal > 2047_int32) return
+            if (.not. valid_initialized_expression_common(mir, mir_v0_opcode_mul, 3)) return
             if (mir%instructions(4)%opcode == mir_v0_opcode_const) then
                 if (mir%instructions(4)%literal < 1_int32 .or. &
                         mir%instructions(4)%literal > 10_int32) return
@@ -2628,16 +2621,7 @@ contains
             end if
         end if
         if (initialized_division_route) then
-            do index = 1, 6
-                if (trim(mir%instructions(index)%source_rule) /= &
-                    'frontend-ast-v2/execution-part') return
-            end do
-            do index = 7, 9
-                if (trim(mir%instructions(index)%source_rule) /= &
-                    'frontend-ast-v2/print-stmt') return
-            end do
-            if (mir%instructions(1)%literal < -100_int32 .or. &
-                    mir%instructions(1)%literal > 2047_int32) return
+            if (.not. valid_initialized_expression_common(mir, mir_v0_opcode_div, 1)) return
             if (mir%instructions(4)%opcode == mir_v0_opcode_load) then
                 if (mir%instructions(1)%literal == 0_int32) return
                 if (.not. mir%instructions(4)%storage_present) return
@@ -2653,16 +2637,7 @@ contains
             end if
         end if
         if (initialized_power_route) then
-            do index = 1, 6
-                if (trim(mir%instructions(index)%source_rule) /= &
-                    'frontend-ast-v2/execution-part') return
-            end do
-            do index = 7, 9
-                if (trim(mir%instructions(index)%source_rule) /= &
-                    'frontend-ast-v2/print-stmt') return
-            end do
-            if (mir%instructions(1)%literal < -100_int32 .or. &
-                    mir%instructions(1)%literal > 2047_int32) return
+            if (.not. valid_initialized_expression_common(mir, mir_v0_opcode_pow, 1)) return
             select case (mir%instructions(4)%opcode)
             case (mir_v0_opcode_const)
                 if (.not. mir%instructions(4)%literal_present) return
@@ -2682,16 +2657,7 @@ contains
             end select
         end if
         if (initialized_addition_route) then
-            do index = 1, 6
-                if (trim(mir%instructions(index)%source_rule) /= &
-                    'frontend-ast-v2/execution-part') return
-            end do
-            do index = 7, 9
-                if (trim(mir%instructions(index)%source_rule) /= &
-                    'frontend-ast-v2/print-stmt') return
-            end do
-            if (mir%instructions(1)%literal < -100_int32 .or. &
-                    mir%instructions(1)%literal > 2047_int32) return
+            if (.not. valid_initialized_expression_common(mir, mir_v0_opcode_add, 1)) return
             if (.not. mir%instructions(4)%storage_present) return
             if (trim(mir%instructions(4)%storage_key) /= 'x' .and. &
                     .not. initialized_z_addition_route) return
@@ -2743,6 +2709,29 @@ contains
         if (mir%instructions(9)%result_id /= 6_int32) return
         valid = .true.
     end function valid_print_variable_expression
+
+    logical function valid_initialized_expression_common( &
+        mir, operator_opcode, execution_start) result(valid)
+        type(parsed_mir_t), intent(in) :: mir
+        integer(int32), intent(in) :: operator_opcode
+        integer, intent(in) :: execution_start
+        integer :: index
+
+        valid = .false.
+        if (mir%instruction_count /= 9_int32) return
+        if (mir%instructions(5)%opcode /= operator_opcode) return
+        do index = execution_start, 6
+            if (trim(mir%instructions(index)%source_rule) /= &
+                'frontend-ast-v2/execution-part') return
+        end do
+        do index = 7, 9
+            if (trim(mir%instructions(index)%source_rule) /= &
+                'frontend-ast-v2/print-stmt') return
+        end do
+        if (mir%instructions(1)%literal < -100_int32 .or. &
+                mir%instructions(1)%literal > 2047_int32) return
+        valid = .true.
+    end function valid_initialized_expression_common
 
     subroutine integer_to_decimal(value, digits, digit_count)
         integer(int64), intent(in) :: value
