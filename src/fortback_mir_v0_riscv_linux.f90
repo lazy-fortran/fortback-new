@@ -1886,33 +1886,34 @@ contains
             return
         end if
         if (print_variable_seven_to_eighty_item_route) then
-            if (.not. valid_print_variable_seven_to_eighty_item(mir)) then
+            if (.not. valid_print_variable_items(mir,  &
+                (mir%instruction_count - 7_int32) / 2_int32)) then
                 call set_diagnostic(diagnostic, &
                     'mir-v0: PRINT seven-to-eighty-item witness is out of scope')
                 return
             end if
         else if (print_variable_six_item_route) then
-            if (.not. valid_print_variable_six_item(mir)) then
+            if (.not. valid_print_variable_items(mir, 6_int32)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT six-item witness is out of scope')
                 return
             end if
         else if (print_variable_five_item_route) then
-            if (.not. valid_print_variable_five_item(mir)) then
+            if (.not. valid_print_variable_items(mir, 5_int32)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT five-item witness is out of scope')
                 return
             end if
         else if (print_variable_four_item_route) then
-            if (.not. valid_print_variable_four_item(mir)) then
+            if (.not. valid_print_variable_items(mir, 4_int32)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT four-item witness is out of scope')
                 return
             end if
         else if (print_variable_three_item_route) then
-            if (.not. valid_print_variable_three_item(mir)) then
+            if (.not. valid_print_variable_items(mir, 3_int32)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT three-item witness is out of scope')
                 return
             end if
         else if (print_variable_two_item_route) then
-            if (.not. valid_print_variable_two_item(mir)) then
+            if (.not. valid_print_variable_items(mir, 2_int32)) then
                 call set_diagnostic(diagnostic, 'mir-v0: PRINT two-item witness is out of scope')
                 return
             end if
@@ -2501,246 +2502,22 @@ contains
         valid = .true.
     end function valid_print_variable
 
-    logical function valid_print_variable_two_item(mir) result(valid)
+    logical function valid_print_variable_items(mir, item_count) result(valid)
         type(parsed_mir_t), intent(in) :: mir
+        integer(int32), intent(in) :: item_count
+        integer :: index, expected_result_id
 
         valid = .false.
-        if (.not. mir%instructions(2)%storage_present) return
-        if (.not. mir%instructions(3)%storage_present) return
-        if (.not. mir%instructions(6)%storage_present) return
-        if (.not. mir%instructions(7)%storage_present) return
-        if (.not. mir%instructions(9)%storage_present) return
-        if (trim(mir%instructions(2)%storage_key) /= 'x') return
-        if (trim(mir%instructions(3)%storage_key) /= 'x') return
-        if (trim(mir%instructions(6)%storage_key) /= 'x') return
-        if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (trim(mir%instructions(9)%storage_key) /= 'x') return
-        if (mir%instructions(1)%literal /= 3_int32) return
-        if (mir%instructions(4)%literal /= 2_int32) return
-        if (mir%instructions(8)%storage_present) return
-        if (mir%instructions(10)%storage_present) return
-        if (mir%instructions(11)%storage_present) return
-        if (mir%instructions(1)%result_id /= 0_int32) return
-        if (mir%instructions(2)%result_id /= 1_int32) return
-        if (mir%instructions(3)%result_id /= 2_int32) return
-        if (mir%instructions(4)%result_id /= 3_int32) return
-        if (mir%instructions(5)%result_id /= 4_int32) return
-        if (mir%instructions(6)%result_id /= 4_int32) return
-        if (mir%instructions(7)%result_id /= 6_int32) return
-        if (mir%instructions(8)%result_id /= 6_int32) return
-        if (mir%instructions(9)%result_id /= 7_int32 .and. &
-            mir%instructions(9)%result_id /= 8_int32) return
-        if (mir%instructions(10)%result_id /= 7_int32 .and. &
-            mir%instructions(10)%result_id /= 8_int32) return
-        if (mir%instructions(11)%result_id /= 7_int32 .and. &
-            mir%instructions(11)%result_id /= 8_int32) return
-        valid = .true.
-    end function valid_print_variable_two_item
-
-    logical function valid_print_variable_three_item(mir) result(valid)
-        type(parsed_mir_t), intent(in) :: mir
-
-        valid = .false.
-        if (.not. mir%instructions(2)%storage_present) return
-        if (.not. mir%instructions(3)%storage_present) return
-        if (.not. mir%instructions(6)%storage_present) return
-        if (.not. mir%instructions(7)%storage_present) return
-        if (.not. mir%instructions(9)%storage_present) return
-        if (.not. mir%instructions(11)%storage_present) return
-        if (trim(mir%instructions(2)%storage_key) /= 'x') return
-        if (trim(mir%instructions(3)%storage_key) /= 'x') return
-        if (trim(mir%instructions(6)%storage_key) /= 'x') return
-        if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (trim(mir%instructions(9)%storage_key) /= 'x') return
-        if (trim(mir%instructions(11)%storage_key) /= 'x') return
-        if (mir%instructions(1)%literal /= 3_int32) return
-        if (mir%instructions(4)%literal /= 2_int32) return
-        if (mir%instructions(8)%storage_present) return
-        if (mir%instructions(10)%storage_present) return
-        if (mir%instructions(12)%storage_present) return
-        if (mir%instructions(13)%storage_present) return
-        if (mir%instructions(1)%result_id /= 0_int32) return
-        if (mir%instructions(2)%result_id /= 1_int32) return
-        if (mir%instructions(3)%result_id /= 2_int32) return
-        if (mir%instructions(4)%result_id /= 3_int32) return
-        if (mir%instructions(5)%result_id /= 4_int32) return
-        if (mir%instructions(6)%result_id /= 4_int32) return
-        if (mir%instructions(7)%result_id /= 6_int32) return
-        if (mir%instructions(8)%result_id /= 6_int32) return
-        if (mir%instructions(9)%result_id /= 8_int32 .and. &
-            mir%instructions(9)%result_id /= 7_int32) return
-        if (mir%instructions(10)%result_id /= 8_int32 .and. &
-            mir%instructions(10)%result_id /= 7_int32) return
-        if (mir%instructions(11)%result_id /= 8_int32 .and. &
-            mir%instructions(11)%result_id /= 7_int32) return
-        if (mir%instructions(12)%result_id /= 8_int32 .and. &
-            mir%instructions(12)%result_id /= 7_int32) return
-        if (mir%instructions(13)%result_id /= 8_int32 .and. &
-            mir%instructions(13)%result_id /= 7_int32) return
-        valid = .true.
-    end function valid_print_variable_three_item
-
-    logical function valid_print_variable_four_item(mir) result(valid)
-        type(parsed_mir_t), intent(in) :: mir
-
-        valid = .false.
-        if (.not. mir%instructions(2)%storage_present) return
-        if (.not. mir%instructions(3)%storage_present) return
-        if (.not. mir%instructions(6)%storage_present) return
-        if (.not. mir%instructions(7)%storage_present) return
-        if (.not. mir%instructions(9)%storage_present) return
-        if (.not. mir%instructions(11)%storage_present) return
-        if (.not. mir%instructions(13)%storage_present) return
-        if (trim(mir%instructions(2)%storage_key) /= 'x') return
-        if (trim(mir%instructions(3)%storage_key) /= 'x') return
-        if (trim(mir%instructions(6)%storage_key) /= 'x') return
-        if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (trim(mir%instructions(9)%storage_key) /= 'x') return
-        if (trim(mir%instructions(11)%storage_key) /= 'x') return
-        if (trim(mir%instructions(13)%storage_key) /= 'x') return
-        if (mir%instructions(1)%literal /= 3_int32) return
-        if (mir%instructions(4)%literal /= 2_int32) return
-        if (mir%instructions(8)%storage_present) return
-        if (mir%instructions(10)%storage_present) return
-        if (mir%instructions(12)%storage_present) return
-        if (mir%instructions(14)%storage_present) return
-        if (mir%instructions(1)%result_id /= 0_int32) return
-        if (mir%instructions(2)%result_id /= 1_int32) return
-        if (mir%instructions(3)%result_id /= 2_int32) return
-        if (mir%instructions(4)%result_id /= 3_int32) return
-        if (mir%instructions(5)%result_id /= 4_int32) return
-        if (mir%instructions(6)%result_id /= 4_int32) return
-        if (mir%instructions(7)%result_id /= 6_int32) return
-        if (mir%instructions(8)%result_id /= 6_int32) return
-        if (mir%instructions(9)%result_id /= 8_int32 .and. &
-            mir%instructions(9)%result_id /= 7_int32) return
-        if (mir%instructions(10)%result_id /= 8_int32 .and. &
-            mir%instructions(10)%result_id /= 7_int32) return
-        if (mir%instructions(11)%result_id /= 8_int32 .and. &
-            mir%instructions(11)%result_id /= 7_int32) return
-        if (mir%instructions(12)%result_id /= 8_int32 .and. &
-            mir%instructions(12)%result_id /= 7_int32) return
-        if (mir%instructions(13)%result_id /= 8_int32 .and. &
-            mir%instructions(13)%result_id /= 7_int32 .and. &
-            mir%instructions(13)%result_id /= 9_int32) return
-        if (mir%instructions(14)%result_id /= 8_int32 .and. &
-            mir%instructions(14)%result_id /= 7_int32 .and. &
-            mir%instructions(14)%result_id /= 9_int32) return
-        if (mir%instructions(15)%result_id /= 8_int32 .and. &
-            mir%instructions(15)%result_id /= 7_int32 .and. &
-            mir%instructions(15)%result_id /= 9_int32) return
-        valid = .true.
-    end function valid_print_variable_four_item
-
-    logical function valid_print_variable_five_item(mir) result(valid)
-        type(parsed_mir_t), intent(in) :: mir
-        integer :: index
-
-        valid = .false.
-        if (.not. mir%instructions(2)%storage_present) return
-        if (.not. mir%instructions(3)%storage_present) return
-        if (.not. mir%instructions(6)%storage_present) return
-        if (.not. mir%instructions(7)%storage_present) return
-        if (.not. mir%instructions(9)%storage_present) return
-        if (.not. mir%instructions(11)%storage_present) return
-        if (.not. mir%instructions(13)%storage_present) return
-        if (.not. mir%instructions(15)%storage_present) return
-        if (trim(mir%instructions(2)%storage_key) /= 'x') return
-        if (trim(mir%instructions(3)%storage_key) /= 'x') return
-        if (trim(mir%instructions(6)%storage_key) /= 'x') return
-        if (trim(mir%instructions(7)%storage_key) /= 'x') return
-        if (trim(mir%instructions(9)%storage_key) /= 'x') return
-        if (trim(mir%instructions(11)%storage_key) /= 'x') return
-        if (trim(mir%instructions(13)%storage_key) /= 'x') return
-        if (trim(mir%instructions(15)%storage_key) /= 'x') return
-        if (mir%instructions(1)%literal /= 3_int32) return
-        if (mir%instructions(4)%literal /= 2_int32) return
-        if (mir%instructions(8)%storage_present) return
-        if (mir%instructions(10)%storage_present) return
-        if (mir%instructions(12)%storage_present) return
-        if (mir%instructions(14)%storage_present) return
-        if (mir%instructions(16)%storage_present) return
-        if (mir%instructions(1)%result_id /= 0_int32) return
-        if (mir%instructions(2)%result_id /= 1_int32) return
-        if (mir%instructions(3)%result_id /= 2_int32) return
-        if (mir%instructions(4)%result_id /= 3_int32) return
-        if (mir%instructions(5)%result_id /= 4_int32) return
-        if (mir%instructions(6)%result_id /= 4_int32) return
-        if (mir%instructions(7)%result_id /= 6_int32) return
-        if (mir%instructions(8)%result_id /= 6_int32) return
-        if (mir%instructions(9)%result_id /= 7_int32) return
-        if (mir%instructions(10)%result_id /= 7_int32) return
-        if (mir%instructions(11)%result_id /= 8_int32) return
-        if (mir%instructions(12)%result_id /= 8_int32) return
-        if (mir%instructions(13)%result_id /= 9_int32) return
-        if (mir%instructions(14)%result_id /= 9_int32) return
-        if (mir%instructions(15)%result_id /= 10_int32) return
-        if (mir%instructions(16)%result_id /= 10_int32) return
-        if (mir%instructions(17)%result_id /= 10_int32) return
-        valid = .true.
-    end function valid_print_variable_five_item
-
-    logical function valid_print_variable_six_item(mir) result(valid)
-        type(parsed_mir_t), intent(in) :: mir
-        integer :: index
-
-        valid = .false.
-        do index = 1, 19
-            select case (index)
-            case (2, 3, 6, 7, 9, 11, 13, 15, 17)
-                if (.not. mir%instructions(index)%storage_present) return
-                if (trim(mir%instructions(index)%storage_key) /= 'x') return
-            case default
-                if (mir%instructions(index)%storage_present) return
-            end select
-        end do
-        if (mir%instructions(1)%literal /= 3_int32) return
-        if (mir%instructions(4)%literal /= 2_int32) return
-        if (mir%instructions(1)%result_id /= 0_int32) return
-        if (mir%instructions(2)%result_id /= 1_int32) return
-        if (mir%instructions(3)%result_id /= 2_int32) return
-        if (mir%instructions(4)%result_id /= 3_int32) return
-        if (mir%instructions(5)%result_id /= 4_int32) return
-        if (mir%instructions(6)%result_id /= 4_int32) return
-        if (mir%instructions(7)%result_id /= 6_int32) return
-        if (mir%instructions(8)%result_id /= 6_int32) return
-        if (mir%instructions(9)%result_id /= 7_int32) return
-        if (mir%instructions(10)%result_id /= 7_int32) return
-        if (mir%instructions(11)%result_id /= 8_int32) return
-        if (mir%instructions(12)%result_id /= 8_int32) return
-        if (mir%instructions(13)%result_id /= 9_int32) return
-        if (mir%instructions(14)%result_id /= 9_int32) return
-        if (mir%instructions(15)%result_id /= 10_int32) return
-        if (mir%instructions(16)%result_id /= 10_int32) return
-        if (mir%instructions(17)%result_id /= 11_int32) return
-        if (mir%instructions(18)%result_id /= 11_int32) return
-        if (mir%instructions(19)%result_id /= 11_int32) return
-        valid = .true.
-    end function valid_print_variable_six_item
-
-    logical function valid_print_variable_seven_to_eighty_item(mir) result(valid)
-        type(parsed_mir_t), intent(in) :: mir
-        integer :: index, item_count
-
-        valid = .false.
-        item_count = (mir%instruction_count - 7) / 2
+        if (item_count < 2_int32) return
         do index = 1, mir%instruction_count
-            select case (index)
-            case (2, 3, 6, 7)
+            if (index == 2 .or. index == 3 .or. index == 6 .or. index == 7 .or. &
+                (index >= 9 .and. index <= 5 + 2 * item_count .and. &
+                mod(index - 9, 2) == 0)) then
                 if (.not. mir%instructions(index)%storage_present) return
                 if (trim(mir%instructions(index)%storage_key) /= 'x') return
-            case default
-                if (index >= 9) then
-                    if (index <= 5 + 2 * item_count .and. mod(index - 9, 2) == 0) then
-                        if (.not. mir%instructions(index)%storage_present) return
-                        if (trim(mir%instructions(index)%storage_key) /= 'x') return
-                    else if (mir%instructions(index)%storage_present) then
-                        return
-                    end if
-                else if (mir%instructions(index)%storage_present) then
-                    return
-                end if
-            end select
+            else if (mir%instructions(index)%storage_present) then
+                return
+            end if
         end do
         if (mir%instructions(1)%literal /= 3_int32) return
         if (mir%instructions(4)%literal /= 2_int32) return
@@ -2751,12 +2528,21 @@ contains
         if (mir%instructions(5)%result_id /= 4_int32) return
         if (mir%instructions(6)%result_id /= 4_int32) return
         if (mir%instructions(7)%result_id /= 6_int32) return
-        do index = 2, item_count
-            if (mir%instructions(5 + 2 * index)%result_id < 7_int32) return
-            if (mir%instructions(6 + 2 * index)%result_id < 7_int32) return
+        do index = 9, 7 + 2 * item_count
+            if (item_count <= 4_int32) then
+                expected_result_id = 8_int32
+                if (item_count == 4_int32 .and. index >= 13) expected_result_id = 9_int32
+                if (mir%instructions(index)%result_id < 7_int32 .or. &
+                    mir%instructions(index)%result_id > expected_result_id) return
+            else if (item_count <= 6_int32) then
+                expected_result_id = 7_int32 + min((index - 9) / 2, item_count - 2)
+                if (mir%instructions(index)%result_id /= expected_result_id) return
+            else
+                if (mir%instructions(index)%result_id < 7_int32) return
+            end if
         end do
         valid = .true.
-    end function valid_print_variable_seven_to_eighty_item
+    end function valid_print_variable_items
 
     logical function valid_print_variable_expression(mir) result(valid)
         type(parsed_mir_t), intent(in) :: mir
