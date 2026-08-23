@@ -8,7 +8,8 @@ program test_mir_v0_bridge_generated
         mir_v0_bridge_policy_instruction_count, mir_v0_bridge_policy_result_shape_count, &
         mir_v0_bridge_policy_instruction_count_for, &
         mir_v0_bridge_policy_instruction_count_matches, &
-        mir_v0_bridge_policy_result_shape_matches
+        mir_v0_bridge_policy_result_shape_matches, &
+        mir_v0_bridge_policy_route_operation_for
     implicit none
 
     type(riscv_linux_artifact_t) :: artifact
@@ -68,6 +69,20 @@ program test_mir_v0_bridge_generated
         'generic result-shape lookup rejected generated variable fact')
     call assert_true(.not. mir_v0_bridge_policy_result_shape_matches('unknown', 1_int32, &
         mir_v0_value_kind_value('integer'), 'i32'), 'generic result-shape lookup accepted unknown fact')
+    call assert_route_operation(0_int32, 'addi')
+    call assert_route_operation(1_int32, 'addi')
+    call assert_route_operation(2_int32, 'sb')
+    call assert_route_operation(11_int32, 'sb')
+    call assert_route_operation(12_int32, 'addi')
+    call assert_route_operation(13_int32, 'sb')
+    call assert_route_operation(52_int32, 'addi')
+    call assert_route_operation(53_int32, 'sb')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v2/print-stmt', -1_int32)), '', 'negative route index was accepted')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'frontend-ast-v2/print-stmt', 54_int32)), '', 'out-of-range route index was accepted')
+    call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+        'unknown/route', 0_int32)), '', 'unknown route was accepted')
 
     input = '(mir-function (name main) (entry-block 0) (instruction-count 2) '// &
         '(instructions (instruction (id 0) (opcode add) '// &
@@ -124,5 +139,19 @@ contains
 
         if (.not. condition) error stop message
     end subroutine assert_true
+
+    subroutine assert_route_operation(index, expected)
+        integer(int32), intent(in) :: index
+        character(len=*), intent(in) :: expected
+
+        call assert_equal_text(trim(mir_v0_bridge_policy_route_operation_for( &
+            'frontend-ast-v2/print-stmt', index)), expected, 'PRINT route operation changed')
+    end subroutine assert_route_operation
+
+    subroutine assert_equal_text(actual, expected, message)
+        character(len=*), intent(in) :: actual, expected, message
+
+        if (trim(actual) /= trim(expected)) error stop message
+    end subroutine assert_equal_text
 
 end program test_mir_v0_bridge_generated
