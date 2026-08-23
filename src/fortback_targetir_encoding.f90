@@ -32,6 +32,7 @@ module fortback_targetir_encoding
     end type targetir_encoding_record_t
 
     public :: normalize_riscv_i_record
+    public :: normalize_riscv_r_record
     public :: normalize_aarch64_record
 
 contains
@@ -89,6 +90,54 @@ contains
         call add_field(normalized, 20_int32, width, status)
         if (status /= targetir_encoding_ok) normalized = targetir_encoding_record_t()
     end subroutine normalize_riscv_i_record
+
+    subroutine normalize_riscv_r_record(target, record, normalized, status)
+        type(target_ir_t), intent(in) :: target
+        type(riscv_opcode_record_t), intent(in) :: record
+        type(targetir_encoding_record_t), intent(out) :: normalized
+        integer(int32), intent(out) :: status
+
+        normalized = targetir_encoding_record_t()
+        status = validate_riscv_target(target)
+        if (status /= targetir_encoding_ok) return
+        if (record%format /= 'R') then
+            status = targetir_encoding_unsupported
+            return
+        end if
+        if (.not. source_ref_valid(record%source)) then
+            status = targetir_encoding_malformed
+            return
+        end if
+        if (len_trim(record%mnemonic) == 0) then
+            status = targetir_encoding_malformed
+            return
+        end if
+        status = validate_fixed_bits(record%mask, record%match)
+        if (status /= targetir_encoding_ok) return
+        if (record%mask == 0_int64) then
+            status = targetir_encoding_malformed
+            return
+        end if
+
+        normalized%target = target
+        normalized%operation_id = record%mnemonic
+        normalized%word_bits = 32_int32
+        normalized%fixed_match = record%match
+        normalized%fixed_mask = record%mask
+        normalized%source = record%source
+        call add_field(normalized, 7_int32, 5_int32, status)
+        if (status /= targetir_encoding_ok) then
+            normalized = targetir_encoding_record_t()
+            return
+        end if
+        call add_field(normalized, 15_int32, 5_int32, status)
+        if (status /= targetir_encoding_ok) then
+            normalized = targetir_encoding_record_t()
+            return
+        end if
+        call add_field(normalized, 20_int32, 5_int32, status)
+        if (status /= targetir_encoding_ok) normalized = targetir_encoding_record_t()
+    end subroutine normalize_riscv_r_record
 
     subroutine normalize_aarch64_record(target, record, normalized, status)
         type(target_ir_t), intent(in) :: target

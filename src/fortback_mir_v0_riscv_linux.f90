@@ -26,6 +26,9 @@ module fortback_mir_v0_riscv_linux
         riscv_source_ok
     use fortback_target_ir, only: make_source_ref, make_target_ir, source_ref_t, &
         target_ir_t
+    use fortback_targetir_codec, only: targetir_encode_record
+    use fortback_targetir_encoding, only: normalize_riscv_r_record, &
+        targetir_encoding_ok, targetir_encoding_record_t
     implicit none
     private
     integer(int32), parameter, public :: mir_v0_bridge_ok = 0_int32
@@ -2936,13 +2939,24 @@ contains
         character(len=*), intent(out) :: diagnostic
         integer :: index
         integer(int32) :: codec_status
+        type(targetir_encoding_record_t) :: normalized
 
         word = 0_int64
         status = mir_v0_bridge_unsupported
         call set_diagnostic(diagnostic, 'mir-v0: opcode encoding is unsupported')
         do index = 1, size(records)
             if (trim(records(index)%mnemonic) /= trim(operation)) cycle
-            call riscv_encode_record(target, records(index), values, word, codec_status)
+            if (records(index)%format == 'R') then
+                call normalize_riscv_r_record(target, records(index), normalized, codec_status)
+                if (codec_status /= targetir_encoding_ok) then
+                    status = mir_v0_bridge_malformed
+                    call set_diagnostic(diagnostic, 'mir-v0: R-format TargetIR record is malformed')
+                    return
+                end if
+                call targetir_encode_record(target, normalized, values, word, codec_status)
+            else
+                call riscv_encode_record(target, records(index), values, word, codec_status)
+            end if
             if (codec_status /= 0_int32) then
                 status = mir_v0_bridge_malformed
                 call set_diagnostic(diagnostic, 'mir-v0: opcode record is malformed')
