@@ -13,8 +13,26 @@ program test_mir_v0_bridge_generic_subtrahend
     character(len=*), parameter :: elf_path = '/tmp/fortback-mir-v0-generic-subtrahend.elf'
     character(len=*), parameter :: output_path = '/tmp/fortback-mir-v0-generic-subtrahend.out'
 
+    call assert_qemu(42, 1, '41'//achar(10))
+
     call assert_qemu(42, 2, '40'//achar(10))
     call assert_qemu(-42, 10, '-52'//achar(10))
+
+    input = initialized_sub_input(42, 0)
+    call assert_rejected(input, 'sub literal below the accepted bound was accepted')
+    input = initialized_sub_input(42, 11)
+    call assert_rejected(input, 'sub literal above the accepted bound was accepted')
+
+    input = initialized_sub_input(42, 1)
+    mutated = input
+    call replace_token(mutated, 'opcode sub', 'opcode pow')
+    call assert_rejected(mutated, 'wrong subtraction opcode mutation was accepted')
+    mutated = input
+    call replace_token(mutated, 'opcode store', 'opcode add')
+    call assert_rejected(mutated, 'wrong subtraction storage opcode was accepted')
+    mutated = input
+    call replace_token(mutated, 'storage-key counter_2', 'storage-key x')
+    call assert_rejected(mutated, 'mismatched counter_2 storage key was accepted')
 
     input = initialized_add_input(42, 0)
     call assert_rejected(input, 'add literal below the accepted bound was accepted')
@@ -43,7 +61,8 @@ contains
 
         input = initialized_sub_input(left, subtrahend)
         call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
-        call assert_equal(status, mir_v0_bridge_ok, 'accepted initialized sub was rejected')
+        call assert_equal(status, mir_v0_bridge_ok, &
+            'accepted initialized sub was rejected: '//trim(diagnostic))
         call write_mir_v0_riscv_linux(input, elf_path, status, diagnostic)
         call assert_equal(status, mir_v0_bridge_ok, 'initialized sub ELF write failed')
         call execute_command_line('chmod 755 -- '//elf_path, wait=.true., &
@@ -95,16 +114,17 @@ contains
         value = '(mir-function (name main) (entry-block 0) (instruction-count 9) '// &
             '(instructions (instruction (id 0) (opcode const) (literal '//int_text(left)//') '// &
             '(source-rule frontend-ast-v2/execution-part) (result (id 0) (kind integer) (type i32))) '// &
-            '(instruction (id 1) (opcode store) (storage-key x) (source-rule frontend-ast-v2/execution-part) '// &
+            '(instruction (id 1) (opcode store) (storage-key counter_2) '// &
+            '(source-rule frontend-ast-v2/execution-part) '// &
             '(result (id 1) (kind integer) (type i32))) (instruction (id 2) (opcode load) '// &
-            '(storage-key x) (source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) (type i32))) '// &
+            '(storage-key counter_2) (source-rule frontend-ast-v2/print-stmt) (result (id 2) (kind integer) (type i32))) '// &
             '(instruction (id 3) (opcode const) (literal '//int_text(subtrahend)//') '// &
             '(source-rule frontend-ast-v2/print-stmt) (result (id 3) (kind integer) (type i32))) '// &
             '(instruction (id 4) (opcode sub) (source-rule frontend-ast-v2/print-stmt) '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 5) (opcode store) '// &
-            '(storage-key x) (source-rule frontend-ast-v2/print-stmt) '// &
+            '(storage-key counter_2) (source-rule frontend-ast-v2/print-stmt) '// &
             '(result (id 4) (kind integer) (type i32))) (instruction (id 6) (opcode load) '// &
-            '(storage-key x) (source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) (type i32))) '// &
+            '(storage-key counter_2) (source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) (type i32))) '// &
             '(instruction (id 7) (opcode output) (source-rule frontend-ast-v2/print-stmt) '// &
             '(result (id 6) (kind integer) (type i32))) (instruction (id 8) (opcode return) '// &
             '(source-rule frontend-ast-v2/print-stmt) (result (id 6) (kind integer) (type i32)))))'
