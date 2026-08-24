@@ -110,7 +110,6 @@ contains
         logical :: pure_literal_print_route
         logical :: print_variable_route, print_variable_expression_route
         integer(int32) :: print_variable_item_count
-        logical :: print_variable_seven_to_eighty_item_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
         status = mir_v0_bridge_malformed
@@ -155,8 +154,6 @@ contains
         print_variable_route = is_print_variable_candidate(mir)
         print_variable_expression_route = is_print_variable_expression_candidate(mir)
         print_variable_item_count = is_print_variable_item_count(mir)
-        print_variable_seven_to_eighty_item_route = &
-            is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
         pure_literal_print_route = is_pure_literal_print_list_route(mir)
         print_route = trim(mir%name) == 'p' .and. &
@@ -166,7 +163,8 @@ contains
             call encode_generic_print_list(target, records, mir, words, emitted_count, &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-        else if (print_variable_seven_to_eighty_item_route) then
+        else if (print_variable_item_count >= 7_int32 .and. &
+                print_variable_item_count <= 100_int32) then
             call encode_print_variable_seven_to_eighty(target, records, mir, words, emitted_count, &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
@@ -1687,7 +1685,6 @@ contains
         integer :: index
         logical :: print_variable_route, print_variable_expression_route
         integer(int32) :: print_variable_item_count
-        logical :: print_variable_seven_to_eighty_item_route
         logical :: generic_print_route
         logical :: pure_literal_print_route
         logical :: initialized_power_variable_shape
@@ -1702,8 +1699,6 @@ contains
         generic_scalar_print_variable_route = is_generic_scalar_print_variable_route(mir)
         print_variable_expression_route = is_print_variable_expression_candidate(mir)
         print_variable_item_count = is_print_variable_item_count(mir)
-        print_variable_seven_to_eighty_item_route = &
-            is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
         pure_literal_print_route = is_pure_literal_print_list_route(mir)
         initialized_variable_y_or_z_route = is_initialized_variable_y_or_z_route(mir)
@@ -1746,7 +1741,8 @@ contains
             call set_diagnostic(diagnostic, 'mir-v0: function is out of scope')
             return
         end if
-        if (print_variable_seven_to_eighty_item_route) then
+        if (print_variable_item_count >= 7_int32 .and. &
+                print_variable_item_count <= 100_int32) then
             if (.not. valid_print_variable_items(mir,  &
                 (mir%instruction_count - 7_int32) / 2_int32)) then
                 call set_diagnostic(diagnostic, &
@@ -2170,10 +2166,10 @@ contains
 
         item_count = 0_int32
         if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count < 11_int32 .or. mir%instruction_count > 19_int32) return
+        if (mir%instruction_count < 11_int32 .or. mir%instruction_count > 207_int32) return
         if (mod(mir%instruction_count - 7_int32, 2_int32) /= 0_int32) return
         item_count = (mir%instruction_count - 7_int32) / 2_int32
-        if (item_count < 2_int32 .or. item_count > 6_int32) then
+        if (item_count < 2_int32 .or. item_count > 100_int32) then
             item_count = 0_int32
             return
         end if
@@ -2205,31 +2201,6 @@ contains
             item_count = 0_int32
         end if
     end function is_print_variable_item_count
-
-    logical function is_print_variable_seven_to_hundred_item_candidate(mir) result(candidate)
-        type(parsed_mir_t), intent(in) :: mir
-        integer :: index, item_count
-
-        candidate = .false.
-        if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count < 21_int32 .or. mir%instruction_count > 207_int32) return
-        if (mod(mir%instruction_count - 7_int32, 2_int32) /= 0_int32) return
-        item_count = (mir%instruction_count - 7) / 2
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-        if (mir%instructions(1)%opcode /= mir_v0_opcode_const) return
-        if (mir%instructions(2)%opcode /= mir_v0_opcode_store) return
-        if (mir%instructions(3)%opcode /= mir_v0_opcode_load) return
-        if (mir%instructions(4)%opcode /= mir_v0_opcode_const) return
-        if (mir%instructions(5)%opcode /= mir_v0_opcode_pow) return
-        if (mir%instructions(6)%opcode /= mir_v0_opcode_store) return
-        do index = 1, item_count
-            if (mir%instructions(5 + 2 * index)%opcode /= mir_v0_opcode_load) return
-            if (mir%instructions(6 + 2 * index)%opcode /= mir_v0_opcode_output) return
-        end do
-        if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) return
-        candidate = .true.
-    end function is_print_variable_seven_to_hundred_item_candidate
 
     logical function is_print_variable_expression_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
