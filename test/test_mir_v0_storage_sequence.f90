@@ -256,6 +256,24 @@ program test_mir_v0_storage_sequence
         call assert_equal(command_status, 0, 'generated storage qemu command failed')
         call assert_equal(exit_status, route_index + 6, 'generated route returned wrong status')
     end do
+    do route_index = 3, 10
+        input = sequence_generated_input_v2(route_index, 4 * route_index - 4, .false., 'x')
+        call assert_equal(mir_v0_bridge_policy_instruction_count_for('main', &
+            'frontend-ast-v2/execution-part-'//int_text(route_index)), &
+            int(4 * route_index - 1, int32), 'v2 generated route count changed')
+        call compile_mir_v0_riscv_linux(input, artifact, status, diagnostic)
+        call assert_equal(status, mir_v0_bridge_ok, 'v2 generated sequence was rejected')
+        if (route_index == 3 .or. route_index == 10) then
+            call write_mir_v0_riscv_linux(input, path, status, diagnostic)
+            call assert_equal(status, mir_v0_bridge_ok, 'v2 generated ELF write failed')
+            call execute_command_line('chmod 755 -- '//path, wait=.true., exitstat=exit_status, &
+                cmdstat=command_status)
+            call assert_equal(command_status, 0, 'v2 generated chmod failed')
+            call execute_command_line('qemu-riscv64 '//path, wait=.true., exitstat=exit_status, &
+                cmdstat=command_status)
+            call assert_equal(exit_status, route_index + 6, 'v2 generated route returned wrong status')
+        end if
+    end do
     call compile_mir_v0_riscv_linux(sequence_generated_input(10, 36, .true., 'x'), &
         artifact, status, diagnostic)
     call assert_equal(status, mir_v0_bridge_out_of_scope, 'generated wrong order was accepted')
@@ -661,6 +679,17 @@ contains
         end do
         value = trim(value)//'))'
     end function sequence_generated_input
+
+    function sequence_generated_input_v2(sequence_count, return_id, wrong_order, storage_key) result(value)
+        integer, intent(in) :: sequence_count, return_id
+        logical, intent(in) :: wrong_order
+        character(len=*), intent(in) :: storage_key
+        character(len=32768) :: value
+
+        value = sequence_generated_input(sequence_count, return_id, wrong_order, storage_key)
+        value = replace_text(value, 'frontend-ast-v1/storage-sequence-'//int_text(sequence_count), &
+            'frontend-ast-v2/execution-part-'//int_text(sequence_count))
+    end function sequence_generated_input_v2
 
     function sequence_six_instruction(load_key, store_key, index, opcode, literal, shape, result_id) &
             result(text)

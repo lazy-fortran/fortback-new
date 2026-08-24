@@ -135,6 +135,12 @@ route-operation source-rule frontend-ast-v2/execution-part-6 index 19 operation 
 route-operation source-rule frontend-ast-v2/execution-part-6 index 20 operation add
 route-operation source-rule frontend-ast-v2/execution-part-6 index 21 operation sd
 route-operation source-rule frontend-ast-v2/execution-part-6 index 22 operation addi
+route-pattern source-rule frontend-ast-v2/execution-part-3 count 11 pattern storage-sequence
+route-pattern source-rule frontend-ast-v2/execution-part-4 count 15 pattern storage-sequence
+route-pattern source-rule frontend-ast-v2/execution-part-7 count 27 pattern storage-sequence
+route-pattern source-rule frontend-ast-v2/execution-part-8 count 31 pattern storage-sequence
+route-pattern source-rule frontend-ast-v2/execution-part-9 count 35 pattern storage-sequence
+route-pattern source-rule frontend-ast-v2/execution-part-10 count 39 pattern storage-sequence
 route-operation source-rule frontend-ast-v1/storage-sequence-3 index 0 operation addi
 route-operation source-rule frontend-ast-v1/storage-sequence-3 index 1 operation sd
 route-operation source-rule frontend-ast-v1/storage-sequence-3 index 2 operation ld

@@ -61,6 +61,8 @@ def read_policy():
             operations.append((count - 1, "addi"))
             policy["route-operations"].extend(
                 (fields[2], index, operation) for index, operation in operations)
+            if fields[2].startswith("frontend-ast-v2/execution-part-"):
+                policy["generated-source-routes"].append((fields[2], count))
         elif fields[0] == "result-shape" and len(fields) == 5:
             if fields[1] in shape_names:
                 raise SystemExit(f"{INPUT}:{line_number}: duplicate result shape")
@@ -150,26 +152,42 @@ def read_policy():
     if not policy["source-rules"]:
         raise SystemExit(f"{INPUT}: at least one source-rule row is required")
     for source_rule, instruction_count in policy["generated-source-routes"]:
-        if instruction_count < 49 or instruction_count > 207 or instruction_count % 2 == 0:
-            raise SystemExit(f"{INPUT}: stored-variable PRINT count is out of range")
-        item_count = (instruction_count - 7) // 2
-        shapes = ["integer-literal-left", "integer-sequence-store-literal",
-                  "integer-sequence-loaded", "integer-sequence-literal-right",
-                  "integer-sequence-expression", "integer-sequence-expression-result",
-                  "integer-sequence-3-loaded", "integer-sequence-3-loaded"]
-        for item_index in range(2, item_count + 1):
-            shape = "integer-variable-print-value"
-            if item_index == 2:
-                shape = "integer-variable-print-value-actual"
-            elif item_index >= 4:
-                shape = f"integer-variable-print-value-actual-{item_index + 5}"
-            shapes.extend((shape, shape))
-        shapes.append(shapes[-1])
-        policy["source-rules"].append(("main", source_rule, tuple(shapes),
-                                        ("const", "store", "load", "const", "pow", "store",
-                                         "load", "output") +
-                                        tuple(opcode for _ in range(item_count - 1)
-                                              for opcode in ("load", "output")) + ("return",)))
+        if source_rule.startswith("frontend-ast-v2/execution-part-"):
+            sequence_count = int(source_rule.rsplit("-", 1)[1])
+            if instruction_count != 4 * sequence_count - 1:
+                raise SystemExit(f"{INPUT}: v2 sequence route count does not match its source rule")
+            shapes = ["integer-literal-left", "integer-sequence-store-literal"]
+            for step in range(2, sequence_count + 1):
+                suffix = "" if step == 2 else f"-{step}"
+                shapes.extend((f"integer-sequence{suffix}-loaded",
+                               f"integer-sequence{suffix}-literal-right",
+                               f"integer-sequence{suffix}-expression",
+                               f"integer-sequence{suffix}-expression-result"))
+            shapes.append(shapes[-1])
+            opcodes = ["const", "store"]
+            for _ in range(2, sequence_count + 1):
+                opcodes.extend(("load", "const", "add", "store"))
+            opcodes.append("return")
+        else:
+            if instruction_count < 49 or instruction_count > 207 or instruction_count % 2 == 0:
+                raise SystemExit(f"{INPUT}: stored-variable PRINT count is out of range")
+            item_count = (instruction_count - 7) // 2
+            shapes = ["integer-literal-left", "integer-sequence-store-literal",
+                      "integer-sequence-loaded", "integer-sequence-literal-right",
+                      "integer-sequence-expression", "integer-sequence-expression-result",
+                      "integer-sequence-3-loaded", "integer-sequence-3-loaded"]
+            for item_index in range(2, item_count + 1):
+                shape = "integer-variable-print-value"
+                if item_index == 2:
+                    shape = "integer-variable-print-value-actual"
+                elif item_index >= 4:
+                    shape = f"integer-variable-print-value-actual-{item_index + 5}"
+                shapes.extend((shape, shape))
+            shapes.append(shapes[-1])
+            opcodes = ("const", "store", "load", "const", "pow", "store",
+                       "load", "output") + tuple(opcode for _ in range(item_count - 1)
+                                                    for opcode in ("load", "output")) + ("return",)
+        policy["source-rules"].append(("main", source_rule, tuple(shapes), tuple(opcodes)))
     if policy["storage-policy"] is None:
         raise SystemExit(f"{INPUT}: storage policy is required")
     if policy["frame-operation"] is None or policy["exit-status-operation"] is None:
