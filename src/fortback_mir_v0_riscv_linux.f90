@@ -104,10 +104,7 @@ contains
         integer(int64) :: power_value
         character(len=32) :: print_digits
         logical :: storage_route, initialized_variable_y_or_z_route
-        logical :: storage_sequence_route, storage_sequence_3_route
-        logical :: storage_sequence_4_route
-        logical :: storage_sequence_5_route
-        logical :: storage_sequence_6_route
+        logical :: storage_sequence_route
         logical :: storage_sequence_generated_route
         logical :: print_route, generic_print_route
         logical :: pure_literal_print_route
@@ -149,11 +146,9 @@ contains
         storage_route = mir%instruction_count == 5_int32 .and. &
             (mir%instructions(1)%storage_present .or. mir%instructions(4)%storage_present)
         storage_route = storage_route .or. initialized_variable_y_or_z_route
-        storage_sequence_route = mir%instruction_count == 7_int32
-        storage_sequence_3_route = mir%instruction_count == 11_int32
-        storage_sequence_4_route = mir%instruction_count == 15_int32
-        storage_sequence_5_route = mir%instruction_count == 19_int32
-        storage_sequence_6_route = mir%instruction_count == 23_int32
+        storage_sequence_route = mir%instruction_count >= 7_int32 .and. &
+            mir%instruction_count <= 23_int32 .and. &
+            mod(mir%instruction_count - 7_int32, 4_int32) == 0_int32
         storage_sequence_generated_route = mir%instruction_count == 27_int32 .or. &
             mir%instruction_count == 31_int32 .or. mir%instruction_count == 35_int32 .or. &
             mir%instruction_count == 39_int32
@@ -953,7 +948,8 @@ contains
             if (status /= mir_v0_bridge_ok) return
             emitted_count = mir%instruction_count + 2_int32
         else if (storage_sequence_route) then
-            if (mir%instructions(5)%opcode == mir_v0_opcode_sub) then
+            if (mir%instruction_count == 7_int32 .and. &
+                mir%instructions(5)%opcode == mir_v0_opcode_sub) then
                 if (mir%instructions(1)%literal /= 3_int32 .or. &
                     mir%instructions(4)%literal /= 2_int32) then
                     call set_diagnostic(diagnostic, 'mir-v0: generic subtraction is out of scope')
@@ -964,151 +960,34 @@ contains
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            do index = 1, 7
+            do index = 1, mir%instruction_count
                 operation = mir_v0_bridge_policy_route_operation_for( &
                     mir%instructions(index)%source_rule, int(index - 1, int32))
-                select case (index)
-                case (1)
+                if (index == 1) then
                     values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (2)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (3)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (4)
-                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (5)
-                    values = [10_int64, 10_int64, 11_int64]
-                case (6)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (7)
+                else if (index == mir%instruction_count) then
                     values = [17_int64, 0_int64, 93_int64]
-                end select
+                else
+                    select case (mod(index, 4))
+                    case (0)
+                        values = [11_int64, 0_int64, &
+                            int(mir%instructions(index)%literal, int64)]
+                    case (1)
+                        values = [10_int64, 10_int64, 11_int64]
+                    case default
+                        values = [10_int64, 2_int64, &
+                            int(mir_v0_bridge_policy_storage_offset, int64)]
+                    end select
+                end if
                 call encode_operation(target, records, trim(operation), values, words(index + 1), &
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
             end do
             call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                mir_v0_riscv_linux_ecall_operands, words(9), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            emitted_count = 9_int32
-        else if (storage_sequence_3_route) then
-            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
-                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
+                mir_v0_riscv_linux_ecall_operands, words(mir%instruction_count + 2), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            do index = 1, 11
-                operation = mir_v0_bridge_policy_route_operation_for( &
-                    mir%instructions(index)%source_rule, int(index - 1, int32))
-                select case (index)
-                case (1)
-                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (2, 6, 10)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (3, 7)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (4, 8)
-                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (5, 9)
-                    values = [10_int64, 10_int64, 11_int64]
-                case (11)
-                    values = [17_int64, 0_int64, 93_int64]
-                end select
-                call encode_operation(target, records, trim(operation), values, words(index + 1), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-            end do
-            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                mir_v0_riscv_linux_ecall_operands, words(13), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            emitted_count = 13_int32
-        else if (storage_sequence_4_route) then
-            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
-                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
-                status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            do index = 1, 15
-                operation = mir_v0_bridge_policy_route_operation_for( &
-                    mir%instructions(index)%source_rule, int(index - 1, int32))
-                select case (index)
-                case (1)
-                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (2, 6, 10, 14)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (3, 7, 11)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (4, 8, 12)
-                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (5, 9, 13)
-                    values = [10_int64, 10_int64, 11_int64]
-                case (15)
-                    values = [17_int64, 0_int64, 93_int64]
-                end select
-                call encode_operation(target, records, trim(operation), values, words(index + 1), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-            end do
-            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                mir_v0_riscv_linux_ecall_operands, words(17), status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            emitted_count = 17_int32
-        else if (storage_sequence_6_route) then
-            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
-                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
-                status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            do index = 1, 23
-                operation = mir_v0_bridge_policy_route_operation_for( &
-                    mir%instructions(index)%source_rule, int(index - 1, int32))
-                select case (index)
-                case (1)
-                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (2, 6, 10, 14, 18, 22)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (3, 7, 11, 15, 19)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (4, 8, 12, 16, 20)
-                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (5, 9, 13, 17, 21)
-                    values = [10_int64, 10_int64, 11_int64]
-                case (23)
-                    values = [17_int64, 0_int64, 93_int64]
-                end select
-                call encode_operation(target, records, trim(operation), values, words(index + 1), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-            end do
-            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                mir_v0_riscv_linux_ecall_operands, words(25), status, diagnostic)
-            emitted_count = 25_int32
-        else if (storage_sequence_5_route) then
-            call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
-                [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
-                status, diagnostic)
-            if (status /= mir_v0_bridge_ok) return
-            do index = 1, 19
-                operation = mir_v0_bridge_policy_route_operation_for( &
-                    mir%instructions(index)%source_rule, int(index - 1, int32))
-                select case (index)
-                case (1)
-                    values = [10_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (2, 6, 10, 14, 18)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (3, 7, 11, 15)
-                    values = [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)]
-                case (4, 8, 12, 16)
-                    values = [11_int64, 0_int64, int(mir%instructions(index)%literal, int64)]
-                case (5, 9, 13, 17)
-                    values = [10_int64, 10_int64, 11_int64]
-                case (19)
-                    values = [17_int64, 0_int64, 93_int64]
-                end select
-                call encode_operation(target, records, trim(operation), values, words(index + 1), &
-                    status, diagnostic)
-                if (status /= mir_v0_bridge_ok) return
-            end do
-            call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, &
-                mir_v0_riscv_linux_ecall_operands, words(21), status, diagnostic)
-            emitted_count = 21_int32
+            emitted_count = mir%instruction_count + 2_int32
         else if (storage_route) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
@@ -1174,8 +1053,6 @@ contains
             if (status /= mir_v0_bridge_ok) return
         end if
         if (.not. print_route .and. .not. storage_route .and. .not. storage_sequence_route .and. &
-            .not. storage_sequence_3_route .and. .not. storage_sequence_4_route .and. &
-            .not. storage_sequence_5_route .and. .not. storage_sequence_6_route .and. &
             .not. storage_sequence_generated_route) then
             values = mir_v0_riscv_linux_ecall_operands
             call encode_operation(target, records, mir_v0_riscv_linux_ecall_operation, values, &
