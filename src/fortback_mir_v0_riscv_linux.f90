@@ -112,11 +112,7 @@ contains
         logical :: print_route, generic_print_route
         logical :: pure_literal_print_route
         logical :: print_variable_route, print_variable_expression_route
-        logical :: print_variable_two_item_route
-        logical :: print_variable_three_item_route
-        logical :: print_variable_four_item_route
-        logical :: print_variable_five_item_route
-        logical :: print_variable_six_item_route
+        integer(int32) :: print_variable_item_count
         logical :: print_variable_seven_to_eighty_item_route
         artifact = riscv_linux_artifact_t()
         diagnostic = ''
@@ -163,11 +159,7 @@ contains
             mir%instruction_count == 39_int32
         print_variable_route = is_print_variable_candidate(mir)
         print_variable_expression_route = is_print_variable_expression_candidate(mir)
-        print_variable_two_item_route = is_print_variable_two_item_candidate(mir)
-        print_variable_three_item_route = is_print_variable_three_item_candidate(mir)
-        print_variable_four_item_route = is_print_variable_four_item_candidate(mir)
-        print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
-        print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
+        print_variable_item_count = is_print_variable_item_count(mir)
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
@@ -183,8 +175,7 @@ contains
             call encode_print_variable_seven_to_eighty(target, records, mir, words, emitted_count, &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-        else if (print_variable_three_item_route .or. print_variable_four_item_route .or. &
-                print_variable_five_item_route .or. print_variable_six_item_route) then
+        else if (print_variable_item_count >= 3_int32 .and. print_variable_item_count <= 6_int32) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -258,7 +249,7 @@ contains
             call encode_operation(target, records, 'sb', [5_int64, 2_int64, 5_int64], words(22), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
-            if (print_variable_four_item_route) then
+            if (print_variable_item_count == 4_int32) then
                 call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
                     [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(23), &
                     status, diagnostic)
@@ -276,7 +267,7 @@ contains
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 print_syscall_word = 28_int32
-            else if (print_variable_five_item_route) then
+            else if (print_variable_item_count == 5_int32) then
                 call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
                     [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(23), &
                     status, diagnostic)
@@ -310,7 +301,7 @@ contains
                     status, diagnostic)
                 if (status /= mir_v0_bridge_ok) return
                 print_syscall_word = 33_int32
-            else if (print_variable_six_item_route) then
+            else if (print_variable_item_count == 6_int32) then
                 call encode_operation(target, records, trim(mir_v0_bridge_policy_load_operation), &
                     [10_int64, 2_int64, int(mir_v0_bridge_policy_storage_offset, int64)], words(23), &
                     status, diagnostic)
@@ -373,10 +364,9 @@ contains
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             print_syscall_word = print_syscall_word + 1_int32
-            call encode_operation(target, records, 'addi', [12_int64, 0_int64, &
-                merge(12_int64, merge(10_int64, merge(8_int64, 6_int64, &
-                print_variable_four_item_route), print_variable_five_item_route), &
-                print_variable_six_item_route)], words(print_syscall_word), &
+            call encode_operation(target, records, 'addi', &
+                [12_int64, 0_int64, 2_int64 * int(print_variable_item_count, int64)], &
+                words(print_syscall_word), &
                 status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             print_syscall_word = print_syscall_word + 1_int32
@@ -403,7 +393,7 @@ contains
                 mir_v0_riscv_linux_ecall_operands, words(print_syscall_word), status, diagnostic)
             if (status /= mir_v0_bridge_ok) return
             emitted_count = print_syscall_word
-        else if (print_variable_two_item_route) then
+        else if (print_variable_item_count == 2_int32) then
             call encode_operation(target, records, trim(mir_v0_bridge_policy_frame_operation()), &
                 [2_int64, 2_int64, -int(mir_v0_bridge_policy_frame_size, int64)], words(1), &
                 status, diagnostic)
@@ -1819,11 +1809,7 @@ contains
         character(len=*), intent(out) :: diagnostic
         integer :: index
         logical :: print_variable_route, print_variable_expression_route
-        logical :: print_variable_two_item_route
-        logical :: print_variable_three_item_route
-        logical :: print_variable_four_item_route
-        logical :: print_variable_five_item_route
-        logical :: print_variable_six_item_route
+        integer(int32) :: print_variable_item_count
         logical :: print_variable_seven_to_eighty_item_route
         logical :: generic_print_route
         logical :: pure_literal_print_route
@@ -1838,11 +1824,7 @@ contains
         print_variable_route = is_print_variable_candidate(mir)
         generic_scalar_print_variable_route = is_generic_scalar_print_variable_route(mir)
         print_variable_expression_route = is_print_variable_expression_candidate(mir)
-        print_variable_two_item_route = is_print_variable_two_item_candidate(mir)
-        print_variable_three_item_route = is_print_variable_three_item_candidate(mir)
-        print_variable_four_item_route = is_print_variable_four_item_candidate(mir)
-        print_variable_five_item_route = is_print_variable_five_item_candidate(mir)
-        print_variable_six_item_route = is_print_variable_six_item_candidate(mir)
+        print_variable_item_count = is_print_variable_item_count(mir)
         print_variable_seven_to_eighty_item_route = &
             is_print_variable_seven_to_hundred_item_candidate(mir)
         generic_print_route = is_generic_print_list_route(mir)
@@ -1894,29 +1876,9 @@ contains
                     'mir-v0: PRINT seven-to-eighty-item witness is out of scope')
                 return
             end if
-        else if (print_variable_six_item_route) then
-            if (.not. valid_print_variable_items(mir, 6_int32)) then
-                call set_diagnostic(diagnostic, 'mir-v0: PRINT six-item witness is out of scope')
-                return
-            end if
-        else if (print_variable_five_item_route) then
-            if (.not. valid_print_variable_items(mir, 5_int32)) then
-                call set_diagnostic(diagnostic, 'mir-v0: PRINT five-item witness is out of scope')
-                return
-            end if
-        else if (print_variable_four_item_route) then
-            if (.not. valid_print_variable_items(mir, 4_int32)) then
-                call set_diagnostic(diagnostic, 'mir-v0: PRINT four-item witness is out of scope')
-                return
-            end if
-        else if (print_variable_three_item_route) then
-            if (.not. valid_print_variable_items(mir, 3_int32)) then
-                call set_diagnostic(diagnostic, 'mir-v0: PRINT three-item witness is out of scope')
-                return
-            end if
-        else if (print_variable_two_item_route) then
-            if (.not. valid_print_variable_items(mir, 2_int32)) then
-                call set_diagnostic(diagnostic, 'mir-v0: PRINT two-item witness is out of scope')
+        else if (print_variable_item_count >= 2_int32 .and. print_variable_item_count <= 6_int32) then
+            if (.not. valid_print_variable_items(mir, print_variable_item_count)) then
+                call set_diagnostic(diagnostic, 'mir-v0: PRINT small-item witness is out of scope')
                 return
             end if
         else if (initialized_variable_y_or_z_route) then
@@ -2325,130 +2287,47 @@ contains
         valid = .true.
     end function valid_pure_literal_print_list
 
-    logical function is_print_variable_two_item_candidate(mir) result(candidate)
+    integer(int32) function is_print_variable_item_count(mir) result(item_count)
         type(parsed_mir_t), intent(in) :: mir
+        integer :: index
 
-        candidate = .false.
+        item_count = 0_int32
         if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count /= 11_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-        candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(5)%opcode == mir_v0_opcode_pow .and. &
-            mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(9)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(10)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(11)%opcode == mir_v0_opcode_return
-    end function is_print_variable_two_item_candidate
-
-    logical function is_print_variable_three_item_candidate(mir) result(candidate)
-        type(parsed_mir_t), intent(in) :: mir
-
-        candidate = .false.
-        if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count /= 13_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-        candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(5)%opcode == mir_v0_opcode_pow .and. &
-            mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(9)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(10)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(11)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(12)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(13)%opcode == mir_v0_opcode_return
-    end function is_print_variable_three_item_candidate
-
-    logical function is_print_variable_four_item_candidate(mir) result(candidate)
-        type(parsed_mir_t), intent(in) :: mir
-
-        candidate = .false.
-        if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count /= 15_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-        candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(5)%opcode == mir_v0_opcode_pow .and. &
-            mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(9)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(10)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(11)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(12)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(13)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(14)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(15)%opcode == mir_v0_opcode_return
-    end function is_print_variable_four_item_candidate
-
-    logical function is_print_variable_five_item_candidate(mir) result(candidate)
-        type(parsed_mir_t), intent(in) :: mir
-
-        candidate = .false.
-        if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count /= 17_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-        candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(5)%opcode == mir_v0_opcode_pow .and. &
-            mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(9)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(10)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(11)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(12)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(13)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(14)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(15)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(16)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(17)%opcode == mir_v0_opcode_return
-    end function is_print_variable_five_item_candidate
-
-    logical function is_print_variable_six_item_candidate(mir) result(candidate)
-        type(parsed_mir_t), intent(in) :: mir
-
-        candidate = .false.
-        if (trim(mir%name) /= 'main') return
-        if (mir%instruction_count /= 19_int32) return
-        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') return
-        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') return
-        candidate = mir%instructions(1)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(2)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(3)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(4)%opcode == mir_v0_opcode_const .and. &
-            mir%instructions(5)%opcode == mir_v0_opcode_pow .and. &
-            mir%instructions(6)%opcode == mir_v0_opcode_store .and. &
-            mir%instructions(7)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(8)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(9)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(10)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(11)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(12)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(13)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(14)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(15)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(16)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(17)%opcode == mir_v0_opcode_load .and. &
-            mir%instructions(18)%opcode == mir_v0_opcode_output .and. &
-            mir%instructions(19)%opcode == mir_v0_opcode_return
-    end function is_print_variable_six_item_candidate
+        if (mir%instruction_count < 11_int32 .or. mir%instruction_count > 19_int32) return
+        if (mod(mir%instruction_count - 7_int32, 2_int32) /= 0_int32) return
+        item_count = (mir%instruction_count - 7_int32) / 2_int32
+        if (item_count < 2_int32 .or. item_count > 6_int32) then
+            item_count = 0_int32
+            return
+        end if
+        if (trim(mir%instructions(1)%source_rule) /= 'frontend-ast-v2/execution-part') then
+            item_count = 0_int32
+            return
+        end if
+        if (trim(mir%instructions(7)%source_rule) /= 'frontend-ast-v2/print-stmt') then
+            item_count = 0_int32
+            return
+        end if
+        if (mir%instructions(1)%opcode /= mir_v0_opcode_const .or. &
+            mir%instructions(2)%opcode /= mir_v0_opcode_store .or. &
+            mir%instructions(3)%opcode /= mir_v0_opcode_load .or. &
+            mir%instructions(4)%opcode /= mir_v0_opcode_const .or. &
+            mir%instructions(5)%opcode /= mir_v0_opcode_pow .or. &
+            mir%instructions(6)%opcode /= mir_v0_opcode_store) then
+            item_count = 0_int32
+            return
+        end if
+        do index = 1, item_count
+            if (mir%instructions(5 + 2 * index)%opcode /= mir_v0_opcode_load .or. &
+                mir%instructions(6 + 2 * index)%opcode /= mir_v0_opcode_output) then
+                item_count = 0_int32
+                return
+            end if
+        end do
+        if (mir%instructions(mir%instruction_count)%opcode /= mir_v0_opcode_return) then
+            item_count = 0_int32
+        end if
+    end function is_print_variable_item_count
 
     logical function is_print_variable_seven_to_hundred_item_candidate(mir) result(candidate)
         type(parsed_mir_t), intent(in) :: mir
